@@ -1,6 +1,6 @@
 module github.com/dogasantos/cwecapec
 
-go 1.23
+go 1.20
 
 require github.com/xuri/excelize/v2 v2.9.1
 
