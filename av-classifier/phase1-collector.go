@@ -221,13 +221,13 @@ func main() {
 		fmt.Println("⚠️  No API key found. Using rate limit: 5 requests per 30 seconds")
 		fmt.Println("   Set NVD_API_KEY environment variable for 50 requests per 30 seconds\n")
 	} else {
-		fmt.Println("✓ API key found. Using rate limit: 50 requests per 30 seconds\n")
+		fmt.Println("API key found. Using rate limit: 50 requests per 30 seconds\n")
 	}
 
 	// Build CWE mapping
 	cweMap := buildCWEMap()
-	fmt.Printf("✓ Loaded %d attack vector categories\n", len(attackVectorMappings))
-	fmt.Printf("✓ Mapped %d unique CWE IDs\n\n", len(cweMap))
+	fmt.Printf("Loaded %d attack vector categories\n", len(attackVectorMappings))
+	fmt.Printf("Mapped %d unique CWE IDs\n\n", len(cweMap))
 
 	// Collect training data
 	var trainingData []TrainingRecord
@@ -316,7 +316,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("✓ Training data saved successfully!")
+	fmt.Println("Training data saved successfully!")
 
 	// Print statistics by attack vector
 	vectorCounts := make(map[string]int)
@@ -336,5 +336,5 @@ func main() {
 		}
 	}
 
-	fmt.Println("\n✓ Phase 1 complete! Ready for Phase 2 (Naive Bayes training)")
+	fmt.Println("\nPhase 1 complete! Ready for Phase 2 (Naive Bayes training)")
 }
