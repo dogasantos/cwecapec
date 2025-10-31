@@ -141,6 +141,71 @@ func parseCAPECXML(xmlData []byte) (*CAPECCatalog, error) {
 	return &catalog, nil
 }
 
+func fetchDescriptionFromWeb(capecID string) string {
+	// Fetch description from MITRE CAPEC website
+	url := fmt.Sprintf("https://capec.mitre.org/data/definitions/%s.html", capecID)
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return ""
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ""
+	}
+
+	// Simple extraction: find text between description tags
+	// This is a simplified approach - in production, use proper HTML parsing
+	html := string(body)
+
+	// Look for the description paragraph
+	start := strings.Index(html, "<div id=\"Description\"")
+	if start == -1 {
+		return ""
+	}
+
+	// Find the next paragraph after Description heading
+	pStart := strings.Index(html[start:], "<p>")
+	if pStart == -1 {
+		return ""
+	}
+	pStart += start
+
+	pEnd := strings.Index(html[pStart:], "</p>")
+	if pEnd == -1 {
+		return ""
+	}
+	pEnd += pStart
+
+	desc := html[pStart+3 : pEnd]
+
+	// Remove HTML tags
+	desc = strings.ReplaceAll(desc, "<br/>", " ")
+	desc = strings.ReplaceAll(desc, "<br>", " ")
+
+	// Simple tag removal (not perfect but good enough)
+	for strings.Contains(desc, "<") {
+		tagStart := strings.Index(desc, "<")
+		tagEnd := strings.Index(desc[tagStart:], ">")
+		if tagEnd == -1 {
+			break
+		}
+		desc = desc[:tagStart] + desc[tagStart+tagEnd+1:]
+	}
+
+	return strings.TrimSpace(desc)
+}
+
 func convertToTrainingData(catalog *CAPECCatalog) []CAPECTrainingData {
 	var trainingData []CAPECTrainingData
 
@@ -149,6 +214,15 @@ func convertToTrainingData(catalog *CAPECCatalog) []CAPECTrainingData {
 		description := strings.TrimSpace(ap.Description.Summary)
 		if description == "" {
 			description = strings.TrimSpace(ap.Description.Text)
+		}
+
+		// If still no description, fetch from MITRE website
+		if description == "" || len(description) < 20 {
+			fmt.Printf("  Fetching description for CAPEC-%s from website...\n", ap.ID)
+			webDesc := fetchDescriptionFromWeb(ap.ID)
+			if webDesc != "" {
+				description = webDesc
+			}
 		}
 
 		// Extract related CWEs
@@ -197,13 +271,10 @@ func filterValidCAPECs(data []CAPECTrainingData) []CAPECTrainingData {
 	var valid []CAPECTrainingData
 
 	for _, capec := range data {
-		// Filter criteria:
+		// Filter criteria (relaxed to include all CAPECs):
 		// 1. Must have a description
-		// 2. Description must be at least 50 characters
-		// 3. Must have at least one related CWE or prerequisite
-		if capec.Description != "" &&
-			len(capec.Description) >= 50 &&
-			(len(capec.RelatedCWEs) > 0 || len(capec.Prerequisites) > 0) {
+		// 2. Description must be at least 20 characters (reduced from 50)
+		if capec.Description != "" && len(capec.Description) >= 20 {
 			valid = append(valid, capec)
 		}
 	}
