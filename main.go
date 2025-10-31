@@ -274,17 +274,17 @@ type XMLTaxonomyMapping struct {
 }
 
 type CAPECInfo struct {
-	Name                  string                       `json:"name"`
-	Description           string                       `json:"description,omitempty"`
-	LikelihoodOfAttack    string                       `json:"likelihoodOfAttack,omitempty"`
-	TypicalSeverity       string                       `json:"typicalSeverity,omitempty"`
-	RelatedAttackPatterns []RelatedAttackPatternInfo   `json:"relatedAttackPatterns,omitempty"`
-	ExecutionFlow         []ExecutionStepInfo          `json:"executionFlow,omitempty"`
-	Prerequisites         []string                     `json:"prerequisites,omitempty"`
-	SkillsRequired        []SkillInfo                  `json:"skillsRequired,omitempty"`
-	Consequences          []ConsequenceInfo            `json:"consequences,omitempty"`
-	RelatedWeaknesses     []string                     `json:"relatedWeaknesses,omitempty"`
-	MitreAttack           []string                     `json:"mitreAttack,omitempty"`
+	Name                  string                     `json:"name"`
+	Description           string                     `json:"description,omitempty"`
+	LikelihoodOfAttack    string                     `json:"likelihoodOfAttack,omitempty"`
+	TypicalSeverity       string                     `json:"typicalSeverity,omitempty"`
+	RelatedAttackPatterns []RelatedAttackPatternInfo `json:"relatedAttackPatterns,omitempty"`
+	ExecutionFlow         []ExecutionStepInfo        `json:"executionFlow,omitempty"`
+	Prerequisites         []string                   `json:"prerequisites,omitempty"`
+	SkillsRequired        []SkillInfo                `json:"skillsRequired,omitempty"`
+	Consequences          []ConsequenceInfo          `json:"consequences,omitempty"`
+	RelatedWeaknesses     []string                   `json:"relatedWeaknesses,omitempty"`
+	MitreAttack           []string                   `json:"mitreAttack,omitempty"`
 }
 
 type RelatedAttackPatternInfo struct {
@@ -351,10 +351,10 @@ func processCAPEC() (*CAPECData, error) {
 
 	for _, p := range catalog.AttackPatterns {
 		info := CAPECInfo{
-			Name:            p.Name,
-			Description:     cleanText(p.Description),
+			Name:               p.Name,
+			Description:        cleanText(p.Description),
 			LikelihoodOfAttack: p.LikelihoodOfAttack,
-			TypicalSeverity: p.TypicalSeverity,
+			TypicalSeverity:    p.TypicalSeverity,
 		}
 
 		// Related attack patterns
@@ -414,8 +414,11 @@ func processCAPEC() (*CAPECData, error) {
 		// MITRE ATT&CK mappings
 		if p.TaxonomyMappings != nil {
 			for _, tm := range p.TaxonomyMappings.Mappings {
-				if strings.Contains(tm.TaxonomyName, "ATT&CK") {
-					info.MitreAttack = append(info.MitreAttack, tm.EntryID)
+				// Check for "ATTACK" taxonomy (note: no & symbol)
+				if tm.TaxonomyName == "ATTACK" || strings.Contains(tm.TaxonomyName, "ATT&CK") {
+					// Convert Entry_ID to ATT&CK technique ID format (add T prefix)
+					techID := "T" + tm.EntryID
+					info.MitreAttack = append(info.MitreAttack, techID)
 				}
 			}
 		}
@@ -434,28 +437,28 @@ func processCAPEC() (*CAPECData, error) {
 // -------------------- MITRE ATT&CK Processing (STIX 2.1) --------------------
 
 type STIXBundle struct {
-	Type    string        `json:"type"`
-	ID      string        `json:"id"`
-	Objects []STIXObject  `json:"objects"`
+	Type    string       `json:"type"`
+	ID      string       `json:"id"`
+	Objects []STIXObject `json:"objects"`
 }
 
 type STIXObject struct {
-	Type                string                 `json:"type"`
-	ID                  string                 `json:"id"`
-	Name                string                 `json:"name,omitempty"`
-	Description         string                 `json:"description,omitempty"`
-	ExternalReferences  []ExternalReference    `json:"external_references,omitempty"`
-	KillChainPhases     []KillChainPhase       `json:"kill_chain_phases,omitempty"`
-	XMitrePlatforms     []string               `json:"x_mitre_platforms,omitempty"`
-	XMitreTactics       []string               `json:"x_mitre_tactics,omitempty"`
-	XMitreDataSources   []string               `json:"x_mitre_data_sources,omitempty"`
-	XMitreShortName     string                 `json:"x_mitre_shortname,omitempty"`
-	Aliases             []string               `json:"aliases,omitempty"`
-	SourceRef           string                 `json:"source_ref,omitempty"`
-	TargetRef           string                 `json:"target_ref,omitempty"`
-	RelationshipType    string                 `json:"relationship_type,omitempty"`
-	XMitreVersion       string                 `json:"x_mitre_version,omitempty"`
-	RawData             map[string]interface{} `json:"-"`
+	Type               string                 `json:"type"`
+	ID                 string                 `json:"id"`
+	Name               string                 `json:"name,omitempty"`
+	Description        string                 `json:"description,omitempty"`
+	ExternalReferences []ExternalReference    `json:"external_references,omitempty"`
+	KillChainPhases    []KillChainPhase       `json:"kill_chain_phases,omitempty"`
+	XMitrePlatforms    []string               `json:"x_mitre_platforms,omitempty"`
+	XMitreTactics      []string               `json:"x_mitre_tactics,omitempty"`
+	XMitreDataSources  []string               `json:"x_mitre_data_sources,omitempty"`
+	XMitreShortName    string                 `json:"x_mitre_shortname,omitempty"`
+	Aliases            []string               `json:"aliases,omitempty"`
+	SourceRef          string                 `json:"source_ref,omitempty"`
+	TargetRef          string                 `json:"target_ref,omitempty"`
+	RelationshipType   string                 `json:"relationship_type,omitempty"`
+	XMitreVersion      string                 `json:"x_mitre_version,omitempty"`
+	RawData            map[string]interface{} `json:"-"`
 }
 
 type ExternalReference struct {
@@ -801,8 +804,8 @@ func buildRelationships(cweData *CWEData, capecData *CAPECData, attackData *Atta
 // -------------------- Metadata --------------------
 
 type Metadata struct {
-	UpdatedAt string `json:"updated_at"`
-	CWEVersion string `json:"cwe_version,omitempty"`
+	UpdatedAt    string `json:"updated_at"`
+	CWEVersion   string `json:"cwe_version,omitempty"`
 	CAPECVersion string `json:"capec_version,omitempty"`
 }
 
