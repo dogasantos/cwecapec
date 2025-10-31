@@ -116,8 +116,8 @@ func buildCWEMap() map[string][]string {
 // Fetch CVEs from NVD API
 func fetchCVEs(startDate, endDate string, startIndex int, apiKey string) (*NVDResponse, error) {
 	baseURL := "https://services.nvd.nist.gov/rest/json/cves/2.0"
-	url := fmt.Sprintf("%s?pubStartDate=%s&pubEndDate=%s&startIndex=%d&resultsPerPage=2000",
-		baseURL, startDate, endDate, startIndex)
+	url := fmt.Sprintf("%s?pubStartDate=%s&pubEndDate=%s&startIndex=%d&resultsPerPage=%d",
+		baseURL, startDate, endDate, startIndex, 2000)
 
 	client := &http.Client{Timeout: 60 * time.Second}
 	req, err := http.NewRequest("GET", url, nil)
@@ -202,7 +202,7 @@ func main() {
 
 	// Configuration
 	startDate := "2024-01-01T00:00:00.000"
-	endDate := "2024-12-31T23:59:59.000"
+	endDate := "2024-12-31T23:59:59.999"
 	apiKey := os.Getenv("NVD_API_KEY") // Optional: set NVD_API_KEY environment variable
 	outputFile := "training_data.json"
 
@@ -238,7 +238,7 @@ func main() {
 
 		resp, err := fetchCVEs(startDate, endDate, startIndex, apiKey)
 		if err != nil {
-			fmt.Printf("❌ Error fetching data: %v\n", err)
+			fmt.Printf("Error fetching data: %v\n", err)
 			break
 		}
 
@@ -293,7 +293,7 @@ func main() {
 
 	file, err := os.Create(outputFile)
 	if err != nil {
-		fmt.Printf("❌ Error creating output file: %v\n", err)
+		fmt.Printf(" Error creating output file: %v\n", err)
 		os.Exit(1)
 	}
 	defer file.Close()
@@ -301,7 +301,7 @@ func main() {
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(trainingData); err != nil {
-		fmt.Printf("❌ Error writing JSON: %v\n", err)
+		fmt.Printf("Error writing JSON: %v\n", err)
 		os.Exit(1)
 	}
 
