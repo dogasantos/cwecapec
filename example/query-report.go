@@ -34,8 +34,21 @@ var (
 var (
 	cweHierarchy *CWEHierarchy
 	nbModel      *AttackVectorModel
+	taxonomy     *AttackVectorTaxonomy
+	capecData    map[string]CAPECTrainingData
 	mlEnabled    bool
 )
+
+// CAPEC training data for ranking
+type CAPECTrainingData struct {
+	CAPECID            string   `json:"capec_id"`
+	Name               string   `json:"name"`
+	Description        string   `json:"description"`
+	LikelihoodOfAttack string   `json:"likelihood_of_attack"`
+	TypicalSeverity    string   `json:"typical_severity"`
+	RelatedCWEs        []string `json:"related_cwes"`
+	Prerequisites      []string `json:"prerequisites"`
+}
 
 // CWE to attack vector mapping (highest confidence)
 var cweToVector = map[string][]string{
@@ -202,6 +215,32 @@ type ClassificationResult struct {
 	Probability float64 `json:"probability"`
 	Confidence  string  `json:"confidence"`
 	Source      string  `json:"source"`
+}
+
+// Granular attack vector structures
+type AttackVectorTaxonomy struct {
+	AttackVectors map[string]VectorTaxInfo `json:"attack_vectors"`
+}
+
+type VectorTaxInfo struct {
+	Name     string                 `json:"name"`
+	Subtypes map[string]SubtypeInfo `json:"subtypes"`
+}
+
+type SubtypeInfo struct {
+	Name        string   `json:"name"`
+	Keywords    []string `json:"keywords"`
+	CAPECIDs    []string `json:"capec_ids"`
+	Description string   `json:"description"`
+}
+
+type GranularResult struct {
+	BaseVector     string
+	SpecificType   string
+	TypeName       string
+	Confidence     float64
+	MatchedTerms   []string
+	RelevantCAPECs []string
 }
 
 // NVD API response structures
@@ -581,7 +620,7 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 				if !capecSet[capecID] {
 					capecSet[capecID] = true
 					if capecInfo, ok := db.CAPECs[capecID]; ok {
-						score := scoreCAPECRelevance(capecInfo, cveDescription, detectedVectors, db)
+						score := scoreCAPECRelevance(capecID, capecInfo, cveDescription, detectedVectors, db)
 						capecCandidates = append(capecCandidates, ScoredCAPEC{
 							ID:    capecID,
 							Info:  capecInfo,
@@ -769,13 +808,37 @@ func matchesPattern(text, pattern string) bool {
 	return re.MatchString(text)
 }
 
-// Score CAPEC relevance based on multiple factors
-func scoreCAPECRelevance(capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
+// Score CAPEC relevance using TF-IDF similarity (NEW APPROACH)
+func scoreCAPECRelevance(capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
+	// If CAPEC data is available, use TF-IDF similarity
+	if capecData != nil {
+		if capecInfo, exists := capecData[capecID]; exists {
+			// Calculate TF-IDF similarity
+			similarity := calculateCAPECSimilarity(cveDesc, capecInfo)
+			// Scale to 0-100 range
+			return similarity * 100.0
+		}
+	}
+
+	// Fallback to keyword-based scoring if CAPEC data not available
 	score := 0.0
 
 	capecName := strings.ToLower(capec.Name)
 	capecDesc := strings.ToLower(capec.Description)
 	combinedText := capecName + " " + capecDesc
+
+	// Apply granular classification for each detected vector
+	granularBoosts := make(map[string]float64)
+	if taxonomy != nil {
+		for _, vector := range detectedVectors {
+			granular := classifyGranular(vector, cveDesc)
+			if granular.Confidence > 0.3 && len(granular.RelevantCAPECs) > 0 {
+				for _, relevantCAPEC := range granular.RelevantCAPECs {
+					granularBoosts[relevantCAPEC] = granular.Confidence * 100.0
+				}
+			}
+		}
+	}
 
 	// Factor 1: Has ATT&CK mappings (strongly prefer these)
 	if len(capec.MitreAttack) > 0 {
@@ -844,6 +907,15 @@ func scoreCAPECRelevance(capec CAPECInfo, cveDesc string, detectedVectors []stri
 					break
 				}
 			}
+		}
+	}
+
+	// Factor 6: Granular classification boost (NEW - highest priority)
+	// Check if this CAPEC ID matches any granularly-identified relevant CAPECs
+	for boostCAPECID, boostScore := range granularBoosts {
+		if capecID == boostCAPECID {
+			score += boostScore
+			break
 		}
 	}
 
@@ -1634,6 +1706,38 @@ func loadMLModels() {
 	}
 	nbModel = &model
 
+	// Try to load attack vector taxonomy
+	taxonomyData, err := os.ReadFile("attack_vector_taxonomy.json")
+	if err != nil {
+		fmt.Printf("  Warning: attack_vector_taxonomy.json not found (granular classification disabled)\n")
+	} else {
+		var tax AttackVectorTaxonomy
+		if err := json.Unmarshal(taxonomyData, &tax); err != nil {
+			fmt.Printf("  Warning: Failed to parse attack_vector_taxonomy.json: %v\n", err)
+		} else {
+			taxonomy = &tax
+			fmt.Printf("  Granular taxonomy loaded (%d base vectors)\n", len(tax.AttackVectors))
+		}
+	}
+
+	// Try to load CAPEC training data for ranking
+	capecDataFile, err := os.ReadFile("capec_training_data.json")
+	if err != nil {
+		fmt.Printf("  Warning: capec_training_data.json not found (CAPEC ranking disabled)\n")
+	} else {
+		var capecList []CAPECTrainingData
+		if err := json.Unmarshal(capecDataFile, &capecList); err != nil {
+			fmt.Printf("  Warning: Failed to parse capec_training_data.json: %v\n", err)
+		} else {
+			// Convert to map for easy lookup
+			capecData = make(map[string]CAPECTrainingData)
+			for _, capec := range capecList {
+				capecData[capec.CAPECID] = capec
+			}
+			fmt.Printf("  CAPEC ranking data loaded (%d CAPECs)\n", len(capecData))
+		}
+	}
+
 	mlEnabled = true
 	fmt.Printf("  ML models loaded successfully (%d attack vectors)\n", len(model.VectorPriors))
 }
@@ -1820,4 +1924,181 @@ func tokenizeML(text string) []string {
 	}
 
 	return filtered
+}
+
+// Classify granular attack vector subtype
+func classifyGranular(baseVector, description string) GranularResult {
+	result := GranularResult{
+		BaseVector:     baseVector,
+		SpecificType:   baseVector,
+		Confidence:     0.0,
+		MatchedTerms:   []string{},
+		RelevantCAPECs: []string{},
+	}
+
+	if taxonomy == nil {
+		result.TypeName = "Unknown"
+		return result
+	}
+
+	// Get vector info
+	vectorInfo, exists := taxonomy.AttackVectors[baseVector]
+	if !exists {
+		result.TypeName = "Unknown"
+		return result
+	}
+
+	descLower := strings.ToLower(description)
+
+	// Score each subtype
+	scores := make(map[string]float64)
+	matches := make(map[string][]string)
+
+	for subtypeID, subtype := range vectorInfo.Subtypes {
+		score := 0.0
+		matched := []string{}
+
+		for _, keyword := range subtype.Keywords {
+			if strings.Contains(descLower, strings.ToLower(keyword)) {
+				score += 1.0
+				matched = append(matched, keyword)
+			}
+		}
+
+		if score > 0 {
+			scores[subtypeID] = score
+			matches[subtypeID] = matched
+		}
+	}
+
+	// Find best match
+	bestScore := 0.0
+	bestSubtype := ""
+
+	for subtypeID, score := range scores {
+		if score > bestScore {
+			bestScore = score
+			bestSubtype = subtypeID
+		}
+	}
+
+	// If we found a match
+	if bestSubtype != "" {
+		subtype := vectorInfo.Subtypes[bestSubtype]
+		result.SpecificType = bestSubtype
+		result.TypeName = subtype.Name
+		result.Confidence = bestScore / float64(len(subtype.Keywords))
+		result.MatchedTerms = matches[bestSubtype]
+		result.RelevantCAPECs = subtype.CAPECIDs
+	} else {
+		// No specific subtype found, use generic
+		result.TypeName = vectorInfo.Name
+		result.Confidence = 0.5 // Medium confidence for generic classification
+	}
+
+	return result
+}
+
+// Calculate TF-IDF similarity between CVE description and CAPEC description
+func calculateCAPECSimilarity(cveDesc string, capecInfo CAPECTrainingData) float64 {
+	// Tokenize both descriptions
+	cveTokens := tokenizeForRanking(cveDesc)
+	capecText := capecInfo.Description + " " + capecInfo.Name + " " + strings.Join(capecInfo.Prerequisites, " ")
+	capecTokens := tokenizeForRanking(capecText)
+
+	// Calculate term frequencies
+	cveTF := calculateTermFreq(cveTokens)
+	capecTF := calculateTermFreq(capecTokens)
+
+	// For IDF, we use a simple approach: terms in both documents get higher weight
+	// Calculate cosine similarity
+	return cosineSim(cveTF, capecTF)
+}
+
+func tokenizeForRanking(text string) []string {
+	// Convert to lowercase
+	text = strings.ToLower(text)
+
+	// Remove version numbers and CVE IDs
+	versionRegex := regexp.MustCompile(`\b\d+\.\d+(\.\d+)*\b`)
+	text = versionRegex.ReplaceAllString(text, "")
+	cveRegex := regexp.MustCompile(`\bcve-\d{4}-\d+\b`)
+	text = cveRegex.ReplaceAllString(text, "")
+
+	// Extract words (3+ characters)
+	wordRegex := regexp.MustCompile(`[a-z]{3,}`)
+	words := wordRegex.FindAllString(text, -1)
+
+	// Filter stopwords
+	stopwords := map[string]bool{
+		"the": true, "and": true, "for": true, "with": true, "from": true,
+		"that": true, "this": true, "are": true, "was": true, "were": true,
+		"been": true, "being": true, "have": true, "has": true, "had": true,
+		"but": true, "not": true, "can": true, "will": true, "would": true,
+		"could": true, "should": true, "may": true, "might": true, "must": true,
+	}
+
+	filtered := make([]string, 0, len(words))
+	for _, word := range words {
+		if !stopwords[word] {
+			filtered = append(filtered, word)
+		}
+	}
+
+	return filtered
+}
+
+func calculateTermFreq(tokens []string) map[string]float64 {
+	freq := make(map[string]int)
+	for _, token := range tokens {
+		freq[token]++
+	}
+
+	tf := make(map[string]float64)
+	maxFreq := 0
+	for _, count := range freq {
+		if count > maxFreq {
+			maxFreq = count
+		}
+	}
+
+	if maxFreq == 0 {
+		return tf
+	}
+
+	for term, count := range freq {
+		tf[term] = float64(count) / float64(maxFreq)
+	}
+
+	return tf
+}
+
+func cosineSim(vec1, vec2 map[string]float64) float64 {
+	// Calculate dot product
+	dotProduct := 0.0
+	for term, val1 := range vec1 {
+		if val2, exists := vec2[term]; exists {
+			dotProduct += val1 * val2
+		}
+	}
+
+	// Calculate magnitudes
+	mag1 := 0.0
+	for _, val := range vec1 {
+		mag1 += val * val
+	}
+	mag1 = math.Sqrt(mag1)
+
+	mag2 := 0.0
+	for _, val := range vec2 {
+		mag2 += val * val
+	}
+	mag2 = math.Sqrt(mag2)
+
+	// Avoid division by zero
+	if mag1 == 0 || mag2 == 0 {
+		return 0.0
+	}
+
+	return dotProduct / (mag1 * mag2)
 }
