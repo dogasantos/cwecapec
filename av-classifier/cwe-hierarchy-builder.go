@@ -95,7 +95,6 @@ var cweToAttackVector = map[string][]string{
 	"639": {"authz_bypass"},                    // Authorization Bypass Through User-Controlled Key
 	"425": {"authz_bypass"},                    // Direct Request
 	"863": {"idor"},                            // Incorrect Authorization
-	"639": {"idor"},                            // Authorization Bypass Through User-Controlled Key
 
 	// CSRF & Session
 	"352": {"csrf"},             // Cross-Site Request Forgery
