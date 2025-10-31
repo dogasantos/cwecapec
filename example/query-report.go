@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -25,7 +26,76 @@ const (
 var (
 	cveID      string
 	outputHTML string
+	maxCAPECs  int
 )
+
+// CWE to attack vector mapping (highest confidence)
+var cweToVector = map[string][]string{
+	// Injection vulnerabilities
+	"89":  {"sql_injection"},
+	"78":  {"command_injection"},
+	"77":  {"command_injection"},
+	"917": {"code_injection", "jndi_injection"},
+	"90":  {"ldap_injection"},
+	"643": {"xpath_injection"},
+	"652": {"xml_injection"},
+	// XSS
+	"79": {"xss"},
+	"80": {"xss"},
+	// Deserialization
+	"502": {"deserialization"},
+	// Path Traversal
+	"22": {"path_traversal"},
+	"23": {"path_traversal"},
+	// Buffer Overflow
+	"119": {"buffer_overflow"},
+	"120": {"buffer_overflow"},
+	"121": {"buffer_overflow"},
+	"122": {"buffer_overflow"},
+	"787": {"buffer_overflow"},
+	// Authentication
+	"287": {"authentication"},
+	"288": {"authentication"},
+	"290": {"authentication"},
+	"306": {"authentication"},
+	"798": {"authentication"},
+	// Privilege Escalation
+	"269": {"privilege_escalation"},
+	"250": {"privilege_escalation"},
+	"266": {"privilege_escalation"},
+	"732": {"privilege_escalation"},
+	"665": {"privilege_escalation"},
+	// SSRF
+	"918": {"ssrf"},
+	// CSRF
+	"352": {"csrf"},
+	// XXE
+	"611": {"xxe"},
+	// Access Control
+	"639": {"authentication"},
+	"284": {"authentication"},
+}
+
+// Enhanced attack vector keywords with grammatical variations
+var attackVectorKeywords = map[string][]string{
+	"sql_injection":        {"sql injection", "sqli", "sql query", "sql command"},
+	"ldap_injection":       {"ldap injection", "ldap query", "ldap", "ldap endpoints", "ldap servers"},
+	"command_injection":    {"command injection", "os command", "shell injection", "execute commands"},
+	"code_injection":       {"code injection", "arbitrary code", "code execution"},
+	"jndi_injection":       {"jndi", "jndi lookup", "jndi injection"},
+	"template_injection":   {"template injection", "ssti", "server-side template"},
+	"xss":                  {"cross-site scripting", "xss", "dom-based", "reflected xss", "stored xss", "javascript injection"},
+	"deserialization":      {"deserialization", "deserialize", "unserialize", "pickle", "object injection", "serialized"},
+	"buffer_overflow":      {"buffer overflow", "stack overflow", "heap overflow", "memory corruption", "overflow a buffer", "overflow a heap", "overflow a stack", "heap based buffer", "stack based buffer", "buffer overrun"},
+	"path_traversal":       {"path traversal", "directory traversal", "file inclusion", "lfi", "rfi", "traverse directories", "access files outside"},
+	"authentication":       {"authentication", "credential", "password", "login", "session", "bypass", "auth bypass"},
+	"privilege_escalation": {"privilege escalation", "escalate privileges", "escalate their privileges", "elevate privileges", "privilege elevation", "gain elevated privileges", "gain higher privileges"},
+	"csrf":                 {"csrf", "cross-site request forgery", "xsrf"},
+	"ssrf":                 {"ssrf", "server-side request forgery"},
+	"xxe":                  {"xxe", "xml external entity"},
+	"rce":                  {"remote code execution", "rce", "execute arbitrary code", "arbitrary code execution", "execute code"},
+	"dos":                  {"denial of service", "dos", "resource exhaustion"},
+}
 
 // Data structures for local database
 type LocalDB struct {
@@ -144,11 +214,18 @@ type Reference struct {
 
 // EPSS API response structures
 type EPSSResponse struct {
-	Data []EPSSData `json:"data"`
+	Data []EPSSDataWrapper `json:"data"`
+}
+
+type EPSSDataWrapper struct {
+	CVE        string     `json:"cve"`
+	EPSS       string     `json:"epss"`
+	Percentile string     `json:"percentile"`
+	Date       string     `json:"date"`
+	TimeSeries []EPSSData `json:"time-series"`
 }
 
 type EPSSData struct {
-	CVE        string `json:"cve"`
 	EPSS       string `json:"epss"`
 	Percentile string `json:"percentile"`
 	Date       string `json:"date"`
@@ -194,6 +271,7 @@ type CAPECDetail struct {
 	LikelihoodOfAttack string
 	TypicalSeverity    string
 	Prerequisites      []string
+	RelevanceScore     float64
 }
 
 type TechniqueDetail struct {
@@ -210,7 +288,7 @@ type ThreatActorDetail struct {
 	Name        string
 	Aliases     []string
 	Description string
-	Source      string // "CVE" or "Technique"
+	Source      string
 	URL         string
 }
 
@@ -227,13 +305,21 @@ type EPSSDetail struct {
 	TimeSeries []EPSSData
 }
 
+// CAPEC scoring structure
+type ScoredCAPEC struct {
+	ID    string
+	Info  CAPECInfo
+	Score float64
+}
+
 func main() {
 	flag.StringVar(&cveID, "cve", "", "CVE ID to query (e.g., CVE-2024-1234)")
 	flag.StringVar(&outputHTML, "html", "", "Output HTML report file (optional)")
+	flag.IntVar(&maxCAPECs, "max-capecs", 15, "Maximum number of CAPECs to include (default: 15)")
 	flag.Parse()
 
 	if cveID == "" {
-		fmt.Println("Usage: cve-query -cve CVE-YYYY-NNNNN [-html output.html]")
+		fmt.Println("Usage: cve-query -cve CVE-YYYY-NNNNN [-html output.html] [-max-capecs N]")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -259,11 +345,11 @@ func main() {
 	epssData, err := queryEPSS(cveID)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Error querying EPSS: %v\n", err)
-		epssData = EPSSDetail{} // Continue without EPSS
+		epssData = EPSSDetail{}
 	}
 
 	// Build report
-	fmt.Println("Building attack chain...")
+	fmt.Println("Building attack chain with intelligent CAPEC filtering...")
 	report := buildReport(cveData, epssData, db)
 
 	// Output
@@ -369,45 +455,42 @@ func queryNVD(cveID string) (CVEItem, error) {
 func queryEPSS(cveID string) (EPSSDetail, error) {
 	detail := EPSSDetail{}
 
-	// Query current EPSS score
-	url := fmt.Sprintf("%s?cve=%s", EPSSAPI, cveID)
-	current, err := fetchEPSS(url)
-	if err != nil {
-		return detail, err
-	}
-	if len(current) > 0 {
-		detail.Current = current[0]
-	}
+	// Query with time-series scope
+	url := fmt.Sprintf("%s?cve=%s&scope=time-series", EPSSAPI, cveID)
 
-	// Query time series (last 30 days)
-	urlTimeSeries := fmt.Sprintf("%s?cve=%s&scope=time-series", EPSSAPI, cveID)
-	timeSeries, err := fetchEPSS(urlTimeSeries)
-	if err != nil {
-		return detail, err
-	}
-	detail.TimeSeries = timeSeries
-
-	return detail, nil
-}
-
-func fetchEPSS(url string) ([]EPSSData, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("HTTP request failed: %w", err)
+		return detail, fmt.Errorf("HTTP request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("EPSS API returned status %d", resp.StatusCode)
+		return detail, fmt.Errorf("EPSS API returned status %d", resp.StatusCode)
 	}
 
 	var epssResp EPSSResponse
 	if err := json.NewDecoder(resp.Body).Decode(&epssResp); err != nil {
-		return nil, fmt.Errorf("failed to parse EPSS response: %w", err)
+		return detail, fmt.Errorf("failed to parse EPSS response: %w", err)
 	}
 
-	return epssResp.Data, nil
+	if len(epssResp.Data) == 0 {
+		return detail, fmt.Errorf("no EPSS data found")
+	}
+
+	wrapper := epssResp.Data[0]
+
+	// Set current score
+	detail.Current = EPSSData{
+		EPSS:       wrapper.EPSS,
+		Percentile: wrapper.Percentile,
+		Date:       wrapper.Date,
+	}
+
+	// Set time series
+	detail.TimeSeries = wrapper.TimeSeries
+
+	return detail, nil
 }
 
 func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
@@ -417,8 +500,19 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 		GeneratedAt: time.Now(),
 	}
 
-	// Extract CWE IDs from CVE
+	// Extract CVE description for context
+	cveDescription := ""
+	if len(cve.Descriptions) > 0 {
+		cveDescription = cve.Descriptions[0].Value
+	}
+
+	// Extract CWE IDs
 	cweIDs := extractCWEIDs(cve)
+
+	// Detect attack vectors using improved multi-layered approach
+	detectedVectors := detectAttackVectors(cveDescription, cweIDs)
+	fmt.Printf("  Detected attack vectors: %v\n", detectedVectors)
+	fmt.Printf("  Found %d CWEs\n", len(cweIDs))
 
 	// Build CWE details
 	for _, cweID := range cweIDs {
@@ -430,38 +524,67 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 		}
 	}
 
-	// Build CAPEC details (from CWE relationships)
+	// Build CAPEC details with intelligent filtering
+	capecCandidates := []ScoredCAPEC{}
 	capecSet := make(map[string]bool)
+
+	// Collect all candidate CAPECs from CWE relationships
 	for _, cweID := range cweIDs {
 		if capecIDs, ok := db.Relationships.CWEToCapec[cweID]; ok {
 			for _, capecID := range capecIDs {
-				capecSet[capecID] = true
+				if !capecSet[capecID] {
+					capecSet[capecID] = true
+					if capecInfo, ok := db.CAPECs[capecID]; ok {
+						score := scoreCAPECRelevance(capecInfo, cveDescription, detectedVectors, db)
+						capecCandidates = append(capecCandidates, ScoredCAPEC{
+							ID:    capecID,
+							Info:  capecInfo,
+							Score: score,
+						})
+					}
+				}
 			}
 		}
 	}
 
-	for capecID := range capecSet {
-		if capecInfo, ok := db.CAPECs[capecID]; ok {
-			report.CAPECs = append(report.CAPECs, CAPECDetail{
-				ID:                 capecID,
-				Name:               capecInfo.Name,
-				Description:        capecInfo.Description,
-				LikelihoodOfAttack: capecInfo.LikelihoodOfAttack,
-				TypicalSeverity:    capecInfo.TypicalSeverity,
-				Prerequisites:      capecInfo.Prerequisites,
-			})
-		}
+	fmt.Printf("  Evaluating %d candidate CAPECs...\n", len(capecCandidates))
+
+	// Sort by relevance score (descending)
+	sort.Slice(capecCandidates, func(i, j int) bool {
+		return capecCandidates[i].Score > capecCandidates[j].Score
+	})
+
+	// Take top N most relevant CAPECs
+	topN := maxCAPECs
+	if len(capecCandidates) < topN {
+		topN = len(capecCandidates)
 	}
+
+	for i := 0; i < topN; i++ {
+		sc := capecCandidates[i]
+		report.CAPECs = append(report.CAPECs, CAPECDetail{
+			ID:                 sc.ID,
+			Name:               sc.Info.Name,
+			Description:        sc.Info.Description,
+			LikelihoodOfAttack: sc.Info.LikelihoodOfAttack,
+			TypicalSeverity:    sc.Info.TypicalSeverity,
+			Prerequisites:      sc.Info.Prerequisites,
+			RelevanceScore:     sc.Score,
+		})
+	}
+
+	fmt.Printf("  Selected top %d most relevant CAPECs\n", len(report.CAPECs))
 
 	// Build Technique details (from CAPEC relationships)
 	techniqueSet := make(map[string]bool)
-	for capecID := range capecSet {
-		if techIDs, ok := db.Relationships.CapecToAttack[capecID]; ok {
+	for _, capec := range report.CAPECs {
+		if techIDs, ok := db.Relationships.CapecToAttack[capec.ID]; ok {
 			for _, techID := range techIDs {
 				techniqueSet[techID] = true
 			}
 		}
 	}
+	fmt.Printf("  Found %d ATT&CK techniques from CAPEC mappings\n", len(techniqueSet))
 
 	for techID := range techniqueSet {
 		if techInfo, ok := db.Techniques[techID]; ok {
@@ -479,7 +602,6 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 	// Build Threat Actor details
 	actorSet := make(map[string]ThreatActorDetail)
 
-	// Actors using these techniques
 	for techID := range techniqueSet {
 		if techInfo, ok := db.Techniques[techID]; ok {
 			for _, groupID := range techInfo.Groups {
@@ -498,18 +620,204 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 			}
 		}
 	}
+	fmt.Printf("  Found %d threat actors\n", len(actorSet))
 
 	for _, actor := range actorSet {
 		report.ThreatActors = append(report.ThreatActors, actor)
 	}
 
 	// Fetch Atomic Red Team tests
+	fmt.Printf("  Fetching Atomic Red Team tests for %d techniques...\n", len(techniqueSet))
 	for techID := range techniqueSet {
 		tests := fetchAtomicTests(techID)
+		if len(tests) > 0 {
+			fmt.Printf("    %s: %d tests\n", techID, len(tests))
+		}
 		report.AtomicTests = append(report.AtomicTests, tests...)
 	}
+	fmt.Printf("  Total Atomic Red Team tests: %d\n", len(report.AtomicTests))
 
 	return report
+}
+
+// Detect attack vectors using multi-layered approach
+func detectAttackVectors(description string, cweIDs []string) []string {
+	vectorConfidence := make(map[string]int)
+
+	// Layer 1: CWE Mapping (confidence: 100)
+	for _, cweID := range cweIDs {
+		if vectors, ok := cweToVector[cweID]; ok {
+			for _, vector := range vectors {
+				if vectorConfidence[vector] < 100 {
+					vectorConfidence[vector] = 100
+				}
+			}
+		}
+	}
+
+	descriptionLower := strings.ToLower(description)
+
+	// Layer 2: Enhanced Keyword Matching (confidence: 90)
+	for vector, keywords := range attackVectorKeywords {
+		for _, keyword := range keywords {
+			if strings.Contains(descriptionLower, keyword) {
+				if vectorConfidence[vector] < 90 {
+					vectorConfidence[vector] = 90
+				}
+				break
+			}
+		}
+	}
+
+	// Layer 3: Pattern-based detection (confidence: 80)
+	// Buffer overflow patterns
+	if matchesPattern(description, `(?i)overflow.*(?:heap|stack|buffer)`) ||
+		matchesPattern(description, `(?i)(?:heap|stack|buffer).*overflow`) ||
+		matchesPattern(description, `(?i)memory\s+corruption`) {
+		if vectorConfidence["buffer_overflow"] < 80 {
+			vectorConfidence["buffer_overflow"] = 80
+		}
+	}
+
+	// Privilege escalation patterns
+	if matchesPattern(description, `(?i)escalate.*privilege`) ||
+		matchesPattern(description, `(?i)elevate.*privilege`) ||
+		matchesPattern(description, `(?i)gain.*(?:elevated|higher|admin).*privilege`) {
+		if vectorConfidence["privilege_escalation"] < 80 {
+			vectorConfidence["privilege_escalation"] = 80
+		}
+	}
+
+	// Path traversal patterns
+	if matchesPattern(description, `(?i)(?:path|directory)\s+traversal`) ||
+		matchesPattern(description, `(?i)traverse.*(?:path|director(?:y|ies))`) ||
+		matchesPattern(description, `(?i)access.*(?:file|director(?:y|ies)).*outside`) {
+		if vectorConfidence["path_traversal"] < 80 {
+			vectorConfidence["path_traversal"] = 80
+		}
+	}
+
+	// Return vectors with confidence >= 70
+	var detectedVectors []string
+	for vector, confidence := range vectorConfidence {
+		if confidence >= 70 {
+			detectedVectors = append(detectedVectors, vector)
+		}
+	}
+
+	return detectedVectors
+}
+
+// Helper function for regex pattern matching
+func matchesPattern(text, pattern string) bool {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return false
+	}
+	return re.MatchString(text)
+}
+
+// Score CAPEC relevance based on multiple factors
+func scoreCAPECRelevance(capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
+	score := 0.0
+
+	capecName := strings.ToLower(capec.Name)
+	capecDesc := strings.ToLower(capec.Description)
+	combinedText := capecName + " " + capecDesc
+
+	// Factor 1: Has ATT&CK mappings (strongly prefer these)
+	if len(capec.MitreAttack) > 0 {
+		score += 50.0
+	}
+
+	// Factor 2: Match with detected attack vectors
+	for _, vector := range detectedVectors {
+		keywords := attackVectorKeywords[vector]
+		for _, keyword := range keywords {
+			if strings.Contains(combinedText, keyword) {
+				score += 20.0
+				break
+			}
+		}
+	}
+
+	// Factor 3: Keyword matching with CVE description
+	cveWords := extractSignificantWords(cveDesc)
+	matchCount := 0
+	for _, word := range cveWords {
+		if len(word) > 4 && strings.Contains(combinedText, word) {
+			matchCount++
+		}
+	}
+	score += float64(matchCount) * 2.0
+
+	// Factor 4: Likelihood and severity
+	if capec.LikelihoodOfAttack == "High" {
+		score += 5.0
+	} else if capec.LikelihoodOfAttack == "Medium" {
+		score += 2.0
+	}
+
+	if capec.TypicalSeverity == "Very High" {
+		score += 5.0
+	} else if capec.TypicalSeverity == "High" {
+		score += 3.0
+	}
+
+	// Factor 5: Penalize overly specific patterns when not detected (MUCH STRONGER)
+	specificPatterns := map[string][]string{
+		"xss":             {"cross-site scripting", "xss", "dom-based", "javascript injection"},
+		"csrf":            {"cross-site request forgery", "csrf", "xsrf"},
+		"sql_injection":   {"sql injection", "sqli", "blind sql"},
+		"deserialization": {"deserialization", "deserialize", "object injection", "serialized"},
+		"ssrf":            {"ssrf", "server-side request forgery"},
+		"buffer_overflow": {"buffer overflow", "stack overflow", "heap overflow"},
+		"path_traversal":  {"path traversal", "directory traversal"},
+	}
+
+	for vectorType, patterns := range specificPatterns {
+		// If this specific vector wasn't detected in CVE, heavily penalize CAPECs related to it
+		vectorDetected := false
+		for _, v := range detectedVectors {
+			if v == vectorType {
+				vectorDetected = true
+				break
+			}
+		}
+
+		if !vectorDetected {
+			for _, pattern := range patterns {
+				if strings.Contains(combinedText, pattern) {
+					score -= 100.0 // VERY heavy penalty to eliminate irrelevant patterns
+					break
+				}
+			}
+		}
+	}
+
+	return score
+}
+
+// Extract significant words from text (filter out common words)
+func extractSignificantWords(text string) []string {
+	commonWords := map[string]bool{
+		"the": true, "and": true, "for": true, "with": true, "that": true,
+		"this": true, "from": true, "can": true, "are": true, "has": true,
+		"have": true, "when": true, "where": true, "which": true, "who": true,
+		"will": true, "would": true, "could": true, "should": true,
+	}
+
+	words := strings.Fields(text)
+	significant := []string{}
+
+	for _, word := range words {
+		word = strings.Trim(word, ".,;:!?()[]{}\"'")
+		if len(word) > 3 && !commonWords[word] {
+			significant = append(significant, word)
+		}
+	}
+
+	return significant
 }
 
 func extractCWEIDs(cve CVEItem) []string {
@@ -517,7 +825,6 @@ func extractCWEIDs(cve CVEItem) []string {
 
 	for _, weakness := range cve.Weaknesses {
 		for _, desc := range weakness.Description {
-			// CWE IDs are in format "CWE-123"
 			if strings.HasPrefix(desc.Value, "CWE-") {
 				cweSet[strings.TrimPrefix(desc.Value, "CWE-")] = true
 			}
@@ -536,13 +843,12 @@ func extractCWEIDs(cve CVEItem) []string {
 func fetchAtomicTests(techniqueID string) []AtomicTestDetail {
 	var tests []AtomicTestDetail
 
-	// Construct URL to YAML file
 	url := fmt.Sprintf("%s/%s/%s.yaml", AtomicRedTeamBaseURL, techniqueID, techniqueID)
 
 	client := &http.Client{Timeout: 15 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
-		return tests // Return empty if not found
+		return tests
 	}
 	defer resp.Body.Close()
 
@@ -623,9 +929,9 @@ func printConsoleReport(report Report) {
 
 	// CAPECs
 	if len(report.CAPECs) > 0 {
-		fmt.Printf("\n[RELATED ATTACK PATTERNS (CAPEC)] (%d)\n", len(report.CAPECs))
+		fmt.Printf("\n[MOST RELEVANT ATTACK PATTERNS (CAPEC)] (Top %d)\n", len(report.CAPECs))
 		for _, capec := range report.CAPECs {
-			fmt.Printf("  • CAPEC-%s: %s\n", capec.ID, capec.Name)
+			fmt.Printf("  • CAPEC-%s: %s (Relevance: %.1f)\n", capec.ID, capec.Name, capec.RelevanceScore)
 			if capec.LikelihoodOfAttack != "" {
 				fmt.Printf("    Likelihood: %s | Severity: %s\n", capec.LikelihoodOfAttack, capec.TypicalSeverity)
 			}
@@ -871,6 +1177,17 @@ func buildHTMLReport(report Report) string {
             border-radius: 12px;
             font-size: 0.85em;
         }
+
+        .relevance-score {
+            display: inline-block;
+            padding: 4px 12px;
+            margin-left: 10px;
+            background: #28a745;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
         
         .code-block {
             background: #2d2d2d;
@@ -922,6 +1239,14 @@ func buildHTMLReport(report Report) string {
         .badge-count {
             background: #667eea;
             color: white;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
         }
         
         @media print {
@@ -1020,13 +1345,17 @@ func buildHTMLReport(report Report) string {
 	if len(report.CAPECs) > 0 {
 		html += fmt.Sprintf(`
             <div class="section">
-                <h2>Attack Patterns (CAPEC)<span class="badge badge-count">%d</span></h2>
+                <h2>Most Relevant Attack Patterns (CAPEC)<span class="badge badge-count">Top %d</span></h2>
+                <div class="info-box">
+                    <strong>ℹ️ Intelligent Filtering:</strong> These attack patterns were selected using a hybrid scoring system that considers CVE context, ATT&CK mappings, and keyword relevance to show only the most applicable patterns.
+                </div>
                 <ul class="item-list">`, len(report.CAPECs))
 		for _, capec := range report.CAPECs {
 			html += fmt.Sprintf(`
                     <li>
                         <strong>CAPEC-%s</strong>: %s
-                        <div class="details">%s</div>`, capec.ID, capec.Name, capec.Description)
+                        <span class="relevance-score">Relevance: %.1f</span>
+                        <div class="details">%s</div>`, capec.ID, capec.Name, capec.RelevanceScore, capec.Description)
 			if capec.LikelihoodOfAttack != "" || capec.TypicalSeverity != "" {
 				html += fmt.Sprintf(`
                         <div class="tags">
@@ -1126,7 +1455,7 @@ func buildHTMLReport(report Report) string {
         </div>
         
         <div class="footer">
-            <p>Report generated by CVE Query Tool | %s</p>
+            <p>Report generated by CVE Query Tool with Intelligent CAPEC Filtering | %s</p>
             <p style="margin-top: 10px; font-size: 0.9em;">Data sources: NVD, EPSS, MITRE ATT&CK, Atomic Red Team</p>
         </div>
     </div>
