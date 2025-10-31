@@ -50,7 +50,7 @@ var stopwords = map[string]bool{
 	"down": true, "about": true, "against": true, "because": true, "until": true,
 	"while": true, "within": true, "along": true, "following": true, "across": true,
 	"behind": true, "beyond": true, "plus": true, "except": true, "however": true,
-	"nor": true, "since": true, "unless": true, "whereas": true, "whether": true,
+	"since": true, "unless": true, "whereas": true, "whether": true,
 }
 
 // Tokenize and clean text
@@ -135,7 +135,7 @@ func trainNaiveBayes(trainingData []TrainingRecord) *NaiveBayesModel {
 		model.Vocabulary = append(model.Vocabulary, word)
 	}
 
-	fmt.Printf("✓ Vocabulary size: %d unique words\n\n", len(model.Vocabulary))
+	fmt.Printf("Vocabulary size: %d unique words\n\n", len(model.Vocabulary))
 
 	// Calculate priors: P(vector) = count(vector) / total_documents
 	fmt.Println("Calculating prior probabilities...")
@@ -159,7 +159,7 @@ func trainNaiveBayes(trainingData []TrainingRecord) *NaiveBayesModel {
 		}
 	}
 
-	fmt.Printf("✓ Calculated likelihoods for %d words across %d attack vectors\n", vocabularySize, len(model.AttackVectors))
+	fmt.Printf("Calculated likelihoods for %d words across %d attack vectors\n", vocabularySize, len(model.AttackVectors))
 
 	return model
 }
@@ -216,7 +216,7 @@ func main() {
 
 	file, err := os.Open(inputFile)
 	if err != nil {
-		fmt.Printf("❌ Error opening file: %v\n", err)
+		fmt.Printf("Error opening file: %v\n", err)
 		fmt.Println("\nMake sure you've run phase1-collector first to generate training_data.json")
 		os.Exit(1)
 	}
@@ -224,11 +224,11 @@ func main() {
 
 	var trainingData []TrainingRecord
 	if err := json.NewDecoder(file).Decode(&trainingData); err != nil {
-		fmt.Printf("❌ Error decoding JSON: %v\n", err)
+		fmt.Printf("Error decoding JSON: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✓ Loaded %d training records\n\n", len(trainingData))
+	fmt.Printf("Loaded %d training records\n\n", len(trainingData))
 
 	// Train model
 	fmt.Println("Training Naive Bayes model...")
@@ -259,7 +259,7 @@ func main() {
 
 	outFile, err := os.Create(outputModel)
 	if err != nil {
-		fmt.Printf("❌ Error creating output file: %v\n", err)
+		fmt.Printf("Error creating output file: %v\n", err)
 		os.Exit(1)
 	}
 	defer outFile.Close()
@@ -267,11 +267,11 @@ func main() {
 	encoder := json.NewEncoder(outFile)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(model); err != nil {
-		fmt.Printf("❌ Error writing model: %v\n", err)
+		fmt.Printf("Error writing model: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("✓ Model saved successfully!")
+	fmt.Println("Model saved successfully!")
 
 	// Model statistics
 	fmt.Println("\n=================================================================")
@@ -287,5 +287,5 @@ func main() {
 	}
 	fmt.Printf("  Total words processed: %d\n", totalWords)
 
-	fmt.Println("\n✓ Phase 2 complete! Ready for Phase 3 (Attack vector classifier)")
+	fmt.Println("\nPhase 2 complete! Ready for Phase 3 (Attack vector classifier)")
 }
