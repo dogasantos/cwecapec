@@ -86,11 +86,11 @@ func main() {
 
 	if cveID == "" && cveDesc == "" {
 		fmt.Println("Usage:")
-		fmt.Println("  phase3-classifier -cve CVE-2021-44228 [-top 3] [-verbose]")
-		fmt.Println("  phase3-classifier -description \"CVE description\" [-cwes \"94,502\"] [-top 3] [-verbose]")
+		fmt.Println("  hybrid-classifier -cve CVE-2021-44228 [-top 3] [-verbose]")
+		fmt.Println("  hybrid-classifier -description \"CVE description\" [-cwes \"94,502\"] [-top 3] [-verbose]")
 		fmt.Println("\nExamples:")
-		fmt.Println("  phase3-classifier -cve CVE-2021-44228")
-		fmt.Println("  phase3-classifier -d \"allows remote attackers to execute arbitrary code via JNDI\" -c \"502,917\"")
+		fmt.Println("  hybrid-classifier -cve CVE-2021-44228")
+		fmt.Println("  hybrid-classifier -d \"allows remote attackers to execute arbitrary code via JNDI\" -c \"502,917\"")
 		os.Exit(1)
 	}
 
