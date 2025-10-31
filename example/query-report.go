@@ -118,42 +118,6 @@ var attackVectorKeywords = map[string][]string{
 	"dos":                  {"denial of service", "dos", "resource exhaustion"},
 }
 
-// CWE Specificity Weights (for hybrid CAPEC scoring)
-// High specificity (1.5x): Attack-specific CWEs
-// Medium specificity (1.0x): Category-specific CWEs
-// Low specificity (0.5x): Generic/broad CWEs
-var cweSpecificity = map[string]float64{
-	// High specificity - Attack-specific CWEs (1.5x weight)
-	"89":  1.5, // SQL Injection
-	"78":  1.5, // OS Command Injection
-	"502": 1.5, // Deserialization
-	"611": 1.5, // XXE
-	"918": 1.5, // SSRF
-	"352": 1.5, // CSRF
-	"94":  1.5, // Code Injection
-	"95":  1.5, // Improper Neutralization of Directives
-	"77":  1.5, // Command Injection
-	"90":  1.5, // LDAP Injection
-	"643": 1.5, // XPath Injection
-	"917": 1.5, // Expression Language Injection
-
-	// Medium specificity - Category-specific CWEs (1.0x weight)
-	"79":  1.0, // XSS
-	"22":  1.0, // Path Traversal
-	"119": 1.0, // Buffer Overflow
-	"120": 1.0, // Buffer Copy without Checking Size
-	"787": 1.0, // Out-of-bounds Write
-	"269": 1.0, // Improper Privilege Management
-	"798": 1.0, // Hard-coded Credentials
-
-	// Low specificity - Generic/broad CWEs (0.5x weight)
-	"20":  0.5, // Improper Input Validation
-	"287": 0.5, // Improper Authentication
-	"284": 0.5, // Improper Access Control
-	"862": 0.5, // Missing Authorization
-	"863": 0.5, // Incorrect Authorization
-}
-
 // Data structures for local database
 type LocalDB struct {
 	CWEs          map[string]CWEInfo       `json:"-"`
@@ -365,14 +329,15 @@ type AtomicTest struct {
 
 // Report data structure
 type Report struct {
-	CVE          CVEItem
-	CWEs         []CWEDetail
-	CAPECs       []CAPECDetail
-	Techniques   []TechniqueDetail
-	ThreatActors []ThreatActorDetail
-	AtomicTests  []AtomicTestDetail
-	EPSS         EPSSDetail
-	GeneratedAt  time.Time
+	CVE              CVEItem
+	BestAttackVector string // ML-detected best attack vector (e.g., "ssrf", "xss", "sql_injection")
+	CWEs             []CWEDetail
+	CAPECs           []CAPECDetail
+	Techniques       []TechniqueDetail
+	ThreatActors     []ThreatActorDetail
+	AtomicTests      []AtomicTestDetail
+	EPSS             EPSSDetail
+	GeneratedAt      time.Time
 }
 
 type CWEDetail struct {
@@ -432,7 +397,7 @@ type ScoredCAPEC struct {
 func main() {
 	flag.StringVar(&cveID, "cve", "", "CVE ID to query (e.g., CVE-2024-1234)")
 	flag.StringVar(&outputHTML, "html", "", "Output HTML report file (optional)")
-	flag.IntVar(&maxCAPECs, "max-capecs", 6, "Maximum number of CAPECs to include (default: 6)")
+	flag.IntVar(&maxCAPECs, "max-capecs", 3, "Maximum number of CAPECs to include (default: 3)")
 	flag.Parse()
 
 	if cveID == "" {
@@ -628,15 +593,48 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 	}
 
 	// Extract CWE IDs
-	cweIDs := extractCWEIDs(cve)
+	allCWEIDs := extractCWEIDs(cve)
 
-	// Detect attack vectors using improved multi-layered approach
-	detectedVectors := detectAttackVectors(cveDescription, cweIDs)
+	// STEP 1: Detect best attack vector using ML
+	detectedVectors := detectAttackVectors(cveDescription, allCWEIDs)
 	fmt.Printf("  Detected attack vectors: %v\n", detectedVectors)
-	fmt.Printf("  Found %d CWEs\n", len(cweIDs))
 
-	// Build CWE details
-	for _, cweID := range cweIDs {
+	// Store best attack vector for report
+	bestAttackVector := ""
+	if len(detectedVectors) > 0 {
+		bestAttackVector = detectedVectors[0] // Top ranked vector
+	}
+	report.BestAttackVector = bestAttackVector
+
+	// STEP 2: Find best matching CWEs using ML attack vector classification
+	// Filter CWEs to only those related to the detected attack vectors
+	bestCWEs := []string{}
+	if mlEnabled && len(detectedVectors) > 0 {
+		// Use ML to find most relevant CWEs for detected vectors
+		for _, cweID := range allCWEIDs {
+			// Check if this CWE maps to any detected vector
+			if vectors, exists := cweToVector[cweID]; exists {
+				for _, vec := range vectors {
+					for _, detectedVec := range detectedVectors {
+						if vec == detectedVec {
+							bestCWEs = append(bestCWEs, cweID)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Fallback: if no ML match, use all CWEs
+	if len(bestCWEs) == 0 {
+		bestCWEs = allCWEIDs
+	}
+
+	fmt.Printf("  Found %d CWEs (filtered to %d best matches)\n", len(allCWEIDs), len(bestCWEs))
+
+	// Build CWE details (show only best matching CWEs)
+	for _, cweID := range bestCWEs {
 		if cweInfo, ok := db.CWEs[cweID]; ok {
 			report.CWEs = append(report.CWEs, CWEDetail{
 				ID:   cweID,
@@ -649,14 +647,14 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 	capecCandidates := []ScoredCAPEC{}
 	capecSet := make(map[string]bool)
 
-	// Collect all candidate CAPECs from CWE relationships
-	for _, cweID := range cweIDs {
+	// STEP 3: Collect candidate CAPECs from best matching CWEs only
+	for _, cweID := range bestCWEs {
 		if capecIDs, ok := db.Relationships.CWEToCapec[cweID]; ok {
 			for _, capecID := range capecIDs {
 				if !capecSet[capecID] {
 					capecSet[capecID] = true
 					if capecInfo, ok := db.CAPECs[capecID]; ok {
-						score := scoreCAPECRelevance(capecID, capecInfo, cveDescription, detectedVectors, cweIDs, db)
+						score := scoreCAPECRelevance(capecID, capecInfo, cveDescription, detectedVectors, db)
 						capecCandidates = append(capecCandidates, ScoredCAPEC{
 							ID:    capecID,
 							Info:  capecInfo,
@@ -844,110 +842,115 @@ func matchesPattern(text, pattern string) bool {
 	return re.MatchString(text)
 }
 
-// Score CAPEC relevance using HYBRID scoring (TF-IDF + CWE Specificity + Keywords + Metadata)
-func scoreCAPECRelevance(capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, cveCWEs []string, db *LocalDB) float64 {
-	// Hybrid scoring with 4 components:
-	// 1. TF-IDF Similarity (0-40 points)
-	// 2. CWE Relationship with Specificity (0-45 points)
-	// 3. Keyword Matching (0-20 points)
-	// 4. Metadata (Severity/Likelihood) (0-10 points)
-
-	totalScore := 0.0
-
-	// Component 1: TF-IDF Similarity (0-40 points)
+// Score CAPEC relevance using TF-IDF similarity (NEW APPROACH)
+func scoreCAPECRelevance(capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
+	// If CAPEC data is available, use TF-IDF similarity
 	if capecData != nil {
 		if capecInfo, exists := capecData[capecID]; exists {
+			// Calculate TF-IDF similarity
 			similarity := calculateCAPECSimilarity(cveDesc, capecInfo)
-			totalScore += similarity * 40.0 // Scale to 0-40
+			// Scale to 0-100 range
+			return similarity * 100.0
 		}
 	}
 
-	// Component 2: CWE Relationship with Specificity (0-45 points)
-	// Use the CVE's CWEs (passed as parameter) to score CAPEC relevance
-	if len(cveCWEs) > 0 && capecData != nil {
-		if capecInfo, exists := capecData[capecID]; exists {
-			cweScore := calculateCWEScore(capecInfo, cveCWEs)
-			totalScore += cweScore
-		}
-	}
+	// Fallback to keyword-based scoring if CAPEC data not available
+	score := 0.0
 
-	// Component 3: Keyword Matching (0-20 points)
-	keywordScore, _ := calculateKeywordScore(cveDesc, capecID)
-	totalScore += keywordScore
+	capecName := strings.ToLower(capec.Name)
+	capecDesc := strings.ToLower(capec.Description)
+	combinedText := capecName + " " + capecDesc
 
-	// Component 4: Metadata (0-10 points)
-	metadataScore := calculateMetadataScore(capec.LikelihoodOfAttack, capec.TypicalSeverity)
-	totalScore += metadataScore
-
-	return totalScore
-}
-
-// Helper functions for hybrid CAPEC scoring
-
-func calculateCWEScore(capecInfo CAPECTrainingData, cveCWEs []string) float64 {
-	// Base scores:
-	// - Direct CWE match: 30 points × specificity weight
-	// - Related CWE match: 15 points × specificity weight
-
-	maxScore := 0.0
-
-	for _, cweID := range cveCWEs {
-		for _, relatedCWE := range capecInfo.RelatedCWEs {
-			if relatedCWE == cweID {
-				// Direct match - apply specificity weight
-				specificity := getCWESpecificity(cweID)
-				score := 30.0 * specificity
-				if score > maxScore {
-					maxScore = score
+	// Apply granular classification for each detected vector
+	granularBoosts := make(map[string]float64)
+	if taxonomy != nil {
+		for _, vector := range detectedVectors {
+			granular := classifyGranular(vector, cveDesc)
+			if granular.Confidence > 0.3 && len(granular.RelevantCAPECs) > 0 {
+				for _, relevantCAPEC := range granular.RelevantCAPECs {
+					granularBoosts[relevantCAPEC] = granular.Confidence * 100.0
 				}
 			}
 		}
 	}
 
-	// If no direct match, give partial credit
-	if maxScore == 0 {
-		maxScore = 15.0
+	// Factor 1: Has ATT&CK mappings (strongly prefer these)
+	if len(capec.MitreAttack) > 0 {
+		score += 50.0
 	}
 
-	return maxScore
-}
-
-func getCWESpecificity(cweID string) float64 {
-	if weight, exists := cweSpecificity[cweID]; exists {
-		return weight
+	// Factor 2: Match with detected attack vectors
+	for _, vector := range detectedVectors {
+		keywords := attackVectorKeywords[vector]
+		for _, keyword := range keywords {
+			if strings.Contains(combinedText, keyword) {
+				score += 20.0
+				break
+			}
+		}
 	}
-	// Default to medium specificity if not in map
-	return 1.0
-}
 
-func calculateKeywordScore(cveDesc string, capecID string) (float64, []string) {
-	// Simplified keyword matching - can be expanded later
-	return 0.0, []string{}
-}
+	// Factor 3: Keyword matching with CVE description
+	cveWords := extractSignificantWords(cveDesc)
+	matchCount := 0
+	for _, word := range cveWords {
+		if len(word) > 4 && strings.Contains(combinedText, word) {
+			matchCount++
+		}
+	}
+	score += float64(matchCount) * 2.0
 
-func calculateMetadataScore(likelihood, severity string) float64 {
-	score := 0.0
-
-	// Likelihood scoring (0-5 points)
-	switch likelihood {
-	case "High":
+	// Factor 4: Likelihood and severity
+	if capec.LikelihoodOfAttack == "High" {
 		score += 5.0
-	case "Medium":
-		score += 3.0
-	case "Low":
-		score += 1.0
-	}
-
-	// Severity scoring (0-5 points)
-	switch severity {
-	case "Very High":
-		score += 5.0
-	case "High":
-		score += 4.0
-	case "Medium":
+	} else if capec.LikelihoodOfAttack == "Medium" {
 		score += 2.0
-	case "Low":
-		score += 1.0
+	}
+
+	if capec.TypicalSeverity == "Very High" {
+		score += 5.0
+	} else if capec.TypicalSeverity == "High" {
+		score += 3.0
+	}
+
+	// Factor 5: Penalize overly specific patterns when not detected (MUCH STRONGER)
+	specificPatterns := map[string][]string{
+		"xss":             {"cross-site scripting", "xss", "dom-based", "javascript injection"},
+		"csrf":            {"cross-site request forgery", "csrf", "xsrf"},
+		"sql_injection":   {"sql injection", "sqli", "blind sql"},
+		"deserialization": {"deserialization", "deserialize", "object injection", "serialized"},
+		"ssrf":            {"ssrf", "server-side request forgery"},
+		"buffer_overflow": {"buffer overflow", "stack overflow", "heap overflow"},
+		"path_traversal":  {"path traversal", "directory traversal"},
+	}
+
+	for vectorType, patterns := range specificPatterns {
+		// If this specific vector wasn't detected in CVE, heavily penalize CAPECs related to it
+		vectorDetected := false
+		for _, v := range detectedVectors {
+			if v == vectorType {
+				vectorDetected = true
+				break
+			}
+		}
+
+		if !vectorDetected {
+			for _, pattern := range patterns {
+				if strings.Contains(combinedText, pattern) {
+					score -= 100.0 // VERY heavy penalty to eliminate irrelevant patterns
+					break
+				}
+			}
+		}
+	}
+
+	// Factor 6: Granular classification boost (NEW - highest priority)
+	// Check if this CAPEC ID matches any granularly-identified relevant CAPECs
+	for boostCAPECID, boostScore := range granularBoosts {
+		if capecID == boostCAPECID {
+			score += boostScore
+			break
+		}
 	}
 
 	return score
@@ -1072,6 +1075,12 @@ func printConsoleReport(report Report) {
 		if len(report.EPSS.TimeSeries) > 0 {
 			fmt.Printf("30-Day Trend: %d data points available\n", len(report.EPSS.TimeSeries))
 		}
+	}
+
+	// ML-Detected Attack Vector
+	if report.BestAttackVector != "" {
+		fmt.Printf("\n[ML-DETECTED ATTACK VECTOR]\n")
+		fmt.Printf("🎯 Primary Attack Type: %s (ML-Classified)\n", strings.ToUpper(report.BestAttackVector))
 	}
 
 	// CWEs
@@ -1463,6 +1472,24 @@ func buildHTMLReport(report Report) string {
 		description,
 		cvssVector,
 	)
+
+	// ML-Detected Attack Vector
+	if report.BestAttackVector != "" {
+		html += fmt.Sprintf(`
+            <!-- ML-Detected Attack Vector -->
+            <div class="section" style="border-left: 4px solid #ff6b6b;">
+                <h2>🎯 ML-Detected Attack Vector</h2>
+                <div class="info-box" style="background: #fff5f5; border-left-color: #ff6b6b;">
+                    <p style="font-size: 1.3em; font-weight: bold; color: #c92a2a;">
+                        Primary Attack Type: %s
+                        <span class="badge" style="background: #ff6b6b; margin-left: 10px;">ML-Classified</span>
+                    </p>
+                    <p style="margin-top: 10px; color: #666;">
+                        This attack vector was automatically detected using hybrid ML classification combining CWE hierarchy analysis and Naive Bayes text classification.
+                    </p>
+                </div>
+            </div>`, strings.ToUpper(report.BestAttackVector))
+	}
 
 	// EPSS Chart
 	if epssChartData != "" {
