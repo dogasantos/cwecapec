@@ -5,6 +5,10 @@ on:
     - cron: '0 0 * * *'  # runs every day at midnight UTC
   workflow_dispatch:  # allows manual triggering
 
+# Add permissions for the GITHUB_TOKEN
+permissions:
+  contents: write  # Required to push changes and create releases
+
 jobs:
   update-data:
     runs-on: ubuntu-latest
@@ -12,6 +16,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -29,7 +35,28 @@ jobs:
       - name: Check for changes
         id: git-check
         run: |
-          git diff --exit-code resources/*.json || echo "changed=true" >> $GITHUB_OUTPUT
+          if git diff --exit-code resources/*.json > /dev/null 2>&1; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate version tag
+        if: steps.git-check.outputs.changed == 'true'
+        id: version
+        run: |
+          # Generate version based on date
+          VERSION="v$(date -u +'%Y.%m.%d')"
+          # If multiple updates on same day, append counter
+          COUNTER=1
+          while git rev-parse "$VERSION.$COUNTER" >/dev/null 2>&1; do
+            COUNTER=$((COUNTER + 1))
+          done
+          if [ $COUNTER -gt 1 ]; then
+            VERSION="$VERSION.$COUNTER"
+          fi
+          echo "tag=$VERSION" >> $GITHUB_OUTPUT
+          echo "date=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
 
       - name: Commit and push changes
         if: steps.git-check.outputs.changed == 'true'
@@ -37,12 +64,108 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add resources/*.json
-          git commit -m "Automated MITRE data update - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          git commit -m "Automated MITRE data update - ${{ steps.version.outputs.date }}"
           git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push tag
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git tag -a "${{ steps.version.outputs.tag }}" -m "MITRE data update - ${{ steps.version.outputs.date }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Extract version info from metadata
+        if: steps.git-check.outputs.changed == 'true'
+        id: metadata
+        run: |
+          if [ -f resources/metadata.json ]; then
+            UPDATED_AT=$(jq -r '.updated_at' resources/metadata.json)
+            echo "updated_at=$UPDATED_AT" >> $GITHUB_OUTPUT
+          else
+            echo "updated_at=${{ steps.version.outputs.date }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Count database entries
+        if: steps.git-check.outputs.changed == 'true'
+        id: stats
+        run: |
+          CWE_COUNT=$(jq 'length' resources/cwe_db.json)
+          CAPEC_COUNT=$(jq 'length' resources/capec_db.json)
+          TECH_COUNT=$(jq 'length' resources/attack_techniques_db.json)
+          GROUP_COUNT=$(jq 'length' resources/attack_groups_db.json)
+          SOFTWARE_COUNT=$(jq 'length' resources/attack_software_db.json)
+          
+          echo "cwe_count=$CWE_COUNT" >> $GITHUB_OUTPUT
+          echo "capec_count=$CAPEC_COUNT" >> $GITHUB_OUTPUT
+          echo "tech_count=$TECH_COUNT" >> $GITHUB_OUTPUT
+          echo "group_count=$GROUP_COUNT" >> $GITHUB_OUTPUT
+          echo "software_count=$SOFTWARE_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Create release notes
+        if: steps.git-check.outputs.changed == 'true'
+        id: release_notes
+        run: |
+          cat << EOF > release_notes.md
+          # MITRE Data Update - ${{ steps.version.outputs.date }}
+          
+          This release contains the latest MITRE cybersecurity data including CWE, CAPEC, and ATT&CK frameworks.
+          
+          ## 📊 Database Statistics
+          
+          | Framework | Count |
+          |-----------|-------|
+          | **CWE** (Common Weakness Enumeration) | ${{ steps.stats.outputs.cwe_count }} |
+          | **CAPEC** (Common Attack Pattern Enumeration) | ${{ steps.stats.outputs.capec_count }} |
+          | **ATT&CK Techniques** | ${{ steps.stats.outputs.tech_count }} |
+          | **ATT&CK Groups** (Threat Actors) | ${{ steps.stats.outputs.group_count }} |
+          | **ATT&CK Software** (Malware & Tools) | ${{ steps.stats.outputs.software_count }} |
+          
+          ## 📦 Included Files
+          
+          - \`cwe_db.json\` - CWE weakness database with relationships
+          - \`capec_db.json\` - CAPEC attack pattern database
+          - \`attack_techniques_db.json\` - MITRE ATT&CK techniques (Enterprise, Mobile, ICS)
+          - \`attack_groups_db.json\` - Threat actor groups and APTs
+          - \`attack_software_db.json\` - Malware and tool database
+          - \`attack_mitigations_db.json\` - Security mitigations
+          - \`relationships_db.json\` - Cross-framework relationship mappings
+          - \`metadata.json\` - Update metadata and version information
+          
+          ## 🔗 Data Sources
+          
+          - [MITRE CWE](http://cwe.mitre.org/)
+          - [MITRE CAPEC](https://capec.mitre.org/)
+          - [MITRE ATT&CK](https://attack.mitre.org/)
+          
+          ## 🛠️ Usage
+          
+          Download the JSON files from this release to use with the CVE query tool or integrate into your own security analysis workflows.
+          
+          ---
+          
+          **Last Updated:** ${{ steps.metadata.outputs.updated_at }}
+          **Generated by:** GitHub Actions
+          EOF
+
+      - name: Create GitHub Release
+        if: steps.git-check.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: MITRE Data Update ${{ steps.version.outputs.tag }}
+          body_path: release_notes.md
+          files: |
+            resources/cwe_db.json
+            resources/capec_db.json
+            resources/attack_techniques_db.json
+            resources/attack_groups_db.json
+            resources/attack_software_db.json
+            resources/attack_mitigations_db.json
+            resources/relationships_db.json
+            resources/metadata.json
+          draft: false
+          prerelease: false
 
       - name: No changes detected
         if: steps.git-check.outputs.changed != 'true'
         run: |
-          echo "No changes detected in MITRE data. Skipping commit."
+          echo "✓ No changes detected in MITRE data. Skipping commit, tag, and release."
