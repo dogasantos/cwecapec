@@ -1765,13 +1765,13 @@ func loadMLModels() {
 	nbModel = &model
 
 	// Try to load attack vector taxonomy
-	taxonomyData, err := os.ReadFile("resources/attack_vector_taxonomy.json")
+	taxonomyData, err := os.ReadFile("resources/naive_bayes_model.json")
 	if err != nil {
-		fmt.Printf("  Warning: attack_vector_taxonomy.json not found (granular classification disabled)\n")
+		fmt.Printf("  Warning: naive_bayes_model.json not found (granular classification disabled)\n")
 	} else {
 		var tax AttackVectorTaxonomy
 		if err := json.Unmarshal(taxonomyData, &tax); err != nil {
-			fmt.Printf("  Warning: Failed to parse attack_vector_taxonomy.json: %v\n", err)
+			fmt.Printf("  Warning: Failed to parse naive_bayes_model.json: %v\n", err)
 		} else {
 			taxonomy = &tax
 			fmt.Printf("  Granular taxonomy loaded (%d base vectors)\n", len(tax.AttackVectors))
