@@ -265,6 +265,15 @@ func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy
 		// Classify only among candidates
 		results := classifyNaiveBayes(description, model, candidates)
 
+		// Filter out 0.00% probability results
+		filteredResults := []ClassificationResult{}
+		for _, result := range results {
+			if result.Probability >= 0.0001 { // Filter out essentially zero probabilities
+				filteredResults = append(filteredResults, result)
+			}
+		}
+		results = filteredResults
+
 		// Take top N
 		if len(results) > topN {
 			results = results[:topN]
@@ -282,6 +291,15 @@ func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy
 		}
 		// Fallback: classify among all vectors
 		results := classifyNaiveBayes(description, model, nil)
+
+		// Filter out 0.00% probability results
+		filteredResults := []ClassificationResult{}
+		for _, result := range results {
+			if result.Probability >= 0.0001 { // Filter out essentially zero probabilities
+				filteredResults = append(filteredResults, result)
+			}
+		}
+		results = filteredResults
 
 		// Take top N
 		if len(results) > topN {
