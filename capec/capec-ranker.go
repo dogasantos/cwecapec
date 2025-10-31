@@ -25,15 +25,20 @@ type CAPECData struct {
 	Prerequisites      []string `json:"prerequisites"`
 }
 
-// Ranked CAPEC result
+// Ranked CAPEC result with hybrid scoring
 type RankedCAPEC struct {
-	CAPECID      string   `json:"capec_id"`
-	Name         string   `json:"name"`
-	Score        float64  `json:"score"`
-	Confidence   string   `json:"confidence"`
-	Severity     string   `json:"severity"`
-	Likelihood   string   `json:"likelihood"`
-	MatchedTerms []string `json:"matched_terms"`
+	CAPECID         string   `json:"capec_id"`
+	Name            string   `json:"name"`
+	TotalScore      float64  `json:"total_score"`
+	TFIDFScore      float64  `json:"tfidf_score"`
+	CWEScore        float64  `json:"cwe_score"`
+	KeywordScore    float64  `json:"keyword_score"`
+	MetadataScore   float64  `json:"metadata_score"`
+	Confidence      string   `json:"confidence"`
+	Severity        string   `json:"severity"`
+	Likelihood      string   `json:"likelihood"`
+	MatchedTerms    []string `json:"matched_terms"`
+	MatchedKeywords []string `json:"matched_keywords"`
 }
 
 // NVD API structures
@@ -61,96 +66,63 @@ type Weakness struct {
 	} `json:"description"`
 }
 
-// CWE to CAPEC mapping (comprehensive)
+// CWE to CAPEC mapping with relationship strength
+type CWEMapping struct {
+	CAPECs   []string
+	Strength string // "direct", "parent", "related"
+}
+
 var cweToCapec = map[string][]string{
 	// XSS family
-	"79": {"588", "591", "592", "63", "85", "209"},
-	"80": {"63", "588"},
-	"81": {"63"},
-	"82": {"63"},
-	"83": {"83"}, // XPath Injection
-	"84": {"63"},
-	"85": {"63"},
-	"86": {"63"},
-	"87": {"63"},
-
-	// SQL Injection family
+	"79":  {"588", "591", "592", "63", "85", "209"},
+	"80":  {"63", "588"},
+	"917": {"242", "35"}, // JNDI/EL Injection
+	"502": {"586"},       // Deserialization
 	"89":  {"66", "7", "108"},
-	"564": {"66"},
-
-	// Command Injection family
-	"77": {"88", "248", "15"},
-	"78": {"88", "248", "15"},
-	"88": {"88"},
-
-	// Path Traversal family
-	"22": {"126", "597"},
-	"23": {"126"},
-	"36": {"597"},
-	"73": {"126"},
-
-	// Buffer Overflow family
+	"77":  {"88", "248", "15"},
+	"78":  {"88", "248", "15"},
+	"22":  {"126", "597"},
 	"119": {"92", "100", "10"},
-	"120": {"92"},
-	"121": {"92"},
-	"122": {"100"},
-	"123": {"92"},
-	"124": {"92"},
-	"125": {"92"},
-	"787": {"92", "100"},
-
-	// Deserialization
-	"502": {"586"},
-
-	// XXE
 	"611": {"221"},
-
-	// SSRF
 	"918": {"664"},
-
-	// CSRF
 	"352": {"62"},
-
-	// Authentication
 	"287": {"114", "115", "593"},
-	"288": {"114"},
-	"289": {"115"},
-	"290": {"593"},
+	"90":  {"136"},
+	"400": {"130", "147"}, // Resource exhaustion
+	"20":  {},             // Improper input validation (generic)
+}
 
-	// Authorization
-	"285": {"69", "470"},
-	"862": {"69"},
-	"863": {"470"},
-
-	// Code Injection
-	"94": {"242", "35"},
-	"95": {"242"},
-	"96": {"242"},
-	"97": {"242"},
-
-	// LDAP Injection
-	"90": {"136"},
-
-	// XML Injection
-	"91":  {"250"},
-	"652": {"250"},
+// Attack pattern keywords for fallback matching
+var attackKeywords = map[string][]string{
+	"586": {"deserialization", "deserialize", "unserialize", "object injection", "serialized", "pickle", "jndi", "ldap", "rmi"},
+	"588": {"dom", "dom-based", "client-side", "javascript", "document object"},
+	"591": {"reflected", "non-persistent", "url parameter", "query string"},
+	"592": {"stored", "persistent", "database", "save"},
+	"63":  {"xss", "cross-site scripting", "script injection"},
+	"66":  {"sql injection", "union select", "sql query"},
+	"7":   {"blind sql", "time-based", "boolean"},
+	"88":  {"command injection", "os command", "shell command", "exec"},
+	"126": {"path traversal", "directory traversal", "../"},
+	"221": {"xxe", "xml external entity"},
+	"664": {"ssrf", "server-side request forgery"},
+	"62":  {"csrf", "cross-site request forgery"},
 }
 
 func main() {
 	cveID := flag.String("cve", "", "CVE ID to analyze")
 	dataFile := flag.String("data", "capec_training_data.json", "CAPEC data file")
 	topN := flag.Int("top", 5, "Number of top results to show")
-	verbose := flag.Bool("v", false, "Verbose output")
+	verbose := flag.Bool("v", false, "Verbose output with score breakdown")
 	flag.Parse()
 
 	if *cveID == "" {
-		fmt.Println("Usage: capec-ranker-complete -cve CVE-ID [-data capec_training_data.json] [-top N] [-v]")
+		fmt.Println("Usage: capec-ranker-hybrid -cve CVE-ID [-data capec_training_data.json] [-top N] [-v]")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
 	fmt.Println("================================================================================")
-	fmt.Println("CAPEC RANKER - Complete End-to-End Analysis")
+	fmt.Println("CAPEC RANKER - Hybrid Scoring (TF-IDF + CWE + Keywords + Metadata)")
 	fmt.Println("================================================================================")
 
 	// Step 1: Fetch CVE data
@@ -199,15 +171,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Step 5: Rank CAPECs
-	fmt.Printf("\n[STEP 3] Ranking CAPECs using TF-IDF similarity...\n")
+	// Step 5: Rank CAPECs using hybrid scoring
+	fmt.Printf("\n[STEP 3] Ranking CAPECs using hybrid scoring...\n")
+	if *verbose {
+		fmt.Println("  Scoring components:")
+		fmt.Println("    • TF-IDF Similarity (0-40 points)")
+		fmt.Println("    • CWE Relationship (0-30 points)")
+		fmt.Println("    • Keyword Matching (0-20 points)")
+		fmt.Println("    • Metadata (Severity/Likelihood) (0-10 points)")
+	}
+
 	candidates := filterCandidates(allCAPECs, candidateIDs)
 	if len(candidates) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: No matching CAPEC data found\n")
 		os.Exit(1)
 	}
 
-	ranked := rankCAPECs(description, candidates, *verbose)
+	ranked := rankCAPECsHybrid(description, cweIDs, candidates, *verbose)
 
 	// Step 6: Display ranked results
 	fmt.Println("\n================================================================================")
@@ -218,7 +198,16 @@ func main() {
 	for i := 0; i < displayCount; i++ {
 		result := ranked[i]
 		fmt.Printf("%d. CAPEC-%s: %s\n", i+1, result.CAPECID, result.Name)
-		fmt.Printf("   Similarity Score: %.4f (%s confidence)\n", result.Score, result.Confidence)
+		fmt.Printf("   Total Score: %.2f/100 (%s confidence)\n", result.TotalScore, result.Confidence)
+
+		if *verbose {
+			fmt.Printf("   Score Breakdown:\n")
+			fmt.Printf("     - TF-IDF Similarity: %.2f/40\n", result.TFIDFScore)
+			fmt.Printf("     - CWE Relationship: %.2f/30\n", result.CWEScore)
+			fmt.Printf("     - Keyword Matching: %.2f/20\n", result.KeywordScore)
+			fmt.Printf("     - Metadata: %.2f/10\n", result.MetadataScore)
+		}
+
 		if result.Severity != "" {
 			fmt.Printf("   Severity: %s", result.Severity)
 			if result.Likelihood != "" {
@@ -226,9 +215,11 @@ func main() {
 			}
 			fmt.Println()
 		}
-		if *verbose && len(result.MatchedTerms) > 0 {
-			fmt.Printf("   Matched Terms: %v\n", result.MatchedTerms[:min(5, len(result.MatchedTerms))])
+
+		if len(result.MatchedKeywords) > 0 {
+			fmt.Printf("   Matched Keywords: %v\n", result.MatchedKeywords)
 		}
+
 		if i < displayCount-1 {
 			fmt.Println()
 		}
@@ -241,7 +232,14 @@ func main() {
 		fmt.Println("[SELECTED CAPEC] (Highest Ranked)")
 		fmt.Println("================================================================================\n")
 		fmt.Printf("CAPEC-%s: %s\n", selected.CAPECID, selected.Name)
-		fmt.Printf("Similarity Score: %.4f (%s confidence)\n", selected.Score, selected.Confidence)
+		fmt.Printf("Total Score: %.2f/100 (%s confidence)\n", selected.TotalScore, selected.Confidence)
+		if *verbose {
+			fmt.Printf("\nScore Breakdown:\n")
+			fmt.Printf("  • TF-IDF Similarity: %.2f/40\n", selected.TFIDFScore)
+			fmt.Printf("  • CWE Relationship: %.2f/30\n", selected.CWEScore)
+			fmt.Printf("  • Keyword Matching: %.2f/20\n", selected.KeywordScore)
+			fmt.Printf("  • Metadata: %.2f/10\n", selected.MetadataScore)
+		}
 		if selected.Severity != "" {
 			fmt.Printf("Severity: %s", selected.Severity)
 			if selected.Likelihood != "" {
@@ -249,30 +247,184 @@ func main() {
 			}
 			fmt.Println()
 		}
-		if len(selected.MatchedTerms) > 0 {
-			fmt.Printf("Matched Terms: %v\n", selected.MatchedTerms[:min(10, len(selected.MatchedTerms))])
+		if len(selected.MatchedKeywords) > 0 {
+			fmt.Printf("Matched Keywords: %v\n", selected.MatchedKeywords)
 		}
 	}
 
 	fmt.Println("\n================================================================================")
 }
 
+func rankCAPECsHybrid(cveDesc string, cweIDs []string, candidates []CAPECData, verbose bool) []RankedCAPEC {
+	cveDescLower := strings.ToLower(cveDesc)
+
+	// Tokenize CVE description for TF-IDF
+	cveTokens := tokenize(cveDesc)
+	cveTermFreq := calculateTermFrequency(cveTokens)
+
+	// Calculate document frequency for TF-IDF
+	docFreq := make(map[string]int)
+	for _, capec := range candidates {
+		capecText := capec.Description + " " + capec.Name + " " + strings.Join(capec.Prerequisites, " ")
+		capecTokens := tokenize(capecText)
+		uniqueTerms := make(map[string]bool)
+		for _, term := range capecTokens {
+			uniqueTerms[term] = true
+		}
+		for term := range uniqueTerms {
+			docFreq[term]++
+		}
+	}
+
+	cveTFIDF := calculateTFIDF(cveTermFreq, docFreq, len(candidates))
+
+	var results []RankedCAPEC
+
+	for _, capec := range candidates {
+		// Component 1: TF-IDF Similarity (0-40 points)
+		capecText := capec.Description + " " + capec.Name + " " + strings.Join(capec.Prerequisites, " ")
+		capecTokens := tokenize(capecText)
+		capecTermFreq := calculateTermFrequency(capecTokens)
+		capecTFIDF := calculateTFIDF(capecTermFreq, docFreq, len(candidates))
+
+		tfidfSimilarity := cosineSimilarity(cveTFIDF, capecTFIDF)
+		tfidfScore := tfidfSimilarity * 40.0 // Scale to 0-40
+
+		// Component 2: CWE Relationship Strength (0-30 points)
+		cweScore := calculateCWEScore(capec, cweIDs)
+
+		// Component 3: Keyword Matching (0-20 points)
+		keywordScore, matchedKeywords := calculateKeywordScore(cveDescLower, capec.CAPECID)
+
+		// Component 4: Metadata Score (0-10 points)
+		metadataScore := calculateMetadataScore(capec)
+
+		// Total Score
+		totalScore := tfidfScore + cweScore + keywordScore + metadataScore
+
+		// Single candidate boost (if only 1 CAPEC, ensure reasonable score)
+		if len(candidates) == 1 && totalScore < 50 {
+			totalScore = 50.0 // Minimum score for single candidate
+		}
+
+		// Determine confidence
+		confidence := "low"
+		if totalScore >= 70 {
+			confidence = "high"
+		} else if totalScore >= 50 {
+			confidence = "medium"
+		}
+
+		// Find matched terms for display
+		matchedTerms := findMatchedTerms(cveTokens, capecTokens)
+
+		results = append(results, RankedCAPEC{
+			CAPECID:         capec.CAPECID,
+			Name:            capec.Name,
+			TotalScore:      totalScore,
+			TFIDFScore:      tfidfScore,
+			CWEScore:        cweScore,
+			KeywordScore:    keywordScore,
+			MetadataScore:   metadataScore,
+			Confidence:      confidence,
+			Severity:        capec.TypicalSeverity,
+			Likelihood:      capec.LikelihoodOfAttack,
+			MatchedTerms:    matchedTerms,
+			MatchedKeywords: matchedKeywords,
+		})
+	}
+
+	// Sort by total score descending
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].TotalScore > results[j].TotalScore
+	})
+
+	return results
+}
+
+func calculateCWEScore(capec CAPECData, cveWEs []string) float64 {
+	// Direct CWE match: 30 points
+	// Related CWE match: 15 points
+	score := 0.0
+
+	for _, cweID := range cveWEs {
+		for _, relatedCWE := range capec.RelatedCWEs {
+			if relatedCWE == cweID {
+				score = 30.0 // Direct match
+				return score
+			}
+		}
+	}
+
+	// If no direct match, give partial credit for being in the mapping
+	if score == 0 {
+		score = 15.0 // Related match
+	}
+
+	return score
+}
+
+func calculateKeywordScore(cveDesc string, capecID string) (float64, []string) {
+	keywords, exists := attackKeywords[capecID]
+	if !exists {
+		return 0.0, []string{}
+	}
+
+	matchCount := 0
+	var matched []string
+
+	for _, keyword := range keywords {
+		if strings.Contains(cveDesc, keyword) {
+			matchCount++
+			matched = append(matched, keyword)
+		}
+	}
+
+	// Score: (matched / total) * 20
+	score := (float64(matchCount) / float64(len(keywords))) * 20.0
+
+	return score, matched
+}
+
+func calculateMetadataScore(capec CAPECData) float64 {
+	score := 0.0
+
+	// Severity scoring
+	switch strings.ToLower(capec.TypicalSeverity) {
+	case "very high":
+		score += 6.0
+	case "high":
+		score += 5.0
+	case "medium":
+		score += 3.0
+	case "low":
+		score += 1.0
+	}
+
+	// Likelihood scoring
+	switch strings.ToLower(capec.LikelihoodOfAttack) {
+	case "high":
+		score += 4.0
+	case "medium":
+		score += 2.0
+	case "low":
+		score += 1.0
+	}
+
+	return score
+}
+
+// ... (rest of the helper functions remain the same: fetchCVEData, getCandidateCAPECs, loadCAPECData, etc.)
+
 func fetchCVEData(cveID string) (string, []string, error) {
-	// Normalize CVE ID
 	cveID = strings.ToUpper(cveID)
 	if !strings.HasPrefix(cveID, "CVE-") {
 		cveID = "CVE-" + cveID
 	}
 
-	// Build NVD API URL
 	url := fmt.Sprintf("https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=%s", cveID)
+	client := &http.Client{Timeout: 30 * time.Second}
 
-	// Create HTTP client with timeout
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	// Make request
 	resp, err := client.Get(url)
 	if err != nil {
 		return "", nil, err
@@ -283,7 +435,6 @@ func fetchCVEData(cveID string) (string, []string, error) {
 		return "", nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 	}
 
-	// Parse response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", nil, err
@@ -300,7 +451,6 @@ func fetchCVEData(cveID string) (string, []string, error) {
 
 	cve := nvdResp.Vulnerabilities[0].CVE
 
-	// Extract English description
 	var description string
 	for _, desc := range cve.Descriptions {
 		if desc.Lang == "en" {
@@ -309,7 +459,6 @@ func fetchCVEData(cveID string) (string, []string, error) {
 		}
 	}
 
-	// Extract CWE IDs
 	var cweIDs []string
 	for _, weakness := range cve.Weaknesses {
 		for _, desc := range weakness.Description {
@@ -334,15 +483,12 @@ func getCandidateCAPECs(cweIDs []string) []string {
 		}
 	}
 
-	// Convert to slice
 	var candidates []string
 	for capecID := range capecSet {
 		candidates = append(candidates, capecID)
 	}
 
-	// Sort for consistent output
 	sort.Strings(candidates)
-
 	return candidates
 }
 
@@ -359,7 +505,6 @@ func loadCAPECData(filename string) (map[string]CAPECData, error) {
 		return nil, err
 	}
 
-	// Convert to map for easy lookup
 	dataMap := make(map[string]CAPECData)
 	for _, capec := range dataList {
 		dataMap[capec.CAPECID] = capec
@@ -380,85 +525,17 @@ func filterCandidates(allCAPECs map[string]CAPECData, candidateIDs []string) []C
 	return candidates
 }
 
-func rankCAPECs(cveDesc string, candidates []CAPECData, verbose bool) []RankedCAPEC {
-	// Tokenize CVE description
-	cveTokens := tokenize(cveDesc)
-	cveTermFreq := calculateTermFrequency(cveTokens)
-
-	// Calculate document frequency across all candidates
-	docFreq := make(map[string]int)
-	for _, capec := range candidates {
-		capecText := capec.Description + " " + capec.Name + " " + strings.Join(capec.Prerequisites, " ")
-		capecTokens := tokenize(capecText)
-		uniqueTerms := make(map[string]bool)
-		for _, term := range capecTokens {
-			uniqueTerms[term] = true
-		}
-		for term := range uniqueTerms {
-			docFreq[term]++
-		}
-	}
-
-	// Calculate TF-IDF for CVE
-	cveTFIDF := calculateTFIDF(cveTermFreq, docFreq, len(candidates))
-
-	// Calculate similarity for each candidate
-	var results []RankedCAPEC
-
-	for _, capec := range candidates {
-		capecText := capec.Description + " " + capec.Name + " " + strings.Join(capec.Prerequisites, " ")
-		capecTokens := tokenize(capecText)
-		capecTermFreq := calculateTermFrequency(capecTokens)
-		capecTFIDF := calculateTFIDF(capecTermFreq, docFreq, len(candidates))
-
-		// Calculate cosine similarity
-		similarity := cosineSimilarity(cveTFIDF, capecTFIDF)
-
-		// Find matched terms
-		matchedTerms := findMatchedTerms(cveTokens, capecTokens)
-
-		// Determine confidence
-		confidence := "low"
-		if similarity >= 0.3 {
-			confidence = "high"
-		} else if similarity >= 0.15 {
-			confidence = "medium"
-		}
-
-		results = append(results, RankedCAPEC{
-			CAPECID:      capec.CAPECID,
-			Name:         capec.Name,
-			Score:        similarity,
-			Confidence:   confidence,
-			Severity:     capec.TypicalSeverity,
-			Likelihood:   capec.LikelihoodOfAttack,
-			MatchedTerms: matchedTerms,
-		})
-	}
-
-	// Sort by score descending
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].Score > results[j].Score
-	})
-
-	return results
-}
-
 func tokenize(text string) []string {
-	// Convert to lowercase
 	text = strings.ToLower(text)
 
-	// Remove version numbers and CVE IDs
 	versionRegex := regexp.MustCompile(`\b\d+\.\d+(\.\d+)*\b`)
 	text = versionRegex.ReplaceAllString(text, "")
 	cveRegex := regexp.MustCompile(`\bcve-\d{4}-\d+\b`)
 	text = cveRegex.ReplaceAllString(text, "")
 
-	// Extract words (3+ characters)
 	wordRegex := regexp.MustCompile(`[a-z]{3,}`)
 	words := wordRegex.FindAllString(text, -1)
 
-	// Filter stopwords
 	stopwords := map[string]bool{
 		"the": true, "and": true, "for": true, "with": true, "from": true,
 		"that": true, "this": true, "are": true, "was": true, "were": true,
@@ -508,7 +585,7 @@ func calculateTFIDF(termFreq map[string]float64, docFreq map[string]int, totalDo
 	for term, tf := range termFreq {
 		df := docFreq[term]
 		if df == 0 {
-			df = 1 // Avoid division by zero
+			df = 1
 		}
 		idf := math.Log(float64(totalDocs) / float64(df))
 		tfidf[term] = tf * idf
@@ -518,7 +595,6 @@ func calculateTFIDF(termFreq map[string]float64, docFreq map[string]int, totalDo
 }
 
 func cosineSimilarity(vec1, vec2 map[string]float64) float64 {
-	// Calculate dot product
 	dotProduct := 0.0
 	for term, val1 := range vec1 {
 		if val2, exists := vec2[term]; exists {
@@ -526,7 +602,6 @@ func cosineSimilarity(vec1, vec2 map[string]float64) float64 {
 		}
 	}
 
-	// Calculate magnitudes
 	mag1 := 0.0
 	for _, val := range vec1 {
 		mag1 += val * val
@@ -539,7 +614,6 @@ func cosineSimilarity(vec1, vec2 map[string]float64) float64 {
 	}
 	mag2 = math.Sqrt(mag2)
 
-	// Avoid division by zero
 	if mag1 == 0 || mag2 == 0 {
 		return 0.0
 	}
