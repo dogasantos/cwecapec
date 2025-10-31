@@ -88,8 +88,10 @@ var cweToCapec = map[string][]string{
 	"352": {"62"},
 	"287": {"114", "115", "593"},
 	"90":  {"136"},
-	"400": {"130", "147"}, // Resource exhaustion
-	"20":  {},             // Improper input validation (generic)
+	"400": {"130", "147"},      // Resource exhaustion
+	"94":  {"242", "35", "77"}, // Code Injection
+	"95":  {"35"},              // Improper Neutralization of Directives in Dynamically Evaluated Code
+	"20":  {},                  // Improper input validation (generic)
 }
 
 // Attack pattern keywords for fallback matching
@@ -106,6 +108,9 @@ var attackKeywords = map[string][]string{
 	"221": {"xxe", "xml external entity"},
 	"664": {"ssrf", "server-side request forgery"},
 	"62":  {"csrf", "cross-site request forgery"},
+	"242": {"code injection", "remote code execution", "rce", "arbitrary code"},
+	"35":  {"executable code", "non-executable", "eval", "dynamic evaluation"},
+	"77":  {"user-controlled", "variable manipulation", "parameter tampering"},
 }
 
 func main() {
