@@ -218,7 +218,7 @@ func main() {
 	outputFile := "training_data.json"
 
 	if apiKey == "" {
-		fmt.Println("⚠️  No API key found. Using rate limit: 5 requests per 30 seconds")
+		fmt.Println("No API key found. Using rate limit: 5 requests per 30 seconds")
 		fmt.Println("   Set NVD_API_KEY environment variable for 50 requests per 30 seconds\n")
 	} else {
 		fmt.Println("API key found. Using rate limit: 50 requests per 30 seconds\n")
