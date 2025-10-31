@@ -86,11 +86,11 @@ func main() {
 
 	if cveID == "" && cveDesc == "" {
 		fmt.Println("Usage:")
-		fmt.Println("  hybrid-classifier -cve CVE-2021-44228 [-top 3] [-verbose]")
-		fmt.Println("  hybrid-classifier -description \"CVE description\" [-cwes \"94,502\"] [-top 3] [-verbose]")
+		fmt.Println("  phase3-classifier -cve CVE-2021-44228 [-top 3] [-verbose]")
+		fmt.Println("  phase3-classifier -description \"CVE description\" [-cwes \"94,502\"] [-top 3] [-verbose]")
 		fmt.Println("\nExamples:")
-		fmt.Println("  hybrid-classifier -cve CVE-2021-44228")
-		fmt.Println("  hybrid-classifier -d \"allows remote attackers to execute arbitrary code via JNDI\" -c \"502,917\"")
+		fmt.Println("  phase3-classifier -cve CVE-2021-44228")
+		fmt.Println("  phase3-classifier -d \"allows remote attackers to execute arbitrary code via JNDI\" -c \"502,917\"")
 		os.Exit(1)
 	}
 
@@ -150,10 +150,10 @@ func main() {
 	if showDetails {
 		fmt.Println("Loading Naive Bayes model...")
 	}
-	model, err := loadNaiveBayesModel("attack_vector_model.json")
+	model, err := loadNaiveBayesModel("naive_bayes_model.json")
 	if err != nil {
 		fmt.Printf("Error loading Naive Bayes model: %v\n", err)
-		fmt.Println("Run 'trainer' first to generate attack_vector_model.json")
+		fmt.Println("Run 'trainer' first to generate naive_bayes_model.json")
 		os.Exit(1)
 	}
 	if showDetails {
