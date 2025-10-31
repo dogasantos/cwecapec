@@ -111,6 +111,10 @@ var attackKeywords = map[string][]string{
 	"242": {"code injection", "remote code execution", "rce", "arbitrary code"},
 	"35":  {"executable code", "non-executable", "eval", "dynamic evaluation"},
 	"77":  {"user-controlled", "variable manipulation", "parameter tampering"},
+	"31":  {"cookie", "http cookie", "cookie manipulation", "cookie theft"},
+	"102": {"session sidejacking", "session sniffing", "session interception", "hijack"},
+	"196": {"session forging", "session falsification", "forge session", "fake session"},
+	"226": {"session manipulation", "session takeover", "session hijacking", "credential manipulation"},
 }
 
 func main() {
@@ -156,9 +160,25 @@ func main() {
 	fmt.Printf("\n[STEP 2] Getting candidate CAPECs from CWE relationships...\n")
 	candidateIDs := getCandidateCAPECs(cweIDs)
 
+	// Step 3.5: Fallback if no candidates found (e.g., generic CWE-20)
 	if len(candidateIDs) == 0 {
-		fmt.Println("\n⚠ No candidate CAPECs found from CWE relationships")
-		os.Exit(0)
+		fmt.Println("\n⚠ No direct CWE-to-CAPEC mapping found")
+		fmt.Println("[STEP 2.5] Using keyword-based fallback...\n")
+
+		// Load CAPEC data first for fallback
+		allCAPECs, err := loadCAPECData(*dataFile)
+		if err != nil {
+			fmt.Printf("Error loading CAPEC data: %v\n", err)
+			os.Exit(1)
+		}
+
+		candidateIDs = getCandidateCAPECsFallback(description, allCAPECs)
+
+		if len(candidateIDs) == 0 {
+			fmt.Println("\n⚠ No candidate CAPECs found even with fallback")
+			os.Exit(0)
+		}
+
 	}
 
 	fmt.Printf("\n[CANDIDATE CAPECs] (%d)\n", len(candidateIDs))
@@ -375,20 +395,31 @@ func calculateKeywordScore(cveDesc string, capecID string) (float64, []string) {
 		return 0.0, []string{}
 	}
 
-	matchCount := 0
 	var matched []string
+	totalScore := 0.0
 
 	for _, keyword := range keywords {
 		if strings.Contains(cveDesc, keyword) {
-			matchCount++
 			matched = append(matched, keyword)
+
+			// Weight by keyword specificity (longer = more specific)
+			wordCount := len(strings.Fields(keyword))
+			if wordCount >= 3 {
+				totalScore += 8.0 // Multi-word phrase (e.g., "session takeover")
+			} else if wordCount == 2 {
+				totalScore += 5.0 // Two-word phrase
+			} else {
+				totalScore += 3.0 // Single word
+			}
 		}
 	}
 
-	// Score: (matched / total) * 20
-	score := (float64(matchCount) / float64(len(keywords))) * 20.0
+	// Cap at 20 points
+	if totalScore > 20.0 {
+		totalScore = 20.0
+	}
 
-	return score, matched
+	return totalScore, matched
 }
 
 func calculateMetadataScore(capec CAPECData) float64 {
@@ -482,8 +513,53 @@ func getCandidateCAPECs(cweIDs []string) []string {
 
 	for _, cweID := range cweIDs {
 		if capecs, exists := cweToCapec[cweID]; exists {
+			if len(capecs) > 0 {
+				// CWE has specific mappings
+				for _, capecID := range capecs {
+					capecSet[capecID] = true
+				}
+			}
+			// If empty list (generic CWE like CWE-20), skip for now
+			// Fallback will be handled in main()
+		}
+	}
+
+	var candidates []string
+	for capecID := range capecSet {
+		candidates = append(candidates, capecID)
+	}
+
+	sort.Strings(candidates)
+	return candidates
+}
+
+// Fallback: get CAPECs from CAPEC data based on keywords when CWE mapping is empty
+func getCandidateCAPECsFallback(cveDesc string, allCAPECs map[string]CAPECData) []string {
+	cveDescLower := strings.ToLower(cveDesc)
+
+	// Define keyword-to-CAPEC patterns for common attack types
+	keywordPatterns := map[string][]string{
+		"session": {"31", "102", "196", "226"},      // Session attacks
+		"cookie":  {"31", "102"},                    // Cookie manipulation
+		"xss":     {"63", "588", "591", "592"},      // XSS variants
+		"sql":     {"7", "66", "108", "109", "110"}, // SQL injection
+		"command": {"88"},                           // Command injection
+		"buffer":  {"8", "9", "10", "14", "24"},     // Buffer overflow
+		"ldap":    {"136"},                          // LDAP injection
+		"xpath":   {"83"},                           // XPath injection
+		"xml":     {"250"},                          // XML injection
+	}
+
+	capecSet := make(map[string]bool)
+
+	// Match keywords in CVE description
+	for keyword, capecs := range keywordPatterns {
+		if strings.Contains(cveDescLower, keyword) {
 			for _, capecID := range capecs {
-				capecSet[capecID] = true
+				// Only add if CAPEC exists in data
+				if _, exists := allCAPECs[capecID]; exists {
+					capecSet[capecID] = true
+				}
 			}
 		}
 	}
