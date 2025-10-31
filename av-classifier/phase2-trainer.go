@@ -51,6 +51,28 @@ var stopwords = map[string]bool{
 	"while": true, "within": true, "along": true, "following": true, "across": true,
 	"behind": true, "beyond": true, "plus": true, "except": true, "however": true,
 	"since": true, "unless": true, "whereas": true, "whether": true,
+	// Security-specific generic terms (low discriminative power)
+	"vulnerability": true, "vulnerabilities": true, "vulnerable": true,
+	"issue": true, "issues": true, "flaw": true, "flaws": true,
+	"version": true, "versions": true, "release": true, "releases": true,
+	"attacker": true, "attackers": true, "user": true, "users": true,
+	"allows": true, "allow": true, "via": true, "using": true,
+	"data": true, "code": true, "file": true, "files": true,
+	"access": true, "system": true, "systems": true,
+	"found": true, "used": true, "use": true, "uses": true,
+	"fix": true, "fixed": true, "resolved": true, "patch": true,
+	"product": true, "products": true, "component": true, "components": true,
+	"application": true, "applications": true, "software": true,
+	"function": true, "functions": true, "method": true, "methods": true,
+	"value": true, "values": true, "parameter": true, "parameters": true,
+	"request": true, "requests": true, "response": true, "responses": true,
+	"certain": true, "specific": true, "particular": true, "multiple": true,
+	"various": true, "related": true, "associated": true, "affected": true,
+	"result": true, "results": true, "cause": true, "causes": true,
+	"perform": true, "execute": true, "run": true, "process": true,
+	"obtain": true, "gain": true, "achieve": true, "lead": true,
+	"due": true, "lack": true, "missing": true, "improper": true,
+	"insufficient": true, "incorrect": true, "invalid": true,
 }
 
 // Tokenize and clean text
