@@ -1,33 +1,34 @@
 package main
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
-	"time"
 )
 
-// NVD API structures
-type NVDResponse struct {
+// NVD Feed structures (JSON 2.0 format)
+type NVDFeed struct {
 	ResultsPerPage  int             `json:"resultsPerPage"`
 	StartIndex      int             `json:"startIndex"`
 	TotalResults    int             `json:"totalResults"`
+	Format          string          `json:"format"`
+	Version         string          `json:"version"`
+	Timestamp       string          `json:"timestamp"`
 	Vulnerabilities []Vulnerability `json:"vulnerabilities"`
 }
 
 type Vulnerability struct {
-	CVE CVEItem `json:"cve"`
+	CVE CVEData `json:"cve"`
 }
 
-type CVEItem struct {
+type CVEData struct {
 	ID           string        `json:"id"`
 	Descriptions []Description `json:"descriptions"`
-	Weaknesses   []Weakness    `json:"weaknesses,omitempty"`
 	Published    string        `json:"published"`
+	Weaknesses   []Weakness    `json:"weaknesses"`
 }
 
 type Description struct {
@@ -44,7 +45,7 @@ type WeaknessDesc struct {
 	Value string `json:"value"`
 }
 
-// Training data structures
+// Training data structure
 type TrainingRecord struct {
 	CVEID         string   `json:"cve_id"`
 	Description   string   `json:"description"`
@@ -53,57 +54,59 @@ type TrainingRecord struct {
 	PublishedDate string   `json:"published_date"`
 }
 
+// Attack vector mapping
 type AttackVectorMapping struct {
-	Name        string   `json:"name"`
-	CWEs        []string `json:"cwes"`
-	Description string   `json:"description"`
-	Priority    int      `json:"priority"` // 1=Critical, 2=High, 3=Medium
+	Name        string
+	CWEs        []string
+	Description string
+	Priority    int
 }
 
 // Attack vector definitions
 var attackVectorMappings = []AttackVectorMapping{
-	// Tier 1 - Critical
-	{Name: "xss", CWEs: []string{"79", "80", "83", "87"}, Description: "Cross-Site Scripting", Priority: 1},
+	// Tier 1: Critical (10 vectors)
+	{Name: "xss", CWEs: []string{"79", "80", "83"}, Description: "Cross-Site Scripting", Priority: 1},
 	{Name: "sql_injection", CWEs: []string{"89"}, Description: "SQL Injection", Priority: 1},
-	{Name: "rce", CWEs: []string{"94", "95", "96"}, Description: "Remote Code Execution", Priority: 1},
-	{Name: "command_injection", CWEs: []string{"78", "77"}, Description: "OS Command Injection", Priority: 1},
-	{Name: "path_traversal", CWEs: []string{"22", "23", "36", "73"}, Description: "Path Traversal", Priority: 1},
+	{Name: "rce", CWEs: []string{"94", "95"}, Description: "Remote Code Execution", Priority: 1},
+	{Name: "command_injection", CWEs: []string{"77", "78"}, Description: "OS Command Injection", Priority: 1},
+	{Name: "path_traversal", CWEs: []string{"22", "23", "36"}, Description: "Path Traversal", Priority: 1},
 	{Name: "ssrf", CWEs: []string{"918"}, Description: "Server-Side Request Forgery", Priority: 1},
 	{Name: "deserialization", CWEs: []string{"502"}, Description: "Deserialization Vulnerabilities", Priority: 1},
-	{Name: "auth_bypass", CWEs: []string{"287", "288", "290", "306", "384"}, Description: "Authentication Bypass", Priority: 1},
-	{Name: "authz_bypass", CWEs: []string{"862", "863", "284", "285"}, Description: "Authorization Bypass", Priority: 1},
-	{Name: "file_upload", CWEs: []string{"434", "616"}, Description: "File Upload Vulnerabilities", Priority: 1},
+	{Name: "auth_bypass", CWEs: []string{"287", "288", "290", "302", "306"}, Description: "Authentication Bypass", Priority: 1},
+	{Name: "authz_bypass", CWEs: []string{"285", "639"}, Description: "Authorization Bypass", Priority: 1},
+	{Name: "file_upload", CWEs: []string{"434"}, Description: "File Upload Vulnerabilities", Priority: 1},
 
-	// Tier 2 - High Priority
+	// Tier 2: High Priority (10 vectors)
 	{Name: "csrf", CWEs: []string{"352"}, Description: "Cross-Site Request Forgery", Priority: 2},
-	{Name: "xxe", CWEs: []string{"611", "827"}, Description: "XML External Entity", Priority: 2},
+	{Name: "xxe", CWEs: []string{"611"}, Description: "XML External Entity", Priority: 2},
 	{Name: "ldap_injection", CWEs: []string{"90"}, Description: "LDAP Injection", Priority: 2},
 	{Name: "jndi_injection", CWEs: []string{"917"}, Description: "JNDI/Expression Language Injection", Priority: 2},
-	{Name: "privilege_escalation", CWEs: []string{"269", "250", "266", "274"}, Description: "Privilege Escalation", Priority: 2},
-	{Name: "buffer_overflow", CWEs: []string{"787", "119", "120", "121", "122", "125"}, Description: "Buffer Overflow", Priority: 2},
-	{Name: "idor", CWEs: []string{"639"}, Description: "Insecure Direct Object Reference", Priority: 2},
+	{Name: "privilege_escalation", CWEs: []string{"269", "274", "266", "250"}, Description: "Privilege Escalation", Priority: 2},
+	{Name: "buffer_overflow", CWEs: []string{"119", "120", "121", "122", "787", "788"}, Description: "Buffer Overflow", Priority: 2},
+	{Name: "idor", CWEs: []string{"639", "284"}, Description: "Insecure Direct Object Reference", Priority: 2},
 	{Name: "http_desync", CWEs: []string{"444"}, Description: "HTTP Request Smuggling", Priority: 2},
 	{Name: "hardcoded_credentials", CWEs: []string{"798", "259", "321"}, Description: "Hard-coded Credentials", Priority: 2},
-	{Name: "info_disclosure", CWEs: []string{"200", "209", "215", "532", "538"}, Description: "Information Disclosure", Priority: 2},
+	{Name: "info_disclosure", CWEs: []string{"200", "209", "213", "215", "532"}, Description: "Information Disclosure", Priority: 2},
 
-	// Tier 3 - Medium Priority
-	{Name: "dos", CWEs: []string{"400", "770", "399", "404"}, Description: "Denial of Service", Priority: 3},
+	// Tier 3: Medium Priority (15 vectors)
+	{Name: "dos", CWEs: []string{"400", "770", "400", "835", "674"}, Description: "Denial of Service", Priority: 3},
 	{Name: "nosql_injection", CWEs: []string{"943"}, Description: "NoSQL Injection", Priority: 3},
 	{Name: "xpath_injection", CWEs: []string{"643"}, Description: "XPath Injection", Priority: 3},
 	{Name: "open_redirect", CWEs: []string{"601"}, Description: "Open Redirect", Priority: 3},
 	{Name: "session_fixation", CWEs: []string{"384"}, Description: "Session Fixation", Priority: 3},
-	{Name: "crypto_failure", CWEs: []string{"327", "328", "329", "330", "326"}, Description: "Cryptographic Failures", Priority: 3},
+	{Name: "crypto_failure", CWEs: []string{"327", "328", "329", "326"}, Description: "Cryptographic Failures", Priority: 3},
 	{Name: "integer_overflow", CWEs: []string{"190", "191"}, Description: "Integer Overflow", Priority: 3},
 	{Name: "use_after_free", CWEs: []string{"416"}, Description: "Use After Free", Priority: 3},
 	{Name: "null_pointer", CWEs: []string{"476"}, Description: "NULL Pointer Dereference", Priority: 3},
 	{Name: "format_string", CWEs: []string{"134"}, Description: "Format String Vulnerability", Priority: 3},
 	{Name: "email_injection", CWEs: []string{"93"}, Description: "Email Header Injection", Priority: 3},
-	{Name: "race_condition", CWEs: []string{"362", "367"}, Description: "Race Condition", Priority: 3},
-	{Name: "ssti", CWEs: []string{"94"}, Description: "Server-Side Template Injection", Priority: 3},
-	{Name: "input_validation", CWEs: []string{"20"}, Description: "Improper Input Validation", Priority: 3},
+	{Name: "race_condition", CWEs: []string{"362", "366", "367"}, Description: "Race Condition", Priority: 3},
+	{Name: "ssti", CWEs: []string{"1336"}, Description: "Server-Side Template Injection", Priority: 3},
+	{Name: "input_validation", CWEs: []string{"20", "1284"}, Description: "Improper Input Validation", Priority: 3},
+	{Name: "code_injection", CWEs: []string{"94", "95"}, Description: "Code Injection", Priority: 3},
 }
 
-// Create CWE to attack vector lookup map
+// Build CWE to attack vector mapping
 func buildCWEMap() map[string][]string {
 	cweMap := make(map[string][]string)
 	for _, mapping := range attackVectorMappings {
@@ -114,50 +117,36 @@ func buildCWEMap() map[string][]string {
 	return cweMap
 }
 
-// Fetch CVEs from NVD API
-func fetchCVEs(startDate, endDate string, startIndex int, apiKey string) (*NVDResponse, error) {
-	baseURL := "https://services.nvd.nist.gov/rest/json/cves/2.0"
+// Download and decompress gzipped feed
+func downloadFeed(url string) (*NVDFeed, error) {
+	fmt.Printf("  Downloading: %s\n", url)
 
-	// URL-encode the date parameters
-	encodedStart := url.QueryEscape(startDate)
-	encodedEnd := url.QueryEscape(endDate)
-
-	fullURL := fmt.Sprintf("%s?pubStartDate=%s&pubEndDate=%s&startIndex=%d&resultsPerPage=%d",
-		baseURL, encodedStart, encodedEnd, startIndex, 2000)
-
-	// Debug: print the URL (only for first request)
-	if startIndex == 0 {
-		fmt.Printf("  API URL: %s\n", fullURL)
-	}
-
-	client := &http.Client{Timeout: 60 * time.Second}
-	req, err := http.NewRequest("GET", fullURL, nil)
+	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
-	}
-
-	// Add API key if provided
-	if apiKey != "" {
-		req.Header.Add("apiKey", apiKey)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("download failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
-	var nvdResp NVDResponse
-	if err := json.NewDecoder(resp.Body).Decode(&nvdResp); err != nil {
-		return nil, err
+	// Decompress gzip
+	gzReader, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("gzip decompression failed: %w", err)
+	}
+	defer gzReader.Close()
+
+	// Parse JSON
+	var feed NVDFeed
+	if err := json.NewDecoder(gzReader).Decode(&feed); err != nil {
+		return nil, fmt.Errorf("JSON parsing failed: %w", err)
 	}
 
-	return &nvdResp, nil
+	fmt.Printf("  Loaded %d vulnerabilities\n", len(feed.Vulnerabilities))
+
+	return &feed, nil
 }
 
 // Extract CWE IDs from vulnerability
@@ -193,107 +182,95 @@ func mapToAttackVectors(cwes []string, cweMap map[string][]string) []string {
 	return vectors
 }
 
-// Get English description
-func getEnglishDescription(descriptions []Description) string {
-	for _, desc := range descriptions {
-		if desc.Lang == "en" {
-			return desc.Value
-		}
-	}
-	if len(descriptions) > 0 {
-		return descriptions[0].Value
-	}
-	return ""
-}
-
 func main() {
 	fmt.Println("=================================================================")
-	fmt.Println("Phase 1: NVD Data Collection & Preparation for Naive Bayes")
+	fmt.Println("Phase 1: NVD Feed Collection & Preparation for Naive Bayes")
 	fmt.Println("=================================================================\n")
 
 	// Configuration
-	startDate := "2024-01-01T00:00:00.000"
-	endDate := "2024-12-31T23:59:59.999"
-	apiKey := os.Getenv("NVD_API_KEY") // Optional: set NVD_API_KEY environment variable
+	year := 2024
 	outputFile := "training_data.json"
 
-	if apiKey == "" {
-		fmt.Println("No API key found. Using rate limit: 5 requests per 30 seconds")
-		fmt.Println("   Set NVD_API_KEY environment variable for 50 requests per 30 seconds\n")
-	} else {
-		fmt.Println("API key found. Using rate limit: 50 requests per 30 seconds\n")
-	}
+	// NVD JSON 2.0 feed URL
+	feedURL := fmt.Sprintf("https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz", year)
+
+	// Try 2.0 format first
+	feedURL = fmt.Sprintf("https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-%d.json.gz", year)
 
 	// Build CWE mapping
 	cweMap := buildCWEMap()
 	fmt.Printf("Loaded %d attack vector categories\n", len(attackVectorMappings))
 	fmt.Printf("Mapped %d unique CWE IDs\n\n", len(cweMap))
 
-	// Collect training data
+	fmt.Printf("Downloading NVD feed for year %d...\n", year)
+
+	// Download feed
+	feed, err := downloadFeed(feedURL)
+	if err != nil {
+		fmt.Printf("Error downloading feed: %v\n", err)
+		fmt.Println("\nTrying alternative URL format...")
+
+		// Try alternative URL (1.1 format)
+		feedURL = fmt.Sprintf("https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz", year)
+		feed, err = downloadFeed(feedURL)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	fmt.Println("\nProcessing vulnerabilities...")
+
+	// Process vulnerabilities
 	var trainingData []TrainingRecord
-	startIndex := 0
 	totalProcessed := 0
 	totalWithVectors := 0
 
-	// Rate limiting
-	requestDelay := 6 * time.Second // 5 requests per 30 seconds
-	if apiKey != "" {
-		requestDelay = 600 * time.Millisecond // 50 requests per 30 seconds
+	for i, vuln := range feed.Vulnerabilities {
+		totalProcessed++
+
+		if (i+1)%1000 == 0 {
+			fmt.Printf("  Processed %d/%d CVEs (%d with attack vectors)\n", i+1, len(feed.Vulnerabilities), totalWithVectors)
+		}
+
+		// Extract English description
+		var description string
+		for _, desc := range vuln.CVE.Descriptions {
+			if desc.Lang == "en" {
+				description = desc.Value
+				break
+			}
+		}
+
+		if description == "" {
+			continue
+		}
+
+		// Extract CWEs
+		cwes := extractCWEs(vuln)
+		if len(cwes) == 0 {
+			continue
+		}
+
+		// Map to attack vectors
+		vectors := mapToAttackVectors(cwes, cweMap)
+		if len(vectors) == 0 {
+			continue
+		}
+
+		totalWithVectors++
+
+		// Create training record
+		trainingData = append(trainingData, TrainingRecord{
+			CVEID:         vuln.CVE.ID,
+			Description:   description,
+			CWEs:          cwes,
+			AttackVectors: vectors,
+			PublishedDate: vuln.CVE.Published,
+		})
 	}
 
-	fmt.Println("Starting data collection from NVD...")
-	fmt.Printf("Date range: %s to %s\n\n", startDate, endDate)
-
-	for {
-		fmt.Printf("Fetching CVEs (startIndex=%d)...\n", startIndex)
-
-		resp, err := fetchCVEs(startDate, endDate, startIndex, apiKey)
-		if err != nil {
-			fmt.Printf("Error fetching data: %v\n", err)
-			break
-		}
-
-		fmt.Printf("  Retrieved %d CVEs (Total in NVD: %d)\n", len(resp.Vulnerabilities), resp.TotalResults)
-
-		// Process each CVE
-		for _, vuln := range resp.Vulnerabilities {
-			totalProcessed++
-
-			cwes := extractCWEs(vuln)
-			if len(cwes) == 0 {
-				continue // Skip CVEs without CWE mappings
-			}
-
-			vectors := mapToAttackVectors(cwes, cweMap)
-			if len(vectors) == 0 {
-				continue // Skip CVEs that don't map to our attack vectors
-			}
-
-			totalWithVectors++
-
-			record := TrainingRecord{
-				CVEID:         vuln.CVE.ID,
-				Description:   getEnglishDescription(vuln.CVE.Descriptions),
-				CWEs:          cwes,
-				AttackVectors: vectors,
-				PublishedDate: vuln.CVE.Published,
-			}
-
-			trainingData = append(trainingData, record)
-		}
-
-		fmt.Printf("  Processed: %d | With attack vectors: %d\n\n", totalProcessed, totalWithVectors)
-
-		// Check if we've retrieved all results
-		if startIndex+len(resp.Vulnerabilities) >= resp.TotalResults {
-			break
-		}
-
-		startIndex += len(resp.Vulnerabilities)
-
-		// Rate limiting delay
-		time.Sleep(requestDelay)
-	}
+	fmt.Printf("  Processed %d/%d CVEs (%d with attack vectors)\n\n", totalProcessed, len(feed.Vulnerabilities), totalWithVectors)
 
 	// Save training data
 	fmt.Println("=================================================================")
@@ -312,13 +289,13 @@ func main() {
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(trainingData); err != nil {
-		fmt.Printf("Error writing JSON: %v\n", err)
+		fmt.Printf("Error writing training data: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("Training data saved successfully!")
+	fmt.Println("Training data saved successfully!\n")
 
-	// Print statistics by attack vector
+	// Show attack vector distribution
 	vectorCounts := make(map[string]int)
 	for _, record := range trainingData {
 		for _, vector := range record.AttackVectors {
@@ -326,13 +303,12 @@ func main() {
 		}
 	}
 
-	fmt.Println("\n=================================================================")
+	fmt.Println("=================================================================")
 	fmt.Println("Attack Vector Distribution:")
 	fmt.Println("=================================================================")
 	for _, mapping := range attackVectorMappings {
-		count := vectorCounts[mapping.Name]
-		if count > 0 {
-			fmt.Printf("  %-25s: %5d CVEs (Priority %d)\n", mapping.Description, count, mapping.Priority)
+		if count, ok := vectorCounts[mapping.Name]; ok {
+			fmt.Printf("  %-30s: %5d CVEs\n", mapping.Description, count)
 		}
 	}
 
