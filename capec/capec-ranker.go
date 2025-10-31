@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 // CAPEC training data structure
@@ -33,26 +36,162 @@ type RankedCAPEC struct {
 	MatchedTerms []string `json:"matched_terms"`
 }
 
+// NVD API structures
+type NVDResponse struct {
+	Vulnerabilities []struct {
+		CVE CVEItem `json:"cve"`
+	} `json:"vulnerabilities"`
+}
+
+type CVEItem struct {
+	ID           string        `json:"id"`
+	Descriptions []Description `json:"descriptions"`
+	Weaknesses   []Weakness    `json:"weaknesses"`
+}
+
+type Description struct {
+	Lang  string `json:"lang"`
+	Value string `json:"value"`
+}
+
+type Weakness struct {
+	Description []struct {
+		Lang  string `json:"lang"`
+		Value string `json:"value"`
+	} `json:"description"`
+}
+
+// CWE to CAPEC mapping (comprehensive)
+var cweToCapec = map[string][]string{
+	// XSS family
+	"79": {"588", "591", "592", "63", "85", "209"},
+	"80": {"63", "588"},
+	"81": {"63"},
+	"82": {"63"},
+	"83": {"83"}, // XPath Injection
+	"84": {"63"},
+	"85": {"63"},
+	"86": {"63"},
+	"87": {"63"},
+
+	// SQL Injection family
+	"89":  {"66", "7", "108"},
+	"564": {"66"},
+
+	// Command Injection family
+	"77": {"88", "248", "15"},
+	"78": {"88", "248", "15"},
+	"88": {"88"},
+
+	// Path Traversal family
+	"22": {"126", "597"},
+	"23": {"126"},
+	"36": {"597"},
+	"73": {"126"},
+
+	// Buffer Overflow family
+	"119": {"92", "100", "10"},
+	"120": {"92"},
+	"121": {"92"},
+	"122": {"100"},
+	"123": {"92"},
+	"124": {"92"},
+	"125": {"92"},
+	"787": {"92", "100"},
+
+	// Deserialization
+	"502": {"586"},
+
+	// XXE
+	"611": {"221"},
+
+	// SSRF
+	"918": {"664"},
+
+	// CSRF
+	"352": {"62"},
+
+	// Authentication
+	"287": {"114", "115", "593"},
+	"288": {"114"},
+	"289": {"115"},
+	"290": {"593"},
+
+	// Authorization
+	"285": {"69", "470"},
+	"862": {"69"},
+	"863": {"470"},
+
+	// Code Injection
+	"94": {"242", "35"},
+	"95": {"242"},
+	"96": {"242"},
+	"97": {"242"},
+
+	// LDAP Injection
+	"90": {"136"},
+
+	// XML Injection
+	"91":  {"250"},
+	"652": {"250"},
+}
+
 func main() {
-	cveDesc := flag.String("cve-desc", "", "CVE description")
-	capecIDs := flag.String("capec-ids", "", "Comma-separated CAPEC IDs to rank (e.g., 588,591,592,63)")
+	cveID := flag.String("cve", "", "CVE ID to analyze")
 	dataFile := flag.String("data", "capec_training_data.json", "CAPEC data file")
+	topN := flag.Int("top", 5, "Number of top results to show")
 	verbose := flag.Bool("v", false, "Verbose output")
 	flag.Parse()
 
-	if *cveDesc == "" || *capecIDs == "" {
-		fmt.Println("Usage: capec-ranker -cve-desc \"description\" -capec-ids \"588,591,592,63\" [-data capec_training_data.json] [-v]")
+	if *cveID == "" {
+		fmt.Println("Usage: capec-ranker-complete -cve CVE-ID [-data capec_training_data.json] [-top N] [-v]")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
-	fmt.Println("=================================================================")
-	fmt.Println("CAPEC Ranker (TF-IDF Similarity)")
-	fmt.Println("=================================================================")
+	fmt.Println("================================================================================")
+	fmt.Println("CAPEC RANKER - Complete End-to-End Analysis")
+	fmt.Println("================================================================================")
 
-	// Load CAPEC data
+	// Step 1: Fetch CVE data
+	fmt.Printf("\n[STEP 1] Fetching CVE data from NVD API...\n")
+	description, cweIDs, err := fetchCVEData(*cveID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error fetching CVE: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n[CVE INFORMATION]\n")
+	fmt.Printf("ID: %s\n", *cveID)
+	fmt.Printf("Description: %s\n", description)
+
+	// Step 2: Display CWEs
+	fmt.Printf("\n[RELATED CWEs] (%d)\n", len(cweIDs))
+	if len(cweIDs) == 0 {
+		fmt.Println("  No CWEs found for this CVE")
+	} else {
+		for _, cweID := range cweIDs {
+			fmt.Printf("  • CWE-%s\n", cweID)
+		}
+	}
+
+	// Step 3: Get candidate CAPECs from CWEs
+	fmt.Printf("\n[STEP 2] Getting candidate CAPECs from CWE relationships...\n")
+	candidateIDs := getCandidateCAPECs(cweIDs)
+
+	if len(candidateIDs) == 0 {
+		fmt.Println("\n⚠ No candidate CAPECs found from CWE relationships")
+		os.Exit(0)
+	}
+
+	fmt.Printf("\n[CANDIDATE CAPECs] (%d)\n", len(candidateIDs))
+	for i, capecID := range candidateIDs {
+		fmt.Printf("  %d. CAPEC-%s\n", i+1, capecID)
+	}
+
+	// Step 4: Load CAPEC data
 	if *verbose {
-		fmt.Printf("\nLoading CAPEC data from %s...\n", *dataFile)
+		fmt.Printf("\n[STEP 3] Loading CAPEC data from %s...\n", *dataFile)
 	}
 	allCAPECs, err := loadCAPECData(*dataFile)
 	if err != nil {
@@ -60,38 +199,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Parse candidate CAPEC IDs
-	candidateIDs := strings.Split(*capecIDs, ",")
-	for i := range candidateIDs {
-		candidateIDs[i] = strings.TrimSpace(candidateIDs[i])
-	}
-
-	if *verbose {
-		fmt.Printf("Loaded %d total CAPECs\n", len(allCAPECs))
-		fmt.Printf("Ranking %d candidate CAPECs\n", len(candidateIDs))
-	}
-
-	// Filter to candidate CAPECs
+	// Step 5: Rank CAPECs
+	fmt.Printf("\n[STEP 3] Ranking CAPECs using TF-IDF similarity...\n")
 	candidates := filterCandidates(allCAPECs, candidateIDs)
 	if len(candidates) == 0 {
-		fmt.Fprintf(os.Stderr, "Error: No matching CAPECs found for IDs: %v\n", candidateIDs)
+		fmt.Fprintf(os.Stderr, "Error: No matching CAPEC data found\n")
 		os.Exit(1)
 	}
 
-	if *verbose {
-		fmt.Printf("Found %d matching CAPECs\n", len(candidates))
-	}
+	ranked := rankCAPECs(description, candidates, *verbose)
 
-	// Rank using TF-IDF similarity
-	fmt.Println("\nRanking CAPECs by similarity to CVE description...")
-	ranked := rankCAPECs(*cveDesc, candidates, *verbose)
+	// Step 6: Display ranked results
+	fmt.Println("\n================================================================================")
+	fmt.Println("[RANKED CAPECs] (Top", min(*topN, len(ranked)), ")")
+	fmt.Println("================================================================================\n")
 
-	// Display results
-	fmt.Println("\n=================================================================")
-	fmt.Println("Ranked CAPECs:")
-	fmt.Println("=================================================================\n")
-
-	for i, result := range ranked {
+	displayCount := min(*topN, len(ranked))
+	for i := 0; i < displayCount; i++ {
+		result := ranked[i]
 		fmt.Printf("%d. CAPEC-%s: %s\n", i+1, result.CAPECID, result.Name)
 		fmt.Printf("   Similarity Score: %.4f (%s confidence)\n", result.Score, result.Confidence)
 		if result.Severity != "" {
@@ -104,10 +229,121 @@ func main() {
 		if *verbose && len(result.MatchedTerms) > 0 {
 			fmt.Printf("   Matched Terms: %v\n", result.MatchedTerms[:min(5, len(result.MatchedTerms))])
 		}
-		if i < len(ranked)-1 {
+		if i < displayCount-1 {
 			fmt.Println()
 		}
 	}
+
+	// Step 7: Highlight the selected CAPEC
+	if len(ranked) > 0 {
+		selected := ranked[0]
+		fmt.Println("\n================================================================================")
+		fmt.Println("[SELECTED CAPEC] (Highest Ranked)")
+		fmt.Println("================================================================================\n")
+		fmt.Printf("CAPEC-%s: %s\n", selected.CAPECID, selected.Name)
+		fmt.Printf("Similarity Score: %.4f (%s confidence)\n", selected.Score, selected.Confidence)
+		if selected.Severity != "" {
+			fmt.Printf("Severity: %s", selected.Severity)
+			if selected.Likelihood != "" {
+				fmt.Printf(" | Likelihood: %s", selected.Likelihood)
+			}
+			fmt.Println()
+		}
+		if len(selected.MatchedTerms) > 0 {
+			fmt.Printf("Matched Terms: %v\n", selected.MatchedTerms[:min(10, len(selected.MatchedTerms))])
+		}
+	}
+
+	fmt.Println("\n================================================================================")
+}
+
+func fetchCVEData(cveID string) (string, []string, error) {
+	// Normalize CVE ID
+	cveID = strings.ToUpper(cveID)
+	if !strings.HasPrefix(cveID, "CVE-") {
+		cveID = "CVE-" + cveID
+	}
+
+	// Build NVD API URL
+	url := fmt.Sprintf("https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=%s", cveID)
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Make request
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	// Parse response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil, err
+	}
+
+	var nvdResp NVDResponse
+	if err := json.Unmarshal(body, &nvdResp); err != nil {
+		return "", nil, err
+	}
+
+	if len(nvdResp.Vulnerabilities) == 0 {
+		return "", nil, fmt.Errorf("CVE not found")
+	}
+
+	cve := nvdResp.Vulnerabilities[0].CVE
+
+	// Extract English description
+	var description string
+	for _, desc := range cve.Descriptions {
+		if desc.Lang == "en" {
+			description = desc.Value
+			break
+		}
+	}
+
+	// Extract CWE IDs
+	var cweIDs []string
+	for _, weakness := range cve.Weaknesses {
+		for _, desc := range weakness.Description {
+			if strings.HasPrefix(desc.Value, "CWE-") {
+				cweID := strings.TrimPrefix(desc.Value, "CWE-")
+				cweIDs = append(cweIDs, cweID)
+			}
+		}
+	}
+
+	return description, cweIDs, nil
+}
+
+func getCandidateCAPECs(cweIDs []string) []string {
+	capecSet := make(map[string]bool)
+
+	for _, cweID := range cweIDs {
+		if capecs, exists := cweToCapec[cweID]; exists {
+			for _, capecID := range capecs {
+				capecSet[capecID] = true
+			}
+		}
+	}
+
+	// Convert to slice
+	var candidates []string
+	for capecID := range capecSet {
+		candidates = append(candidates, capecID)
+	}
+
+	// Sort for consistent output
+	sort.Strings(candidates)
+
+	return candidates
 }
 
 func loadCAPECData(filename string) (map[string]CAPECData, error) {
@@ -253,6 +489,10 @@ func calculateTermFrequency(tokens []string) map[string]float64 {
 		if count > maxFreq {
 			maxFreq = count
 		}
+	}
+
+	if maxFreq == 0 {
+		return tf
 	}
 
 	for term, count := range freq {
