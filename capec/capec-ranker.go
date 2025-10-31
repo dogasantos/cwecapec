@@ -95,6 +95,44 @@ var cweToCapec = map[string][]string{
 }
 
 // Attack pattern keywords for fallback matching
+// CWE Specificity Weights
+// High (1.5): Attack-specific CWEs (1-3 CAPECs)
+// Medium (1.0): Category-specific CWEs (3-10 CAPECs)
+// Low (0.5): Generic CWEs (10+ CAPECs)
+var cweSpecificity = map[string]float64{
+	// Highly Specific (1.5x)
+	"502": 1.5, // Deserialization
+	"611": 1.5, // XXE
+	"918": 1.5, // SSRF
+	"352": 1.5, // CSRF
+	"434": 1.5, // File Upload
+	"94":  1.5, // Code Injection
+	"95":  1.5, // Eval Injection
+	"798": 1.5, // Hard-coded Credentials
+
+	// Moderately Specific (1.0x)
+	"79":  1.0, // XSS
+	"89":  1.0, // SQL Injection
+	"77":  1.0, // Command Injection
+	"78":  1.0, // OS Command Injection
+	"22":  1.0, // Path Traversal
+	"119": 1.0, // Buffer Overflow
+	"120": 1.0, // Buffer Copy
+	"125": 1.0, // Out-of-bounds Read
+	"787": 1.0, // Out-of-bounds Write
+	"190": 1.0, // Integer Overflow
+
+	// Generic (0.5x)
+	"20":  0.5, // Improper Input Validation
+	"200": 0.5, // Information Disclosure
+	"287": 0.5, // Authentication
+	"269": 0.5, // Privilege Management
+	"400": 0.5, // Resource Exhaustion
+	"444": 0.5, // HTTP Request Smuggling
+	"501": 0.5, // Trust Boundary
+	"93":  0.5, // CRLF Injection
+}
+
 var attackKeywords = map[string][]string{
 	"586": {"deserialization", "deserialize", "unserialize", "object injection", "serialized", "pickle", "jndi", "ldap", "rmi"},
 	"588": {"dom", "dom-based", "client-side", "javascript", "document object"},
@@ -368,25 +406,39 @@ func rankCAPECsHybrid(cveDesc string, cweIDs []string, candidates []CAPECData, v
 }
 
 func calculateCWEScore(capec CAPECData, cveWEs []string) float64 {
-	// Direct CWE match: 30 points
-	// Related CWE match: 15 points
-	score := 0.0
+	// Base scores:
+	// - Direct CWE match: 30 points × specificity weight
+	// - Related CWE match: 15 points × specificity weight
+
+	maxScore := 0.0
 
 	for _, cweID := range cveWEs {
 		for _, relatedCWE := range capec.RelatedCWEs {
 			if relatedCWE == cweID {
-				score = 30.0 // Direct match
-				return score
+				// Direct match - apply specificity weight
+				specificity := getCWESpecificity(cweID)
+				score := 30.0 * specificity
+				if score > maxScore {
+					maxScore = score
+				}
 			}
 		}
 	}
 
-	// If no direct match, give partial credit for being in the mapping
-	if score == 0 {
-		score = 15.0 // Related match
+	// If no direct match, give partial credit
+	if maxScore == 0 {
+		maxScore = 15.0
 	}
 
-	return score
+	return maxScore
+}
+
+func getCWESpecificity(cweID string) float64 {
+	if weight, exists := cweSpecificity[cweID]; exists {
+		return weight
+	}
+	// Default to medium specificity if not in map
+	return 1.0
 }
 
 func calculateKeywordScore(cveDesc string, capecID string) (float64, []string) {
