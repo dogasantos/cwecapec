@@ -6,11 +6,32 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/http"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
+
+// NVD API structures
+type NVDResponse struct {
+	Vulnerabilities []struct {
+		CVE struct {
+			ID           string `json:"id"`
+			Descriptions []struct {
+				Lang  string `json:"lang"`
+				Value string `json:"value"`
+			} `json:"descriptions"`
+			Weaknesses []struct {
+				Description []struct {
+					Lang  string `json:"lang"`
+					Value string `json:"value"`
+				} `json:"description"`
+			} `json:"weaknesses"`
+		} `json:"cve"`
+	} `json:"vulnerabilities"`
+}
 
 // CWE Hierarchy structures
 type CWEInfo struct {
@@ -45,6 +66,7 @@ type ClassificationResult struct {
 }
 
 var (
+	cveID       string
 	cveDesc     string
 	cweIDs      string
 	topN        int
@@ -52,7 +74,8 @@ var (
 )
 
 func main() {
-	flag.StringVar(&cveDesc, "description", "", "CVE description text")
+	flag.StringVar(&cveID, "cve", "", "CVE ID (e.g., 'CVE-2021-44228')")
+	flag.StringVar(&cveDesc, "description", "", "CVE description text (alternative to -cve)")
 	flag.StringVar(&cveDesc, "d", "", "CVE description text (shorthand)")
 	flag.StringVar(&cweIDs, "cwes", "", "Comma-separated CWE IDs (e.g., '94,502,20')")
 	flag.StringVar(&cweIDs, "c", "", "Comma-separated CWE IDs (shorthand)")
@@ -61,9 +84,12 @@ func main() {
 	flag.BoolVar(&showDetails, "v", false, "Show detailed classification process (shorthand)")
 	flag.Parse()
 
-	if cveDesc == "" {
-		fmt.Println("Usage: hybrid-classifier -description \"CVE description\" [-cwes \"94,502\"] [-top 3] [-verbose]")
-		fmt.Println("\nExample:")
+	if cveID == "" && cveDesc == "" {
+		fmt.Println("Usage:")
+		fmt.Println("  hybrid-classifier -cve CVE-2021-44228 [-top 3] [-verbose]")
+		fmt.Println("  hybrid-classifier -description \"CVE description\" [-cwes \"94,502\"] [-top 3] [-verbose]")
+		fmt.Println("\nExamples:")
+		fmt.Println("  hybrid-classifier -cve CVE-2021-44228")
 		fmt.Println("  hybrid-classifier -d \"allows remote attackers to execute arbitrary code via JNDI\" -c \"502,917\"")
 		os.Exit(1)
 	}
@@ -72,6 +98,40 @@ func main() {
 	fmt.Println("Hybrid CWE + Naive Bayes Attack Vector Classifier")
 	fmt.Println("=================================================================\n")
 
+	// If CVE ID is provided, fetch from NVD
+	var cwes []string
+	if cveID != "" {
+		if showDetails {
+			fmt.Printf("Fetching CVE data from NVD API for %s...\n", cveID)
+		}
+
+		description, cweList, err := fetchCVEFromNVD(cveID)
+		if err != nil {
+			fmt.Printf("Error fetching CVE data: %v\n", err)
+			os.Exit(1)
+		}
+
+		cveDesc = description
+		cwes = cweList
+
+		fmt.Printf("CVE ID: %s\n", cveID)
+		fmt.Printf("Description: %s\n", cveDesc)
+		if len(cwes) > 0 {
+			fmt.Printf("CWE IDs: %s\n\n", strings.Join(cwes, ", "))
+		} else {
+			fmt.Println("CWE IDs: (none found)\n")
+		}
+	} else {
+		// Parse CWE IDs from command line
+		if cweIDs != "" {
+			cwes = strings.Split(strings.ReplaceAll(cweIDs, " ", ""), ",")
+			// Clean CWE IDs (remove "CWE-" prefix if present)
+			for i, cwe := range cwes {
+				cwes[i] = strings.TrimPrefix(strings.ToUpper(cwe), "CWE-")
+			}
+		}
+	}
+
 	// Load CWE hierarchy
 	if showDetails {
 		fmt.Println("Loading CWE hierarchy...")
@@ -79,7 +139,7 @@ func main() {
 	hierarchy, err := loadCWEHierarchy("cwe_hierarchy.json")
 	if err != nil {
 		fmt.Printf("Error loading CWE hierarchy: %v\n", err)
-		fmt.Println("Run 'cwe-hierarchy-builder' first to generate cwe_hierarchy.json")
+		fmt.Println("Run 'cwe-builder' first to generate cwe_hierarchy.json")
 		os.Exit(1)
 	}
 	if showDetails {
@@ -100,16 +160,6 @@ func main() {
 		fmt.Printf("Loaded model with %d attack vectors\n\n", len(model.VectorPriors))
 	}
 
-	// Parse CWE IDs
-	var cwes []string
-	if cweIDs != "" {
-		cwes = strings.Split(strings.ReplaceAll(cweIDs, " ", ""), ",")
-		// Clean CWE IDs (remove "CWE-" prefix if present)
-		for i, cwe := range cwes {
-			cwes[i] = strings.TrimPrefix(strings.ToUpper(cwe), "CWE-")
-		}
-	}
-
 	// Classify
 	results := classifyHybrid(cveDesc, cwes, hierarchy, model, topN, showDetails)
 
@@ -126,6 +176,77 @@ func main() {
 			fmt.Println()
 		}
 	}
+}
+
+func fetchCVEFromNVD(cveID string) (string, []string, error) {
+	// Normalize CVE ID
+	cveID = strings.ToUpper(cveID)
+	if !strings.HasPrefix(cveID, "CVE-") {
+		cveID = "CVE-" + cveID
+	}
+
+	// Build NVD API URL
+	url := fmt.Sprintf("https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=%s", cveID)
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Make request
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", nil, fmt.Errorf("HTTP request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", nil, fmt.Errorf("NVD API returned status %d", resp.StatusCode)
+	}
+
+	// Read response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to read response: %v", err)
+	}
+
+	// Parse JSON
+	var nvdResp NVDResponse
+	if err := json.Unmarshal(body, &nvdResp); err != nil {
+		return "", nil, fmt.Errorf("failed to parse JSON: %v", err)
+	}
+
+	if len(nvdResp.Vulnerabilities) == 0 {
+		return "", nil, fmt.Errorf("CVE not found in NVD")
+	}
+
+	cve := nvdResp.Vulnerabilities[0].CVE
+
+	// Extract description (prefer English)
+	description := ""
+	for _, desc := range cve.Descriptions {
+		if desc.Lang == "en" {
+			description = desc.Value
+			break
+		}
+	}
+	if description == "" && len(cve.Descriptions) > 0 {
+		description = cve.Descriptions[0].Value
+	}
+
+	// Extract CWE IDs
+	var cweList []string
+	for _, weakness := range cve.Weaknesses {
+		for _, desc := range weakness.Description {
+			// CWE IDs are in format "CWE-123"
+			if strings.HasPrefix(desc.Value, "CWE-") {
+				cweID := strings.TrimPrefix(desc.Value, "CWE-")
+				cweList = append(cweList, cweID)
+			}
+		}
+	}
+
+	return description, cweList, nil
 }
 
 func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy, model *AttackVectorModel, topN int, verbose bool) []ClassificationResult {
