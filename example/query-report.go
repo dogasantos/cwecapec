@@ -1737,7 +1737,7 @@ func loadMLModels() {
 	mlEnabled = false
 
 	// Try to load CWE hierarchy
-	hierarchyData, err := os.ReadFile("cwe_hierarchy.json")
+	hierarchyData, err := os.ReadFile("resources/cwe_hierarchy.json")
 	if err != nil {
 		fmt.Printf("  Warning: cwe_hierarchy.json not found (ML classification disabled)\n")
 		return
@@ -1751,7 +1751,7 @@ func loadMLModels() {
 	cweHierarchy = &hierarchy
 
 	// Try to load Naive Bayes model
-	modelData, err := os.ReadFile("naive_bayes_model.json")
+	modelData, err := os.ReadFile("resources/naive_bayes_model.json")
 	if err != nil {
 		fmt.Printf("  Warning: naive_bayes_model.json not found (ML classification disabled)\n")
 		return
@@ -1765,7 +1765,7 @@ func loadMLModels() {
 	nbModel = &model
 
 	// Try to load attack vector taxonomy
-	taxonomyData, err := os.ReadFile("attack_vector_taxonomy.json")
+	taxonomyData, err := os.ReadFile("resources/attack_vector_taxonomy.json")
 	if err != nil {
 		fmt.Printf("  Warning: attack_vector_taxonomy.json not found (granular classification disabled)\n")
 	} else {
@@ -1779,7 +1779,7 @@ func loadMLModels() {
 	}
 
 	// Try to load CAPEC training data for ranking
-	capecDataFile, err := os.ReadFile("capec_training_data.json")
+	capecDataFile, err := os.ReadFile("resources/capec_training_data.json")
 	if err != nil {
 		fmt.Printf("  Warning: capec_training_data.json not found (CAPEC ranking disabled)\n")
 	} else {
