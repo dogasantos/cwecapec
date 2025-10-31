@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -116,11 +117,21 @@ func buildCWEMap() map[string][]string {
 // Fetch CVEs from NVD API
 func fetchCVEs(startDate, endDate string, startIndex int, apiKey string) (*NVDResponse, error) {
 	baseURL := "https://services.nvd.nist.gov/rest/json/cves/2.0"
-	url := fmt.Sprintf("%s?pubStartDate=%s&pubEndDate=%s&startIndex=%d&resultsPerPage=%d",
-		baseURL, startDate, endDate, startIndex, 2000)
+
+	// URL-encode the date parameters
+	encodedStart := url.QueryEscape(startDate)
+	encodedEnd := url.QueryEscape(endDate)
+
+	fullURL := fmt.Sprintf("%s?pubStartDate=%s&pubEndDate=%s&startIndex=%d&resultsPerPage=%d",
+		baseURL, encodedStart, encodedEnd, startIndex, 2000)
+
+	// Debug: print the URL (only for first request)
+	if startIndex == 0 {
+		fmt.Printf("  API URL: %s\n", fullURL)
+	}
 
 	client := &http.Client{Timeout: 60 * time.Second}
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +304,7 @@ func main() {
 
 	file, err := os.Create(outputFile)
 	if err != nil {
-		fmt.Printf(" Error creating output file: %v\n", err)
+		fmt.Printf("Error creating output file: %v\n", err)
 		os.Exit(1)
 	}
 	defer file.Close()
