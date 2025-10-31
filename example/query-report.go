@@ -33,8 +33,8 @@ var (
 // ML models (loaded at startup)
 var (
 	cweHierarchy *CWEHierarchy
-	nbModel      *AttackVectorModel
-	taxonomy     *AttackVectorTaxonomy
+	nbModel      *NaiveBayesModel
+	taxonomy     *GranularAttackVectorTaxonomy
 	capecData    map[string]CAPECTrainingData
 	mlEnabled    bool
 )
@@ -198,7 +198,17 @@ type CWEHierarchyInfo struct {
 	AttackVectors []string `json:"attack_vectors"`
 }
 
-type AttackVectorModel struct {
+type ClassificationResult struct {
+	Vector      string  `json:"vector"`
+	Name        string  `json:"name"`
+	Probability float64 `json:"probability"`
+	Confidence  string  `json:"confidence"`
+	Source      string  `json:"source"`
+}
+
+// Granular attack vector structures
+// Naive Bayes model structures (for loading)
+type NaiveBayesModel struct {
 	AttackVectors   []string                      `json:"attack_vectors"`
 	VectorPriors    map[string]float64            `json:"vector_priors"`
 	WordGivenVector map[string]map[string]float64 `json:"word_given_vector"`
@@ -209,17 +219,9 @@ type AttackVectorModel struct {
 	VectorDocCounts map[string]int                `json:"vector_doc_counts"`
 }
 
-type ClassificationResult struct {
-	Vector      string  `json:"vector"`
-	Name        string  `json:"name"`
-	Probability float64 `json:"probability"`
-	Confidence  string  `json:"confidence"`
-	Source      string  `json:"source"`
-}
-
-// Granular attack vector structures
-type AttackVectorTaxonomy struct {
-	AttackVectors map[string]VectorTaxInfo `json:"attack_vectors"`
+// Granular attack vector structures (original, no// Granular attack vector structures
+type GranularAttackVectorTaxonomy struct {
+	AttackVectors []string `json:"attack_vectors"`
 }
 
 type VectorTaxInfo struct {
