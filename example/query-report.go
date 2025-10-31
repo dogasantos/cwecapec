@@ -432,7 +432,7 @@ type ScoredCAPEC struct {
 func main() {
 	flag.StringVar(&cveID, "cve", "", "CVE ID to query (e.g., CVE-2024-1234)")
 	flag.StringVar(&outputHTML, "html", "", "Output HTML report file (optional)")
-	flag.IntVar(&maxCAPECs, "max-capecs", 15, "Maximum number of CAPECs to include (default: 15)")
+	flag.IntVar(&maxCAPECs, "max-capecs", 6, "Maximum number of CAPECs to include (default: 6)")
 	flag.Parse()
 
 	if cveID == "" {
@@ -656,7 +656,7 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 				if !capecSet[capecID] {
 					capecSet[capecID] = true
 					if capecInfo, ok := db.CAPECs[capecID]; ok {
-						score := scoreCAPECRelevance(capecID, capecInfo, cveDescription, detectedVectors, db)
+						score := scoreCAPECRelevance(capecID, capecInfo, cveDescription, detectedVectors, cweIDs, db)
 						capecCandidates = append(capecCandidates, ScoredCAPEC{
 							ID:    capecID,
 							Info:  capecInfo,
@@ -845,7 +845,7 @@ func matchesPattern(text, pattern string) bool {
 }
 
 // Score CAPEC relevance using HYBRID scoring (TF-IDF + CWE Specificity + Keywords + Metadata)
-func scoreCAPECRelevance(capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
+func scoreCAPECRelevance(capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, cveCWEs []string, db *LocalDB) float64 {
 	// Hybrid scoring with 4 components:
 	// 1. TF-IDF Similarity (0-40 points)
 	// 2. CWE Relationship with Specificity (0-45 points)
@@ -863,12 +863,7 @@ func scoreCAPECRelevance(capecID string, capec CAPECInfo, cveDesc string, detect
 	}
 
 	// Component 2: CWE Relationship with Specificity (0-45 points)
-	// Extract CVE CWEs from the database context
-	var cveCWEs []string
-	for _, relatedCWE := range capec.RelatedWeaknesses {
-		cveCWEs = append(cveCWEs, relatedCWE)
-	}
-
+	// Use the CVE's CWEs (passed as parameter) to score CAPEC relevance
 	if len(cveCWEs) > 0 && capecData != nil {
 		if capecInfo, exists := capecData[capecID]; exists {
 			cweScore := calculateCWEScore(capecInfo, cveCWEs)
