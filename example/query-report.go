@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"regexp"
@@ -27,6 +28,13 @@ var (
 	cveID      string
 	outputHTML string
 	maxCAPECs  int
+)
+
+// ML models (loaded at startup)
+var (
+	cweHierarchy *CWEHierarchy
+	nbModel      *AttackVectorModel
+	mlEnabled    bool
 )
 
 // CWE to attack vector mapping (highest confidence)
@@ -160,6 +168,40 @@ type RelationshipsDB struct {
 	CapecToCWE    map[string][]string `json:"capec_to_cwe"`
 	CapecToAttack map[string][]string `json:"capec_to_attack"`
 	AttackToCapec map[string][]string `json:"attack_to_capec"`
+}
+
+// ML Model structures for hybrid classifier
+type CWEHierarchy struct {
+	CWEs                map[string]*CWEHierarchyInfo `json:"cwes"`
+	AttackVectorMapping map[string][]string          `json:"attack_vector_mapping"`
+}
+
+type CWEHierarchyInfo struct {
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Abstraction   string   `json:"abstraction"`
+	Parents       []string `json:"parents"`
+	Children      []string `json:"children"`
+	AttackVectors []string `json:"attack_vectors"`
+}
+
+type AttackVectorModel struct {
+	AttackVectors   []string                      `json:"attack_vectors"`
+	VectorPriors    map[string]float64            `json:"vector_priors"`
+	WordGivenVector map[string]map[string]float64 `json:"word_given_vector"`
+	WordCounts      map[string]map[string]int     `json:"word_counts"`
+	TotalWords      map[string]int                `json:"total_words"`
+	Vocabulary      []string                      `json:"vocabulary"`
+	TotalDocuments  int                           `json:"total_documents"`
+	VectorDocCounts map[string]int                `json:"vector_doc_counts"`
+}
+
+type ClassificationResult struct {
+	Vector      string  `json:"vector"`
+	Name        string  `json:"name"`
+	Probability float64 `json:"probability"`
+	Confidence  string  `json:"confidence"`
+	Source      string  `json:"source"`
 }
 
 // NVD API response structures
@@ -323,6 +365,10 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
+
+	// Load ML models (optional, graceful degradation)
+	fmt.Println("Loading ML models...")
+	loadMLModels()
 
 	// Load local databases
 	fmt.Println("Loading local databases...")
@@ -640,8 +686,14 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 	return report
 }
 
-// Detect attack vectors using multi-layered approach
+// Detect attack vectors using multi-layered approach (with ML when available)
 func detectAttackVectors(description string, cweIDs []string) []string {
+	// Use ML-based detection if models are loaded
+	if mlEnabled {
+		return detectAttackVectorsML(description, cweIDs)
+	}
+
+	// Fallback to keyword-based detection
 	vectorConfidence := make(map[string]int)
 
 	// Layer 1: CWE Mapping (confidence: 100)
@@ -1548,4 +1600,224 @@ func escapeHTML(s string) string {
 	s = strings.ReplaceAll(s, "\"", "&quot;")
 	s = strings.ReplaceAll(s, "'", "&#39;")
 	return s
+}
+
+// Load ML models for hybrid classification
+func loadMLModels() {
+	mlEnabled = false
+
+	// Try to load CWE hierarchy
+	hierarchyData, err := os.ReadFile("cwe_hierarchy.json")
+	if err != nil {
+		fmt.Printf("  Warning: cwe_hierarchy.json not found (ML classification disabled)\n")
+		return
+	}
+
+	var hierarchy CWEHierarchy
+	if err := json.Unmarshal(hierarchyData, &hierarchy); err != nil {
+		fmt.Printf("  Warning: Failed to parse cwe_hierarchy.json: %v\n", err)
+		return
+	}
+	cweHierarchy = &hierarchy
+
+	// Try to load Naive Bayes model
+	modelData, err := os.ReadFile("naive_bayes_model.json")
+	if err != nil {
+		fmt.Printf("  Warning: naive_bayes_model.json not found (ML classification disabled)\n")
+		return
+	}
+
+	var model AttackVectorModel
+	if err := json.Unmarshal(modelData, &model); err != nil {
+		fmt.Printf("  Warning: Failed to parse naive_bayes_model.json: %v\n", err)
+		return
+	}
+	nbModel = &model
+
+	mlEnabled = true
+	fmt.Printf("  ML models loaded successfully (%d attack vectors)\n", len(model.VectorPriors))
+}
+
+// Hybrid ML-based attack vector detection
+func detectAttackVectorsML(description string, cweIDs []string) []string {
+	// Get candidates from CWE hierarchy
+	candidates := getCandidatesFromCWEsML(cweIDs)
+
+	// Classify using Naive Bayes
+	var results []ClassificationResult
+	if len(candidates) > 0 {
+		results = classifyNaiveBayesML(description, candidates)
+	} else {
+		results = classifyNaiveBayesML(description, nil)
+	}
+
+	// Filter and extract top vectors
+	var vectors []string
+	for _, result := range results {
+		if result.Probability >= 0.0001 && len(vectors) < 5 {
+			vectors = append(vectors, result.Vector)
+		}
+	}
+
+	return vectors
+}
+
+func getCandidatesFromCWEsML(cweIDs []string) map[string]bool {
+	candidates := make(map[string]bool)
+
+	if cweHierarchy == nil || len(cweIDs) == 0 {
+		return candidates
+	}
+
+	for _, cweID := range cweIDs {
+		cwe, exists := cweHierarchy.CWEs[cweID]
+		if !exists {
+			continue
+		}
+
+		// Level 0: Direct mapping
+		for _, vector := range cwe.AttackVectors {
+			candidates[vector] = true
+		}
+
+		// Level 1: Parent mappings
+		for _, parentID := range cwe.Parents {
+			parent, exists := cweHierarchy.CWEs[parentID]
+			if !exists {
+				continue
+			}
+			for _, vector := range parent.AttackVectors {
+				candidates[vector] = true
+			}
+
+			// Level 2: Grandparent mappings
+			for _, grandparentID := range parent.Parents {
+				grandparent, exists := cweHierarchy.CWEs[grandparentID]
+				if !exists {
+					continue
+				}
+				for _, vector := range grandparent.AttackVectors {
+					candidates[vector] = true
+				}
+			}
+		}
+	}
+
+	return candidates
+}
+
+func classifyNaiveBayesML(description string, candidates map[string]bool) []ClassificationResult {
+	if nbModel == nil {
+		return []ClassificationResult{}
+	}
+
+	// Tokenize description
+	tokens := tokenizeML(description)
+
+	// Calculate log probabilities
+	scores := make(map[string]float64)
+
+	for vector := range nbModel.VectorPriors {
+		// Skip if not in candidates
+		if candidates != nil && len(candidates) > 0 && !candidates[vector] {
+			continue
+		}
+
+		// Start with prior
+		logProb := math.Log(nbModel.VectorPriors[vector])
+
+		// Add word probabilities
+		for _, word := range tokens {
+			if prob, exists := nbModel.WordGivenVector[vector][word]; exists {
+				logProb += math.Log(prob)
+			}
+		}
+
+		scores[vector] = logProb
+	}
+
+	// Convert to probabilities
+	results := make([]ClassificationResult, 0, len(scores))
+
+	maxLogProb := math.Inf(-1)
+	for _, logProb := range scores {
+		if logProb > maxLogProb {
+			maxLogProb = logProb
+		}
+	}
+
+	sumProb := 0.0
+	probs := make(map[string]float64)
+	for vector, logProb := range scores {
+		prob := math.Exp(logProb - maxLogProb)
+		probs[vector] = prob
+		sumProb += prob
+	}
+
+	// Normalize and create results
+	for vector, prob := range probs {
+		normalizedProb := prob / sumProb
+
+		confidence := "low"
+		if normalizedProb >= 0.7 {
+			confidence = "high"
+		} else if normalizedProb >= 0.4 {
+			confidence = "medium"
+		}
+
+		results = append(results, ClassificationResult{
+			Vector:      vector,
+			Probability: normalizedProb,
+			Confidence:  confidence,
+		})
+	}
+
+	// Sort by probability
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Probability > results[j].Probability
+	})
+
+	return results
+}
+
+func tokenizeML(text string) []string {
+	text = strings.ToLower(text)
+
+	// Remove version numbers and CVE IDs
+	versionRegex := regexp.MustCompile(`\b\d+\.\d+(\.\d+)*\b`)
+	text = versionRegex.ReplaceAllString(text, "")
+	cveRegex := regexp.MustCompile(`\bcve-\d{4}-\d+\b`)
+	text = cveRegex.ReplaceAllString(text, "")
+
+	// Extract words
+	wordRegex := regexp.MustCompile(`[a-z]{3,}`)
+	words := wordRegex.FindAllString(text, -1)
+
+	// Filter stopwords
+	stopwords := map[string]bool{
+		"the": true, "and": true, "for": true, "with": true, "from": true,
+		"that": true, "this": true, "are": true, "was": true, "were": true,
+		"been": true, "being": true, "have": true, "has": true, "had": true,
+		"but": true, "not": true, "can": true, "will": true, "would": true,
+		"could": true, "should": true, "may": true, "might": true, "must": true,
+		"vulnerability": true, "vulnerabilities": true, "vulnerable": true,
+		"issue": true, "issues": true, "flaw": true, "flaws": true,
+		"product": true, "products": true, "component": true, "components": true,
+		"application": true, "applications": true, "software": true,
+		"version": true, "versions": true, "release": true, "releases": true,
+		"attacker": true, "attackers": true, "user": true, "users": true,
+		"access": true, "system": true, "systems": true,
+		"data": true, "code": true, "file": true, "files": true,
+		"allows": true, "allow": true, "via": true,
+		"perform": true, "execute": true, "run": true, "process": true,
+	}
+
+	filtered := make([]string, 0, len(words))
+	for _, word := range words {
+		if !stopwords[word] {
+			filtered = append(filtered, word)
+		}
+	}
+
+	return filtered
 }
