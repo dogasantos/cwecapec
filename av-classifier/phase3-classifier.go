@@ -48,12 +48,16 @@ type CWEHierarchy struct {
 	AttackVectorMapping map[string][]string `json:"attack_vector_mapping"`
 }
 
-// Naive Bayes model structures
+// Naive Bayes model structures (matching trainer output)
 type AttackVectorModel struct {
-	Vocabulary        map[string]bool               `json:"vocabulary"`
-	VectorPriors      map[string]float64            `json:"vector_priors"`
-	WordProbabilities map[string]map[string]float64 `json:"word_probabilities"`
-	VectorNames       map[string]string             `json:"vector_names"`
+	AttackVectors   []string                      `json:"attack_vectors"`
+	VectorPriors    map[string]float64            `json:"vector_priors"`
+	WordGivenVector map[string]map[string]float64 `json:"word_given_vector"`
+	WordCounts      map[string]map[string]int     `json:"word_counts"`
+	TotalWords      map[string]int                `json:"total_words"`
+	Vocabulary      []string                      `json:"vocabulary"`
+	TotalDocuments  int                           `json:"total_documents"`
+	VectorDocCounts map[string]int                `json:"vector_doc_counts"`
 }
 
 // Classification result
@@ -86,11 +90,11 @@ func main() {
 
 	if cveID == "" && cveDesc == "" {
 		fmt.Println("Usage:")
-		fmt.Println("  hybrid-classifier -cve CVE-2021-44228 [-top 3] [-verbose]")
-		fmt.Println("  hybrid-classifier -description \"CVE description\" [-cwes \"94,502\"] [-top 3] [-verbose]")
+		fmt.Println("  phase3-classifier -cve CVE-2021-44228 [-top 3] [-verbose]")
+		fmt.Println("  phase3-classifier -description \"CVE description\" [-cwes \"94,502\"] [-top 3] [-verbose]")
 		fmt.Println("\nExamples:")
-		fmt.Println("  hybrid-classifier -cve CVE-2021-44228")
-		fmt.Println("  hybrid-classifier -d \"allows remote attackers to execute arbitrary code via JNDI\" -c \"502,917\"")
+		fmt.Println("  phase3-classifier -cve CVE-2021-44228")
+		fmt.Println("  phase3-classifier -d \"allows remote attackers to execute arbitrary code via JNDI\" -c \"502,917\"")
 		os.Exit(1)
 	}
 
@@ -392,7 +396,7 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 
 		// Add word probabilities
 		for _, word := range tokens {
-			if prob, exists := model.WordProbabilities[vector][word]; exists {
+			if prob, exists := model.WordGivenVector[vector][word]; exists {
 				logProb += math.Log(prob)
 			}
 		}
@@ -433,7 +437,7 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 
 		results = append(results, ClassificationResult{
 			Vector:      vector,
-			Name:        model.VectorNames[vector],
+			Name:        getVectorName(vector),
 			Probability: normalizedProb,
 			Confidence:  confidence,
 		})
@@ -445,6 +449,51 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 	})
 
 	return results
+}
+
+func getVectorName(vector string) string {
+	vectorNames := map[string]string{
+		"xss":                  "Cross-Site Scripting",
+		"sql_injection":        "SQL Injection",
+		"rce":                  "Remote Code Execution",
+		"command_injection":    "OS Command Injection",
+		"path_traversal":       "Path Traversal",
+		"ssrf":                 "Server-Side Request Forgery",
+		"deserialization":      "Deserialization Vulnerabilities",
+		"auth_bypass":          "Authentication Bypass",
+		"authz_bypass":         "Authorization Bypass",
+		"file_upload":          "File Upload Vulnerabilities",
+		"csrf":                 "Cross-Site Request Forgery",
+		"xxe":                  "XML External Entity",
+		"ldap_injection":       "LDAP Injection",
+		"jndi_injection":       "JNDI/Expression Language Injection",
+		"privilege_escalation": "Privilege Escalation",
+		"buffer_overflow":      "Buffer Overflow",
+		"idor":                 "Insecure Direct Object Reference",
+		"http_desync":          "HTTP Request Smuggling",
+		"hardcoded_creds":      "Hard-coded Credentials",
+		"info_disclosure":      "Information Disclosure",
+		"dos":                  "Denial of Service",
+		"nosql_injection":      "NoSQL Injection",
+		"xpath_injection":      "XPath Injection",
+		"open_redirect":        "Open Redirect",
+		"session_fixation":     "Session Fixation",
+		"crypto_failure":       "Cryptographic Failures",
+		"integer_overflow":     "Integer Overflow",
+		"use_after_free":       "Use After Free",
+		"null_pointer":         "NULL Pointer Dereference",
+		"format_string":        "Format String Vulnerability",
+		"email_injection":      "Email Header Injection",
+		"race_condition":       "Race Condition",
+		"ssti":                 "Server-Side Template Injection",
+		"input_validation":     "Improper Input Validation",
+		"code_injection":       "Code Injection",
+	}
+
+	if name, exists := vectorNames[vector]; exists {
+		return name
+	}
+	return vector // Return ID if no mapping found
 }
 
 func tokenize(text string) []string {
@@ -463,12 +512,53 @@ func tokenize(text string) []string {
 	wordRegex := regexp.MustCompile(`[a-z]{3,}`)
 	words := wordRegex.FindAllString(text, -1)
 
-	// Filter stopwords (simplified list)
+	// Filter stopwords (comprehensive list matching trainer)
 	stopwords := map[string]bool{
+		// Common English stopwords
 		"the": true, "and": true, "for": true, "with": true, "from": true,
 		"that": true, "this": true, "are": true, "was": true, "were": true,
-		"vulnerability": true, "issue": true, "allows": true, "via": true,
-		"user": true, "attacker": true, "version": true, "versions": true,
+		"been": true, "being": true, "have": true, "has": true, "had": true,
+		"but": true, "not": true, "can": true, "will": true, "would": true,
+		"could": true, "should": true, "may": true, "might": true, "must": true,
+		"shall": true, "into": true, "through": true, "during": true, "before": true,
+		"after": true, "above": true, "below": true, "between": true, "under": true,
+		"again": true, "further": true, "then": true, "once": true, "here": true,
+		"there": true, "when": true, "where": true, "why": true, "how": true,
+		"all": true, "both": true, "each": true, "few": true, "more": true,
+		"most": true, "other": true, "some": true, "such": true, "only": true,
+		"own": true, "same": true, "than": true, "too": true, "very": true,
+		"just": true, "also": true, "any": true, "these": true, "those": true,
+		"what": true, "which": true, "who": true, "whom": true, "whose": true,
+		"out": true, "off": true, "over": true, "down": true, "does": true,
+		"did": true, "doing": true, "nor": true, "about": true, "against": true,
+		"because": true, "until": true, "while": true, "upon": true, "within": true,
+
+		// Security-specific generic terms
+		"vulnerability": true, "vulnerabilities": true, "vulnerable": true,
+		"issue": true, "issues": true, "flaw": true, "flaws": true,
+		"product": true, "products": true, "component": true, "components": true,
+		"application": true, "applications": true, "software": true,
+		"version": true, "versions": true, "release": true, "releases": true,
+		"fix": true, "fixed": true, "resolved": true, "patch": true, "patched": true,
+		"attacker": true, "attackers": true, "user": true, "users": true,
+		"access": true, "system": true, "systems": true,
+		"data": true, "code": true, "file": true, "files": true,
+		"found": true, "used": true, "use": true, "uses": true, "using": true,
+		"allows": true, "allow": true, "via": true,
+		"perform": true, "execute": true, "run": true, "process": true,
+		"obtain": true, "gain": true, "achieve": true, "lead": true, "leads": true,
+		"function": true, "functions": true, "method": true, "methods": true,
+		"value": true, "values": true, "parameter": true, "parameters": true,
+		"request": true, "requests": true, "response": true, "responses": true,
+		"certain": true, "specific": true, "particular": true, "multiple": true,
+		"various": true, "related": true, "associated": true, "affected": true,
+		"improper": true, "insufficient": true, "incorrect": true, "invalid": true,
+		"due": true, "lack": true, "missing": true, "without": true,
+		"cause": true, "causes": true, "caused": true, "result": true, "results": true,
+		"resulting": true, "leading": true, "enable": true, "enabled": true,
+		"make": true, "makes": true, "made": true, "making": true,
+		"contain": true, "contains": true, "containing": true, "included": true,
+		"including": true, "present": true, "exists": true, "existing": true,
 	}
 
 	filtered := make([]string, 0, len(words))
