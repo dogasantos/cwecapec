@@ -33,8 +33,8 @@ var (
 // ML models (loaded at startup)
 var (
 	cweHierarchy *CWEHierarchy
-	nbModel      *NaiveBayesModel
-	taxonomy     *GranularAttackVectorTaxonomy
+	nbModel      *AttackVectorModel
+	taxonomy     *AttackVectorTaxonomy
 	capecData    map[string]CAPECTrainingData
 	mlEnabled    bool
 )
@@ -198,17 +198,7 @@ type CWEHierarchyInfo struct {
 	AttackVectors []string `json:"attack_vectors"`
 }
 
-type ClassificationResult struct {
-	Vector      string  `json:"vector"`
-	Name        string  `json:"name"`
-	Probability float64 `json:"probability"`
-	Confidence  string  `json:"confidence"`
-	Source      string  `json:"source"`
-}
-
-// Granular attack vector structures
-// Naive Bayes model structures (for loading)
-type NaiveBayesModel struct {
+type AttackVectorModel struct {
 	AttackVectors   []string                      `json:"attack_vectors"`
 	VectorPriors    map[string]float64            `json:"vector_priors"`
 	WordGivenVector map[string]map[string]float64 `json:"word_given_vector"`
@@ -219,9 +209,17 @@ type NaiveBayesModel struct {
 	VectorDocCounts map[string]int                `json:"vector_doc_counts"`
 }
 
-// Granular attack vector structures (original, no// Granular attack vector structures
-type GranularAttackVectorTaxonomy struct {
-	AttackVectors []string `json:"attack_vectors"`
+type ClassificationResult struct {
+	Vector      string  `json:"vector"`
+	Name        string  `json:"name"`
+	Probability float64 `json:"probability"`
+	Confidence  string  `json:"confidence"`
+	Source      string  `json:"source"`
+}
+
+// Granular attack vector structures
+type AttackVectorTaxonomy struct {
+	AttackVectors map[string]VectorTaxInfo `json:"attack_vectors"`
 }
 
 type VectorTaxInfo struct {
@@ -1773,7 +1771,7 @@ func loadMLModels() {
 	} else {
 		var tax AttackVectorTaxonomy
 		if err := json.Unmarshal(taxonomyData, &tax); err != nil {
-			fmt.Printf("  Warning: Failed to parse naive_bayes_model.json: %v\n", err)
+			fmt.Printf("  Warning: Failed to parse attack_vector_taxonomy.json: %v\n", err)
 		} else {
 			taxonomy = &tax
 			fmt.Printf("  Granular taxonomy loaded (%d base vectors)\n", len(tax.AttackVectors))
