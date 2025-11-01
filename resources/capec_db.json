@@ -85,6 +85,9 @@
       "1320",
       "1321",
       "1327"
+    ],
+    "mitreAttack": [
+      "T1574.010"
     ]
   },
   "10": {
@@ -1167,6 +1170,9 @@
     ],
     "relatedWeaknesses": [
       "430"
+    ],
+    "mitreAttack": [
+      "T1036.006"
     ]
   },
   "110": {
@@ -1402,6 +1408,9 @@
       "330",
       "326",
       "521"
+    ],
+    "mitreAttack": [
+      "T1110"
     ]
   },
   "113": {
@@ -1426,6 +1435,9 @@
     "relatedWeaknesses": [
       "287",
       "1244"
+    ],
+    "mitreAttack": [
+      "T1548"
     ]
   },
   "115": {
@@ -1437,6 +1449,9 @@
     ],
     "relatedWeaknesses": [
       "287"
+    ],
+    "mitreAttack": [
+      "T1548"
     ]
   },
   "116": {
@@ -1764,6 +1779,9 @@
       "269",
       "732",
       "1317"
+    ],
+    "mitreAttack": [
+      "T1548"
     ]
   },
   "123": {
@@ -1833,6 +1851,10 @@
     "relatedWeaknesses": [
       "404",
       "770"
+    ],
+    "mitreAttack": [
+      "T1498.001",
+      "T1499"
     ]
   },
   "126": {
@@ -2013,6 +2035,9 @@
       "732",
       "276",
       "693"
+    ],
+    "mitreAttack": [
+      "T1083"
     ]
   },
   "128": {
@@ -2156,6 +2181,11 @@
       "73",
       "20",
       "200"
+    ],
+    "mitreAttack": [
+      "T1562.003",
+      "T1574.006",
+      "T1574.007"
     ]
   },
   "130": {
@@ -2180,6 +2210,9 @@
       "404",
       "770",
       "1325"
+    ],
+    "mitreAttack": [
+      "T1499.003"
     ]
   },
   "131": {
@@ -2203,6 +2236,9 @@
     ],
     "relatedWeaknesses": [
       "404"
+    ],
+    "mitreAttack": [
+      "T1499"
     ]
   },
   "132": {
@@ -2330,6 +2366,9 @@
     ],
     "relatedWeaknesses": [
       "59"
+    ],
+    "mitreAttack": [
+      "T1547.009"
     ]
   },
   "133": {
@@ -2941,6 +2980,9 @@
       "345",
       "349",
       "346"
+    ],
+    "mitreAttack": [
+      "T1557.002"
     ]
   },
   "142": {
@@ -3003,6 +3045,9 @@
       "349",
       "346",
       "350"
+    ],
+    "mitreAttack": [
+      "T1584.002"
     ]
   },
   "143": {
@@ -3268,6 +3313,9 @@
     ],
     "relatedWeaknesses": [
       "345"
+    ],
+    "mitreAttack": [
+      "T1491"
     ]
   },
   "149": {
@@ -3404,6 +3452,14 @@
       "1272",
       "1323",
       "1330"
+    ],
+    "mitreAttack": [
+      "T1003",
+      "T1119",
+      "T1213",
+      "T1530",
+      "T1555",
+      "T1602"
     ]
   },
   "151": {
@@ -3596,6 +3652,10 @@
     ],
     "relatedWeaknesses": [
       "311"
+    ],
+    "mitreAttack": [
+      "T1040",
+      "T1111"
     ]
   },
   "159": {
@@ -3677,6 +3737,9 @@
     ],
     "relatedWeaknesses": [
       "706"
+    ],
+    "mitreAttack": [
+      "T1574.008"
     ]
   },
   "16": {
@@ -4020,6 +4083,15 @@
     ],
     "relatedWeaknesses": [
       "451"
+    ],
+    "mitreAttack": [
+      "T1534",
+      "T1566.001",
+      "T1566.002",
+      "T1566.003",
+      "T1598.001",
+      "T1598.002",
+      "T1598.003"
     ]
   },
   "164": {
@@ -4120,6 +4192,9 @@
     "typicalSeverity": "Medium",
     "prerequisites": [
       "The target must use the affected file without verifying its integrity."
+    ],
+    "mitreAttack": [
+      "T1036.003"
     ]
   },
   "166": {
@@ -4216,6 +4291,11 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1217",
+      "T1592",
+      "T1595"
     ]
   },
   "17": {
@@ -4311,6 +4391,10 @@
       "282",
       "270",
       "693"
+    ],
+    "mitreAttack": [
+      "T1574.005",
+      "T1574.010"
     ]
   },
   "170": {
@@ -4542,6 +4626,9 @@
     ],
     "relatedWeaknesses": [
       "706"
+    ],
+    "mitreAttack": [
+      "T1036"
     ]
   },
   "178": {
@@ -4879,6 +4966,9 @@
       "1318",
       "1320",
       "1321"
+    ],
+    "mitreAttack": [
+      "T1574.010"
     ]
   },
   "181": {
@@ -5156,6 +5246,9 @@
     ],
     "relatedWeaknesses": [
       "494"
+    ],
+    "mitreAttack": [
+      "T1195.002"
     ]
   },
   "187": {
@@ -5183,6 +5276,9 @@
     ],
     "relatedWeaknesses": [
       "494"
+    ],
+    "mitreAttack": [
+      "T1072"
     ]
   },
   "188": {
@@ -5317,6 +5413,11 @@
     ],
     "relatedWeaknesses": [
       "284"
+    ],
+    "mitreAttack": [
+      "T1027.009",
+      "T1546.004",
+      "T1546.016"
     ]
   },
   "190": {
@@ -5347,6 +5448,9 @@
     ],
     "relatedWeaknesses": [
       "798"
+    ],
+    "mitreAttack": [
+      "T1552.001"
     ]
   },
   "192": {
@@ -5661,6 +5765,11 @@
     "relatedWeaknesses": [
       "384",
       "664"
+    ],
+    "mitreAttack": [
+      "T1134.002",
+      "T1134.003",
+      "T1606"
     ]
   },
   "197": {
@@ -5970,6 +6079,9 @@
     ],
     "relatedWeaknesses": [
       "645"
+    ],
+    "mitreAttack": [
+      "T1531"
     ]
   },
   "20": {
@@ -6138,6 +6250,10 @@
     ],
     "relatedWeaknesses": [
       "15"
+    ],
+    "mitreAttack": [
+      "T1112",
+      "T1647"
     ]
   },
   "204": {
@@ -6191,6 +6307,9 @@
       "311",
       "1239",
       "1258"
+    ],
+    "mitreAttack": [
+      "T1005"
     ]
   },
   "205": {
@@ -6234,6 +6353,9 @@
     ],
     "relatedWeaknesses": [
       "732"
+    ],
+    "mitreAttack": [
+      "T1553.002"
     ]
   },
   "207": {
@@ -6501,6 +6623,11 @@
       "664",
       "602",
       "642"
+    ],
+    "mitreAttack": [
+      "T1134",
+      "T1528",
+      "T1539"
     ]
   },
   "211": {
@@ -7129,6 +7256,9 @@
     ],
     "relatedWeaknesses": [
       "400"
+    ],
+    "mitreAttack": [
+      "T1499"
     ]
   },
   "228": {
@@ -7424,6 +7554,9 @@
       "269",
       "1264",
       "1311"
+    ],
+    "mitreAttack": [
+      "T1548"
     ]
   },
   "234": {
@@ -8146,6 +8279,9 @@
       "667",
       "833",
       "1322"
+    ],
+    "mitreAttack": [
+      "T1499.004"
     ]
   },
   "250": {
@@ -8256,6 +8392,9 @@
     ],
     "relatedWeaknesses": [
       "829"
+    ],
+    "mitreAttack": [
+      "T1055"
     ]
   },
   "252": {
@@ -8649,6 +8788,9 @@
       "20",
       "697",
       "692"
+    ],
+    "mitreAttack": [
+      "T1027"
     ]
   },
   "268": {
@@ -8666,6 +8808,12 @@
     ],
     "relatedWeaknesses": [
       "117"
+    ],
+    "mitreAttack": [
+      "T1070",
+      "T1562.002",
+      "T1562.003",
+      "T1562.008"
     ]
   },
   "269": {
@@ -8835,6 +8983,10 @@
     ],
     "relatedWeaknesses": [
       "15"
+    ],
+    "mitreAttack": [
+      "T1547.001",
+      "T1547.014"
     ]
   },
   "271": {
@@ -9695,6 +9847,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1018"
     ]
   },
   "293": {
@@ -9786,6 +9941,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1124"
     ]
   },
   "296": {
@@ -10104,6 +10262,9 @@
     ],
     "relatedWeaknesses": [
       "270"
+    ],
+    "mitreAttack": [
+      "T1055.003"
     ]
   },
   "300": {
@@ -10142,6 +10303,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1046"
     ]
   },
   "301": {
@@ -10570,6 +10734,11 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1016",
+      "T1049",
+      "T1590"
     ]
   },
   "31": {
@@ -10675,6 +10844,9 @@
       "472",
       "602",
       "642"
+    ],
+    "mitreAttack": [
+      "T1539"
     ]
   },
   "310": {
@@ -10762,6 +10934,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1082"
     ]
   },
   "313": {
@@ -10800,6 +10975,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1082"
     ]
   },
   "314": {
@@ -11860,6 +12038,11 @@
       "59",
       "282",
       "270"
+    ],
+    "mitreAttack": [
+      "T1027.006",
+      "T1027.009",
+      "T1564.009"
     ]
   },
   "36": {
@@ -12044,6 +12227,10 @@
       "1278",
       "1301",
       "1330"
+    ],
+    "mitreAttack": [
+      "T1005",
+      "T1552.004"
     ]
   },
   "38": {
@@ -12091,6 +12278,10 @@
     "relatedWeaknesses": [
       "426",
       "427"
+    ],
+    "mitreAttack": [
+      "T1574.007",
+      "T1574.009"
     ]
   },
   "383": {
@@ -12125,6 +12316,9 @@
       "319",
       "419",
       "602"
+    ],
+    "mitreAttack": [
+      "T1056.004"
     ]
   },
   "384": {
@@ -12702,6 +12896,9 @@
           "Other"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1589"
     ]
   },
   "408": {
@@ -13454,13 +13651,19 @@
   },
   "438": {
     "name": "Modification During Manufacture",
-    "description": "An attacker modifies a technology, product, or component during a stage in its manufacture for the purpose of carrying out an attack against some entity involved in the supply chain lifecycle. There are an almost limitless number of ways an attacker can modify a technology when they are involved in its manufacture, as the attacker has potential inroads to the software composition, hardware design and assembly, firmware, or basic design mechanics. Additionally, manufacturing of key components is often outsourced with the final product assembled by the primary manufacturer. The greatest risk, however, is deliberate manipulation of design specifications to produce malicious hardware or devices. There are billions of transistors in a single integrated circuit and studies have shown that fewer than 10 transistors are required to create malicious functionality."
+    "description": "An attacker modifies a technology, product, or component during a stage in its manufacture for the purpose of carrying out an attack against some entity involved in the supply chain lifecycle. There are an almost limitless number of ways an attacker can modify a technology when they are involved in its manufacture, as the attacker has potential inroads to the software composition, hardware design and assembly, firmware, or basic design mechanics. Additionally, manufacturing of key components is often outsourced with the final product assembled by the primary manufacturer. The greatest risk, however, is deliberate manipulation of design specifications to produce malicious hardware or devices. There are billions of transistors in a single integrated circuit and studies have shown that fewer than 10 transistors are required to create malicious functionality.",
+    "mitreAttack": [
+      "T1195"
+    ]
   },
   "439": {
     "name": "Manipulation During Distribution",
     "description": "An attacker undermines the integrity of a product, software, or technology at some stage of the distribution channel. The core threat of modification or manipulation during distribution arise from the many stages of distribution, as a product may traverse multiple suppliers and integrators as the final asset is delivered. Components and services provided from a manufacturer to a supplier may be tampered with during integration or packaging.",
     "relatedWeaknesses": [
       "1269"
+    ],
+    "mitreAttack": [
+      "T1195"
     ]
   },
   "44": {
@@ -13557,6 +13760,10 @@
           "Execute Unauthorized Commands"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195.003",
+      "T1200"
     ]
   },
   "441": {
@@ -13607,6 +13814,10 @@
     ],
     "relatedWeaknesses": [
       "506"
+    ],
+    "mitreAttack": [
+      "T1195.001",
+      "T1195.002"
     ]
   },
   "443": {
@@ -13632,6 +13843,10 @@
           "Execute Unauthorized Commands"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195.002",
+      "T1195.003"
     ]
   },
   "444": {
@@ -13697,6 +13912,9 @@
           "Execute Unauthorized Commands"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195.001"
     ]
   },
   "446": {
@@ -13721,6 +13939,9 @@
           "Execute Unauthorized Commands"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195"
     ]
   },
   "447": {
@@ -13791,6 +14012,9 @@
     ],
     "relatedWeaknesses": [
       "506"
+    ],
+    "mitreAttack": [
+      "T1027.009"
     ]
   },
   "449": {
@@ -14020,6 +14244,10 @@
     ],
     "relatedWeaknesses": [
       "1299"
+    ],
+    "mitreAttack": [
+      "T1091",
+      "T1092"
     ]
   },
   "458": {
@@ -14404,6 +14632,9 @@
     ],
     "relatedWeaknesses": [
       "359"
+    ],
+    "mitreAttack": [
+      "T1606.001"
     ]
   },
   "465": {
@@ -14427,6 +14658,9 @@
     ],
     "relatedWeaknesses": [
       "441"
+    ],
+    "mitreAttack": [
+      "T1090.001"
     ]
   },
   "466": {
@@ -14548,6 +14782,9 @@
     "relatedWeaknesses": [
       "770",
       "772"
+    ],
+    "mitreAttack": [
+      "T1499.002"
     ]
   },
   "47": {
@@ -14773,6 +15010,11 @@
     ],
     "relatedWeaknesses": [
       "427"
+    ],
+    "mitreAttack": [
+      "T1574.001",
+      "T1574.004",
+      "T1574.008"
     ]
   },
   "472": {
@@ -14826,6 +15068,10 @@
       "20",
       "327",
       "290"
+    ],
+    "mitreAttack": [
+      "T1036.001",
+      "T1553.002"
     ]
   },
   "474": {
@@ -14854,6 +15100,9 @@
     ],
     "relatedWeaknesses": [
       "522"
+    ],
+    "mitreAttack": [
+      "T1552.004"
     ]
   },
   "475": {
@@ -15000,6 +15249,10 @@
     ],
     "relatedWeaknesses": [
       "284"
+    ],
+    "mitreAttack": [
+      "T1574.011",
+      "T1543.003"
     ]
   },
   "479": {
@@ -15018,6 +15271,9 @@
     ],
     "relatedWeaknesses": [
       "284"
+    ],
+    "mitreAttack": [
+      "T1553.004"
     ]
   },
   "48": {
@@ -15160,6 +15416,9 @@
     ],
     "relatedWeaknesses": [
       "693"
+    ],
+    "mitreAttack": [
+      "T1611"
     ]
   },
   "481": {
@@ -15196,6 +15455,9 @@
     ],
     "relatedWeaknesses": [
       "923"
+    ],
+    "mitreAttack": [
+      "T1090.004"
     ]
   },
   "482": {
@@ -15212,6 +15474,11 @@
     ],
     "relatedWeaknesses": [
       "770"
+    ],
+    "mitreAttack": [
+      "T1498.001",
+      "T1499.001",
+      "T1499.002"
     ]
   },
   "484": {
@@ -15249,6 +15516,9 @@
     ],
     "relatedWeaknesses": [
       "330"
+    ],
+    "mitreAttack": [
+      "T1552.004"
     ]
   },
   "486": {
@@ -15297,6 +15567,9 @@
     ],
     "relatedWeaknesses": [
       "770"
+    ],
+    "mitreAttack": [
+      "T1499.002"
     ]
   },
   "489": {
@@ -15313,6 +15586,9 @@
     ],
     "relatedWeaknesses": [
       "770"
+    ],
+    "mitreAttack": [
+      "T1499.002"
     ]
   },
   "49": {
@@ -15415,6 +15691,9 @@
       "307",
       "308",
       "309"
+    ],
+    "mitreAttack": [
+      "T1110.001"
     ]
   },
   "490": {
@@ -15431,6 +15710,9 @@
     ],
     "relatedWeaknesses": [
       "770"
+    ],
+    "mitreAttack": [
+      "T1498.002"
     ]
   },
   "491": {
@@ -15591,6 +15873,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1083"
     ]
   },
   "498": {
@@ -16008,6 +16293,9 @@
     ],
     "relatedWeaknesses": [
       "1021"
+    ],
+    "mitreAttack": [
+      "T1036.004"
     ]
   },
   "505": {
@@ -16161,6 +16449,9 @@
       "263",
       "262",
       "521"
+    ],
+    "mitreAttack": [
+      "T1558.003"
     ]
   },
   "51": {
@@ -16306,6 +16597,9 @@
         "level": "High",
         "description": "Development skills to construct malicious attachments that can be used to exploit vulnerabilities in typical desktop applications or system configurations. The malicious attachments should be crafted well enough to bypass typical defensive systems (IDS, anti-virus, etc)"
       }
+    ],
+    "mitreAttack": [
+      "T1195.001"
     ]
   },
   "516": {
@@ -16335,6 +16629,9 @@
         "level": "High",
         "description": "Resources to physically infiltrate supplier."
       }
+    ],
+    "mitreAttack": [
+      "T1195.003"
     ]
   },
   "517": {
@@ -16539,6 +16836,9 @@
         "level": "High",
         "description": "Resources to physically infiltrate manufacturer or manufacturer's supplier."
       }
+    ],
+    "mitreAttack": [
+      "T1195.003"
     ]
   },
   "521": {
@@ -16624,6 +16924,9 @@
         "level": "High",
         "description": "Hardware creation and manufacture of replacement components."
       }
+    ],
+    "mitreAttack": [
+      "T1195.003"
     ]
   },
   "523": {
@@ -16683,6 +16986,9 @@
         "level": "High",
         "description": "Malicious software creation."
       }
+    ],
+    "mitreAttack": [
+      "T1195.002"
     ]
   },
   "524": {
@@ -16767,6 +17073,10 @@
     ],
     "relatedWeaknesses": [
       "770"
+    ],
+    "mitreAttack": [
+      "T1499.002",
+      "T1498.001"
     ]
   },
   "529": {
@@ -16927,6 +17237,9 @@
         "level": "High",
         "description": "Able to develop and manufacture malicious system components that perform the same functions and processes as their non-malicious counterparts."
       }
+    ],
+    "mitreAttack": [
+      "T1195.003"
     ]
   },
   "532": {
@@ -16950,6 +17263,10 @@
         "level": "High",
         "description": "Able to develop a malicious BIOS image with the original functionality as a normal BIOS image, but with added functionality that allows for later compromise and/or disruption."
       }
+    ],
+    "mitreAttack": [
+      "T1495",
+      "T1542.001"
     ]
   },
   "533": {
@@ -17101,6 +17418,9 @@
         "level": "High",
         "description": "Development skills to construct malicious attachments that can be used to exploit vulnerabilities in typical desktop applications or system configurations. The malicious attachments should be crafted well enough to bypass typical defensive systems (IDS, anti-virus, etc)"
       }
+    ],
+    "mitreAttack": [
+      "T1195.003"
     ]
   },
   "538": {
@@ -17143,6 +17463,9 @@
     "relatedWeaknesses": [
       "494",
       "829"
+    ],
+    "mitreAttack": [
+      "T1195.001"
     ]
   },
   "539": {
@@ -17165,6 +17488,9 @@
         "level": "High",
         "description": "Able to develop and manufacture malicious subroutines for an ASIC environment without degradation of existing functions and processes."
       }
+    ],
+    "mitreAttack": [
+      "T1195.003"
     ]
   },
   "54": {
@@ -17293,6 +17619,9 @@
       "204",
       "205",
       "208"
+    ],
+    "mitreAttack": [
+      "T1592.002"
     ]
   },
   "542": {
@@ -17307,6 +17636,10 @@
         "nature": "CanPrecede",
         "capecId": "662"
       }
+    ],
+    "mitreAttack": [
+      "T1587.001",
+      "T1027"
     ]
   },
   "543": {
@@ -17325,6 +17658,9 @@
     ],
     "prerequisites": [
       "None"
+    ],
+    "mitreAttack": [
+      "T1036.005"
     ]
   },
   "544": {
@@ -17360,6 +17696,10 @@
       "1323",
       "1258",
       "1330"
+    ],
+    "mitreAttack": [
+      "T1005",
+      "T1555.001"
     ]
   },
   "546": {
@@ -17582,6 +17922,9 @@
       "916",
       "308",
       "309"
+    ],
+    "mitreAttack": [
+      "T1110.002"
     ]
   },
   "550": {
@@ -17595,6 +17938,9 @@
     ],
     "relatedWeaknesses": [
       "284"
+    ],
+    "mitreAttack": [
+      "T1543"
     ]
   },
   "551": {
@@ -17609,6 +17955,9 @@
     "relatedWeaknesses": [
       "284",
       "522"
+    ],
+    "mitreAttack": [
+      "T1543"
     ]
   },
   "552": {
@@ -17624,6 +17973,11 @@
     ],
     "relatedWeaknesses": [
       "284"
+    ],
+    "mitreAttack": [
+      "T1014",
+      "T1542.003",
+      "T1547.006"
     ]
   },
   "554": {
@@ -17658,6 +18012,11 @@
       "263",
       "262",
       "521"
+    ],
+    "mitreAttack": [
+      "T1021",
+      "T1114.002",
+      "T1133"
     ]
   },
   "556": {
@@ -17671,6 +18030,9 @@
     ],
     "relatedWeaknesses": [
       "284"
+    ],
+    "mitreAttack": [
+      "T1546.001"
     ]
   },
   "557": {
@@ -17690,6 +18052,10 @@
     ],
     "relatedWeaknesses": [
       "284"
+    ],
+    "mitreAttack": [
+      "T1505.005",
+      "T1546.008"
     ]
   },
   "559": {
@@ -17828,6 +18194,9 @@
       "263",
       "654",
       "1273"
+    ],
+    "mitreAttack": [
+      "T1078"
     ]
   },
   "561": {
@@ -17935,6 +18304,9 @@
       "263",
       "262",
       "521"
+    ],
+    "mitreAttack": [
+      "T1021.002"
     ]
   },
   "562": {
@@ -17948,6 +18320,9 @@
     ],
     "relatedWeaknesses": [
       "284"
+    ],
+    "mitreAttack": [
+      "T1080"
     ]
   },
   "563": {
@@ -17974,6 +18349,12 @@
     ],
     "relatedWeaknesses": [
       "284"
+    ],
+    "mitreAttack": [
+      "T1037",
+      "T1543.001",
+      "T1543.004",
+      "T1547"
     ]
   },
   "565": {
@@ -18085,6 +18466,9 @@
       "307",
       "308",
       "309"
+    ],
+    "mitreAttack": [
+      "T1110.003"
     ]
   },
   "566": {
@@ -18165,6 +18549,9 @@
     ],
     "prerequisites": [
       "The ability to install the keylogger, either in person or remote."
+    ],
+    "mitreAttack": [
+      "T1056.001"
     ]
   },
   "569": {
@@ -18175,6 +18562,9 @@
         "nature": "ChildOf",
         "capecId": "116"
       }
+    ],
+    "mitreAttack": [
+      "T1056"
     ]
   },
   "57": {
@@ -18234,6 +18624,9 @@
       "300",
       "287",
       "693"
+    ],
+    "mitreAttack": [
+      "T1040"
     ]
   },
   "570": {
@@ -18248,6 +18641,12 @@
         "nature": "ChildOf",
         "capecId": "161"
       }
+    ],
+    "mitreAttack": [
+      "T1562.002",
+      "T1562.002",
+      "T1562.006",
+      "T1562.008"
     ]
   },
   "572": {
@@ -18277,6 +18676,9 @@
           "Modify Data"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1027.001"
     ]
   },
   "573": {
@@ -18316,6 +18718,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1057"
     ]
   },
   "574": {
@@ -18355,6 +18760,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1007"
     ]
   },
   "575": {
@@ -18394,6 +18802,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1087"
     ]
   },
   "576": {
@@ -18433,6 +18844,10 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1069",
+      "T1615"
     ]
   },
   "577": {
@@ -18473,6 +18888,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1033"
     ]
   },
   "578": {
@@ -18501,6 +18919,15 @@
     ],
     "relatedWeaknesses": [
       "284"
+    ],
+    "mitreAttack": [
+      "T1556.006",
+      "T1562.001",
+      "T1562.002",
+      "T1562.004",
+      "T1562.007",
+      "T1562.008",
+      "T1562.009"
     ]
   },
   "579": {
@@ -18514,6 +18941,9 @@
     ],
     "relatedWeaknesses": [
       "15"
+    ],
+    "mitreAttack": [
+      "T1547.004"
     ]
   },
   "58": {
@@ -18599,6 +19029,9 @@
       "204",
       "205",
       "208"
+    ],
+    "mitreAttack": [
+      "T1082"
     ]
   },
   "581": {
@@ -18609,6 +19042,9 @@
         "nature": "ChildOf",
         "capecId": "580"
       }
+    ],
+    "mitreAttack": [
+      "T1518.001"
     ]
   },
   "582": {
@@ -19278,6 +19714,11 @@
     ],
     "relatedWeaknesses": [
       "287"
+    ],
+    "mitreAttack": [
+      "T1185",
+      "T1550.001",
+      "T1563"
     ]
   },
   "594": {
@@ -19637,6 +20078,10 @@
       "285",
       "664",
       "732"
+    ],
+    "mitreAttack": [
+      "T1134.001",
+      "T1550.004"
     ]
   },
   "600": {
@@ -19753,6 +20198,9 @@
       "262",
       "263",
       "654"
+    ],
+    "mitreAttack": [
+      "T1110.004"
     ]
   },
   "601": {
@@ -19987,6 +20435,9 @@
     ],
     "relatedWeaknesses": [
       "311"
+    ],
+    "mitreAttack": [
+      "T1111"
     ]
   },
   "61": {
@@ -20308,6 +20759,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1036.005"
     ]
   },
   "617": {
@@ -20500,6 +20954,9 @@
     ],
     "relatedWeaknesses": [
       "757"
+    ],
+    "mitreAttack": [
+      "T1600"
     ]
   },
   "621": {
@@ -21121,6 +21578,9 @@
     "relatedWeaknesses": [
       "287",
       "1270"
+    ],
+    "mitreAttack": [
+      "T1134"
     ]
   },
   "634": {
@@ -21159,6 +21619,10 @@
     ],
     "relatedWeaknesses": [
       "267"
+    ],
+    "mitreAttack": [
+      "T1123",
+      "T1125"
     ]
   },
   "635": {
@@ -21176,6 +21640,9 @@
     ],
     "relatedWeaknesses": [
       "162"
+    ],
+    "mitreAttack": [
+      "T1036.007"
     ]
   },
   "636": {
@@ -21193,6 +21660,13 @@
     ],
     "relatedWeaknesses": [
       "506"
+    ],
+    "mitreAttack": [
+      "T1001.002",
+      "T1027.003",
+      "T1027.004",
+      "T1218.001",
+      "T1221"
     ]
   },
   "637": {
@@ -21248,6 +21722,9 @@
     ],
     "relatedWeaknesses": [
       "267"
+    ],
+    "mitreAttack": [
+      "T1115"
     ]
   },
   "638": {
@@ -21341,6 +21818,9 @@
           "Modify Data"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1542.002"
     ]
   },
   "639": {
@@ -21368,6 +21848,13 @@
     ],
     "relatedWeaknesses": [
       "552"
+    ],
+    "mitreAttack": [
+      "T1039",
+      "T1552.001",
+      "T1552.003",
+      "T1552.004",
+      "T1552.006"
     ]
   },
   "64": {
@@ -21523,6 +22010,12 @@
     "relatedWeaknesses": [
       "114",
       "829"
+    ],
+    "mitreAttack": [
+      "T1505.005",
+      "T1574.006",
+      "T1574.013",
+      "T1620"
     ]
   },
   "641": {
@@ -21558,6 +22051,9 @@
     ],
     "relatedWeaknesses": [
       "706"
+    ],
+    "mitreAttack": [
+      "T1574.002"
     ]
   },
   "642": {
@@ -21575,6 +22071,11 @@
     ],
     "relatedWeaknesses": [
       "732"
+    ],
+    "mitreAttack": [
+      "T1505.005",
+      "T1554",
+      "T1574.005"
     ]
   },
   "643": {
@@ -21622,6 +22123,9 @@
     "relatedWeaknesses": [
       "267",
       "200"
+    ],
+    "mitreAttack": [
+      "T1135"
     ]
   },
   "644": {
@@ -21733,6 +22237,9 @@
       "308",
       "294",
       "308"
+    ],
+    "mitreAttack": [
+      "T1550.002"
     ]
   },
   "645": {
@@ -21778,6 +22285,9 @@
       "522",
       "294",
       "308"
+    ],
+    "mitreAttack": [
+      "T1550.003"
     ]
   },
   "646": {
@@ -21806,6 +22316,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1120"
     ]
   },
   "647": {
@@ -21867,6 +22380,11 @@
     ],
     "relatedWeaknesses": [
       "285"
+    ],
+    "mitreAttack": [
+      "T1005",
+      "T1012",
+      "T1552.002"
     ]
   },
   "648": {
@@ -21901,6 +22419,10 @@
     ],
     "relatedWeaknesses": [
       "267"
+    ],
+    "mitreAttack": [
+      "T1113",
+      "T1513"
     ]
   },
   "649": {
@@ -21931,6 +22453,9 @@
     ],
     "relatedWeaknesses": [
       "46"
+    ],
+    "mitreAttack": [
+      "T1036.006"
     ]
   },
   "65": {
@@ -22003,6 +22528,9 @@
       "311",
       "318",
       "693"
+    ],
+    "mitreAttack": [
+      "T1040"
     ]
   },
   "650": {
@@ -22051,6 +22579,9 @@
     "relatedWeaknesses": [
       "287",
       "553"
+    ],
+    "mitreAttack": [
+      "T1505.003"
     ]
   },
   "651": {
@@ -22078,6 +22609,9 @@
     ],
     "relatedWeaknesses": [
       "200"
+    ],
+    "mitreAttack": [
+      "T1111"
     ]
   },
   "652": {
@@ -22184,6 +22718,9 @@
       "654",
       "294",
       "836"
+    ],
+    "mitreAttack": [
+      "T1558"
     ]
   },
   "653": {
@@ -22341,6 +22878,10 @@
     ],
     "relatedWeaknesses": [
       "1021"
+    ],
+    "mitreAttack": [
+      "T1056",
+      "T1548.004"
     ]
   },
   "655": {
@@ -22371,6 +22912,9 @@
           "Modify Data"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1027.001"
     ]
   },
   "656": {
@@ -22487,6 +23031,9 @@
     ],
     "relatedWeaknesses": [
       "494"
+    ],
+    "mitreAttack": [
+      "T1072"
     ]
   },
   "66": {
@@ -22678,6 +23225,9 @@
     ],
     "relatedWeaknesses": [
       "829"
+    ],
+    "mitreAttack": [
+      "T1055"
     ]
   },
   "661": {
@@ -22852,6 +23402,9 @@
     "relatedWeaknesses": [
       "300",
       "494"
+    ],
+    "mitreAttack": [
+      "T1185"
     ]
   },
   "663": {
@@ -23195,6 +23748,11 @@
       "288",
       "1188",
       "862"
+    ],
+    "mitreAttack": [
+      "T1211",
+      "T1542.002",
+      "T1556"
     ]
   },
   "666": {
@@ -23253,6 +23811,10 @@
     ],
     "relatedWeaknesses": [
       "404"
+    ],
+    "mitreAttack": [
+      "T1498.001",
+      "T1499.001"
     ]
   },
   "667": {
@@ -23394,6 +23956,9 @@
       "425",
       "285",
       "693"
+    ],
+    "mitreAttack": [
+      "T1565.002"
     ]
   },
   "669": {
@@ -23469,6 +24034,9 @@
           "Read Data"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195.002"
     ]
   },
   "67": {
@@ -23615,6 +24183,10 @@
           "Read Data"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1127",
+      "T1195.001"
     ]
   },
   "671": {
@@ -23646,6 +24218,9 @@
           "Alter Execution Logic"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195.003"
     ]
   },
   "672": {
@@ -23676,6 +24251,9 @@
           "Alter Execution Logic"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195.003"
     ]
   },
   "673": {
@@ -23718,6 +24296,9 @@
           "Execute Unauthorized Commands"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195.002"
     ]
   },
   "674": {
@@ -23748,6 +24329,9 @@
           "Alter Execution Logic"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195.003"
     ]
   },
   "675": {
@@ -23789,6 +24373,9 @@
     ],
     "relatedWeaknesses": [
       "1266"
+    ],
+    "mitreAttack": [
+      "T1052"
     ]
   },
   "676": {
@@ -23922,6 +24509,9 @@
           "Execute Unauthorized Commands"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195.003"
     ]
   },
   "678": {
@@ -23963,6 +24553,9 @@
           "Read Data"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1195.002"
     ]
   },
   "679": {
@@ -24080,6 +24673,9 @@
       "325",
       "328",
       "1326"
+    ],
+    "mitreAttack": [
+      "T1553.002"
     ]
   },
   "680": {
@@ -24485,6 +25081,10 @@
     ],
     "relatedWeaknesses": [
       "494"
+    ],
+    "mitreAttack": [
+      "T1195.001",
+      "T1195.002"
     ]
   },
   "692": {
@@ -24685,6 +25285,9 @@
     ],
     "relatedWeaknesses": [
       "497"
+    ],
+    "mitreAttack": [
+      "T1614"
     ]
   },
   "695": {
@@ -24753,6 +25356,9 @@
     "relatedWeaknesses": [
       "494",
       "829"
+    ],
+    "mitreAttack": [
+      "T1195.001"
     ]
   },
   "696": {
@@ -24939,6 +25545,9 @@
     ],
     "relatedWeaknesses": [
       "923"
+    ],
+    "mitreAttack": [
+      "T1557.003"
     ]
   },
   "698": {
@@ -25020,6 +25629,10 @@
     "relatedWeaknesses": [
       "507",
       "829"
+    ],
+    "mitreAttack": [
+      "T1176",
+      "T1505.004"
     ]
   },
   "699": {
@@ -25259,6 +25872,9 @@
       "654",
       "308",
       "309"
+    ],
+    "mitreAttack": [
+      "T1078.001"
     ]
   },
   "700": {
@@ -25338,6 +25954,9 @@
           "Hide Activities"
         ]
       }
+    ],
+    "mitreAttack": [
+      "T1599"
     ]
   },
   "701": {
@@ -27598,6 +28217,9 @@
       "593",
       "287",
       "294"
+    ],
+    "mitreAttack": [
+      "T1557"
     ]
   },
   "95": {
@@ -27903,6 +28525,10 @@
     ],
     "relatedWeaknesses": [
       "451"
+    ],
+    "mitreAttack": [
+      "T1566",
+      "T1598"
     ]
   },
   "99": {
