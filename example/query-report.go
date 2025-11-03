@@ -1765,9 +1765,9 @@ func loadMLModels() {
 	nbModel = &model
 
 	// Try to load attack vector taxonomy
-	taxonomyData, err := os.ReadFile("resources/naive_bayes_model.json")
+	taxonomyData, err := os.ReadFile("resources/attack_vector_taxonomy.json")
 	if err != nil {
-		fmt.Printf("  Warning: naive_bayes_model.json not found (granular classification disabled)\n")
+		fmt.Printf("  Warning: attack_vector_taxonomy.json not found (granular classification disabled)\n")
 	} else {
 		var tax AttackVectorTaxonomy
 		if err := json.Unmarshal(taxonomyData, &tax); err != nil {
@@ -1778,13 +1778,13 @@ func loadMLModels() {
 		}
 	}
 
-	// Try to load CAPEC training data for ranking
-	capecDataFile, err := os.ReadFile("resources/capec_training_data.json")
+	// Try to load CAPEC ranking data
+	capecRankerData, err := os.ReadFile("resources/capec_training_data.json")
 	if err != nil {
 		fmt.Printf("  Warning: capec_training_data.json not found (CAPEC ranking disabled)\n")
 	} else {
 		var capecList []CAPECTrainingData
-		if err := json.Unmarshal(capecDataFile, &capecList); err != nil {
+		if err := json.Unmarshal(capecRankerData, &capecList); err != nil {
 			fmt.Printf("  Warning: Failed to parse capec_training_data.json: %v\n", err)
 		} else {
 			// Convert to map for easy lookup
