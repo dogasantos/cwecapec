@@ -72,26 +72,25 @@ type CWEMapping struct {
 	Strength string // "direct", "parent", "related"
 }
 
-var cweToCapec = map[string][]string{
-	// XSS family
-	"79":  {"588", "591", "592", "63", "85", "209"},
-	"80":  {"63", "588"},
-	"917": {"242", "35"}, // JNDI/EL Injection
-	"502": {"586"},       // Deserialization
+// Relationships database structure
+type RelationshipsDB struct {
+	CWEToCapec    map[string][]string `json:"CWEToCapec"`
+	CapecToAttack map[string][]string `json:"CapecToAttack"`
+}
+
+// Global variable for CWE to CAPEC mappings (loaded from file or fallback)
+var cweToCapec map[string][]string
+
+// Minimal fallback mappings if relationships file not found
+var fallbackMappings = map[string][]string{
+	// Most common attack types only
+	"79":  {"588", "591", "592", "63"},
 	"89":  {"66", "7", "108"},
-	"77":  {"88", "248", "15"},
-	"78":  {"88", "248", "15"},
 	"22":  {"126", "597"},
-	"119": {"92", "100", "10"},
+	"502": {"586"},
 	"611": {"221"},
 	"918": {"664"},
 	"352": {"62"},
-	"287": {"114", "115", "593"},
-	"90":  {"136"},
-	"400": {"130", "147"},      // Resource exhaustion
-	"94":  {"242", "35", "77"}, // Code Injection
-	"95":  {"35"},              // Improper Neutralization of Directives in Dynamically Evaluated Code
-	"20":  {},                  // Improper input validation (generic)
 }
 
 // Attack pattern keywords for fallback matching
@@ -155,17 +154,43 @@ var attackKeywords = map[string][]string{
 	"226": {"session manipulation", "session takeover", "session hijacking", "credential manipulation"},
 }
 
+// Load CWE to CAPEC relationships from JSON file
+func loadRelationships(filename string) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	var relationships RelationshipsDB
+	if err := json.Unmarshal(data, &relationships); err != nil {
+		return err
+	}
+
+	cweToCapec = relationships.CWEToCapec
+	return nil
+}
+
 func main() {
 	cveID := flag.String("cve", "", "CVE ID to analyze")
 	dataFile := flag.String("data", "capec_training_data.json", "CAPEC data file")
+	relationshipsFile := flag.String("relationships", "relationships_db.json", "Relationships database file")
 	topN := flag.Int("top", 5, "Number of top results to show")
 	verbose := flag.Bool("v", false, "Verbose output with score breakdown")
 	flag.Parse()
 
 	if *cveID == "" {
-		fmt.Println("Usage: capec-ranker-hybrid -cve CVE-ID [-data capec_training_data.json] [-top N] [-v]")
+		fmt.Println("Usage: capec-ranker-hybrid -cve CVE-ID [-data capec_training_data.json] [-relationships relationships_db.json] [-top N] [-v]")
 		flag.PrintDefaults()
 		os.Exit(1)
+	}
+
+	// Load relationships from file, fallback to minimal mappings if not found
+	if err := loadRelationships(*relationshipsFile); err != nil {
+		fmt.Printf("⚠ Warning: Could not load relationships from %s: %v\n", *relationshipsFile, err)
+		fmt.Println("Using minimal fallback mappings...\n")
+		cweToCapec = fallbackMappings
+	} else {
+		fmt.Printf("✓ Loaded %d CWE→CAPEC mappings from %s\n\n", len(cweToCapec), *relationshipsFile)
 	}
 
 	fmt.Println("================================================================================")
@@ -564,7 +589,9 @@ func getCandidateCAPECs(cweIDs []string) []string {
 	capecSet := make(map[string]bool)
 
 	for _, cweID := range cweIDs {
-		if capecs, exists := cweToCapec[cweID]; exists {
+		// Normalize CWE ID to match relationships file format (CWE-XXX)
+		normalizedCWE := "CWE-" + cweID
+		if capecs, exists := cweToCapec[normalizedCWE]; exists {
 			if len(capecs) > 0 {
 				// CWE has specific mappings
 				for _, capecID := range capecs {
