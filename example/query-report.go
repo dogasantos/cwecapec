@@ -2138,20 +2138,24 @@ func calculateCAPECSimilarity(cveDesc string, capecInfo CAPECTrainingData) float
 	attackVectorBoost := 0.0
 
 	// Define high-priority attack vector keywords that should appear in CAPEC name
+	// Use VERY HIGH boost values to ensure exact matches rank first
 	priorityKeywords := map[string]float64{
-		"authentication bypass": 2.0,
-		"authentication abuse":  1.8,
-		"authentication":        1.5,
-		"authorization bypass":  2.0,
-		"sql injection":         2.0,
-		"cross-site scripting":  2.0,
-		"xss":                   2.0,
-		"buffer overflow":       2.0,
-		"command injection":     2.0,
-		"path traversal":        2.0,
-		"deserialization":       2.0,
-		"ssrf":                  2.0,
-		"csrf":                  2.0,
+		"authentication bypass": 10.0,
+		"authentication abuse":  8.0,
+		"authorization bypass":  10.0,
+		"sql injection":         10.0,
+		"code injection":        10.0,
+		"cross-site scripting":  10.0,
+		"xss":                   10.0,
+		"buffer overflow":       10.0,
+		"command injection":     10.0,
+		"path traversal":        10.0,
+		"deserialization":       10.0,
+		"ssrf":                  10.0,
+		"csrf":                  10.0,
+		//"session hijacking":     10.0,
+		//"session fixation":      10.0,
+		"authentication": 5.0, // Generic auth gets lower boost
 	}
 
 	for keyword, boost := range priorityKeywords {
