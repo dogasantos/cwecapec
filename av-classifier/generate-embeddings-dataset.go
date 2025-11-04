@@ -1,10 +1,10 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -48,34 +48,36 @@ type Metadata struct {
 	Likelihood string  `json:"likelihood,omitempty"`
 }
 
-type NVDResponse struct {
-	ResultsPerPage  int `json:"resultsPerPage"`
-	StartIndex      int `json:"startIndex"`
-	TotalResults    int `json:"totalResults"`
-	Vulnerabilities []struct {
+// NVD Feed structures
+type NVDFeed struct {
+	CVEItems []struct {
 		CVE struct {
-			ID           string `json:"id"`
-			Published    string `json:"published"`
-			Descriptions []struct {
-				Lang  string `json:"lang"`
-				Value string `json:"value"`
-			} `json:"descriptions"`
-			Metrics struct {
-				CVSSMetricV31 []struct {
-					CVSSData struct {
-						BaseScore float64 `json:"baseScore"`
-					} `json:"cvssData"`
-				} `json:"cvssMetricV31"`
-			} `json:"metrics"`
+			CVEDataMeta struct {
+				ID string `json:"ID"`
+			} `json:"CVE_data_meta"`
+			Description struct {
+				DescriptionData []struct {
+					Lang  string `json:"lang"`
+					Value string `json:"value"`
+				} `json:"description_data"`
+			} `json:"description"`
 		} `json:"cve"`
-	} `json:"vulnerabilities"`
+		PublishedDate string `json:"publishedDate"`
+		Impact        struct {
+			BaseMetricV3 struct {
+				CVSSV3 struct {
+					BaseScore float64 `json:"baseScore"`
+				} `json:"cvssV3"`
+			} `json:"baseMetricV3"`
+		} `json:"impact"`
+	} `json:"CVE_Items"`
 }
 
 // -------------------- Main Program --------------------
 
 func main() {
 	fmt.Println("================================================================================")
-	fmt.Println("EMBEDDINGS DATASET GENERATOR")
+	fmt.Println("EMBEDDINGS DATASET GENERATOR v2")
 	fmt.Println("================================================================================")
 	fmt.Println()
 
@@ -87,9 +89,7 @@ func main() {
 	}
 
 	// Initialize OpenAI client
-	client := openai.NewClient(
-		option.WithAPIKey(apiKey),
-	)
+	client := openai.NewClient(option.WithAPIKey(apiKey))
 
 	// Step 1: Load all CAPECs
 	fmt.Println("[1/4] Loading CAPEC database...")
@@ -100,14 +100,32 @@ func main() {
 	}
 	fmt.Printf("  Loaded %d CAPECs\n", len(capecs))
 
-	// Step 2: Fetch all 2024 CVEs
-	fmt.Println("\n[2/4] Fetching all 2024 CVEs from NVD...")
-	cves, err := fetchAll2024CVEs()
-	if err != nil {
-		fmt.Printf("Error fetching CVEs: %v\n", err)
-		os.Exit(1)
+	// Step 2: Load CVEs from local file or download from NVD feed
+	fmt.Println("\n[2/4] Loading CVE data...")
+
+	var cves []CVEItem
+
+	// Try to load from training_data.json first
+	if _, err := os.Stat("resources/training_data.json"); err == nil {
+		fmt.Println("  Found local training_data.json, loading...")
+		cves, err = loadCVEsFromTrainingData("resources/training_data.json")
+		if err != nil {
+			fmt.Printf("  Warning: Failed to load training_data.json: %v\n", err)
+		} else {
+			fmt.Printf("  Loaded %d CVEs from training_data.json\n", len(cves))
+		}
 	}
-	fmt.Printf("  Fetched %d CVEs from 2024\n", len(cves))
+
+	// If no local data, download from NVD feed
+	if len(cves) == 0 {
+		fmt.Println("  Downloading 2024 CVEs from NVD feed...")
+		cves, err = downloadCVEsFromFeed(2024)
+		if err != nil {
+			fmt.Printf("Error downloading CVEs: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("  Downloaded %d CVEs from 2024\n", len(cves))
+	}
 
 	// Step 3: Generate embeddings
 	fmt.Println("\n[3/4] Generating embeddings...")
@@ -210,7 +228,9 @@ func main() {
 
 	fmt.Printf("CVEs:              %d\n", cveCount)
 	fmt.Printf("CAPECs:            %d\n", capecCount)
-	fmt.Printf("Embedding dims:    %d\n", len(allEmbeddings[0].Embedding))
+	if len(allEmbeddings) > 0 {
+		fmt.Printf("Embedding dims:    %d\n", len(allEmbeddings[0].Embedding))
+	}
 
 	// Calculate file size
 	fileInfo, _ := os.Stat(outputFile)
@@ -236,84 +256,81 @@ func loadCAPECs(filename string) (map[string]CAPECInfo, error) {
 	return capecs, nil
 }
 
-func fetchAll2024CVEs() ([]CVEItem, error) {
-	const (
-		baseURL        = "https://services.nvd.nist.gov/rest/json/cves/2.0"
-		pubStartDate   = "2024-01-01T00:00:00.000"
-		pubEndDate     = "2024-12-31T23:59:59.999"
-		resultsPerPage = 2000
-	)
-
-	var allCVEs []CVEItem
-	startIndex := 0
-
-	for {
-		url := fmt.Sprintf("%s?pubStartDate=%s&pubEndDate=%s&resultsPerPage=%d&startIndex=%d",
-			baseURL, pubStartDate, pubEndDate, resultsPerPage, startIndex)
-
-		fmt.Printf("  Fetching CVEs (offset %d)...\n", startIndex)
-
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		client := &http.Client{Timeout: 30 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			return nil, fmt.Errorf("NVD API error: %s - %s", resp.Status, string(body))
-		}
-
-		var nvdResp NVDResponse
-		if err := json.NewDecoder(resp.Body).Decode(&nvdResp); err != nil {
-			return nil, err
-		}
-
-		// Extract CVE data
-		for _, vuln := range nvdResp.Vulnerabilities {
-			cve := vuln.CVE
-
-			// Get English description
-			description := ""
-			for _, desc := range cve.Descriptions {
-				if desc.Lang == "en" {
-					description = desc.Value
-					break
-				}
-			}
-
-			// Get CVSS score
-			cvss := 0.0
-			if len(cve.Metrics.CVSSMetricV31) > 0 {
-				cvss = cve.Metrics.CVSSMetricV31[0].CVSSData.BaseScore
-			}
-
-			allCVEs = append(allCVEs, CVEItem{
-				ID:          cve.ID,
-				Description: description,
-				Published:   cve.Published,
-				CVSS:        cvss,
-			})
-		}
-
-		// Check if we've fetched all results
-		if startIndex+resultsPerPage >= nvdResp.TotalResults {
-			break
-		}
-
-		startIndex += resultsPerPage
-
-		// Rate limiting: NVD allows 5 requests per 30 seconds without API key
-		time.Sleep(6 * time.Second)
+func loadCVEsFromTrainingData(filename string) ([]CVEItem, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
 	}
 
-	return allCVEs, nil
+	// Try to parse as array of CVEItem first
+	var cves []CVEItem
+	if err := json.Unmarshal(data, &cves); err == nil {
+		return cves, nil
+	}
+
+	// If that fails, try to parse as map[string]CVEItem
+	var cveMap map[string]CVEItem
+	if err := json.Unmarshal(data, &cveMap); err == nil {
+		cves = make([]CVEItem, 0, len(cveMap))
+		for _, cve := range cveMap {
+			cves = append(cves, cve)
+		}
+		return cves, nil
+	}
+
+	return nil, fmt.Errorf("unable to parse training_data.json")
+}
+
+func downloadCVEsFromFeed(year int) ([]CVEItem, error) {
+	// Try NVD JSON feed 1.1 format
+	feedURL := fmt.Sprintf("https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz", year)
+
+	fmt.Printf("  Downloading from: %s\n", feedURL)
+
+	resp, err := http.Get(feedURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	// Decompress gzip
+	gzReader, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer gzReader.Close()
+
+	// Parse JSON
+	var feed NVDFeed
+	if err := json.NewDecoder(gzReader).Decode(&feed); err != nil {
+		return nil, err
+	}
+
+	// Convert to CVEItem format
+	var cves []CVEItem
+	for _, item := range feed.CVEItems {
+		// Get English description
+		description := ""
+		for _, desc := range item.CVE.Description.DescriptionData {
+			if desc.Lang == "en" {
+				description = desc.Value
+				break
+			}
+		}
+
+		cves = append(cves, CVEItem{
+			ID:          item.CVE.CVEDataMeta.ID,
+			Description: description,
+			Published:   item.PublishedDate,
+			CVSS:        item.Impact.BaseMetricV3.CVSSV3.BaseScore,
+		})
+	}
+
+	return cves, nil
 }
 
 func getEmbedding(client *openai.Client, text string) ([]float64, error) {
