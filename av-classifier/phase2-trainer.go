@@ -231,15 +231,15 @@ func main() {
 	fmt.Println("=================================================================\n")
 
 	// Load training data from Phase 1
-	inputFile := "training_data.json"
-	outputModel := "naive_bayes_model.json"
+	inputFile := "resources/training_data.json"
+	outputModel := "resources/naive_bayes_model.json"
 
 	fmt.Printf("Loading training data from: %s\n", inputFile)
 
 	file, err := os.Open(inputFile)
 	if err != nil {
 		fmt.Printf("Error opening file: %v\n", err)
-		fmt.Println("\nMake sure you've run phase1-collector first to generate training_data.json")
+		fmt.Println("\nMake sure you've run phase1-collector first to generate resources/training_data.json")
 		os.Exit(1)
 	}
 	defer file.Close()

@@ -189,7 +189,7 @@ func main() {
 
 	// Configuration
 	year := 2024
-	outputFile := "training_data.json"
+	outputFile := "resources/training_data.json"
 
 	// NVD JSON 2.0 feed URL
 	feedURL := fmt.Sprintf("https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz", year)

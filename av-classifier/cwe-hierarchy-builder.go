@@ -219,7 +219,7 @@ func main() {
 	fmt.Printf("Built hierarchy for %d CWEs\n\n", len(hierarchy.CWEs))
 
 	// Save to JSON
-	outputFile := "cwe_hierarchy.json"
+	outputFile := "resources/cwe_hierarchy.json"
 	fmt.Printf("Saving hierarchy to: %s\n", outputFile)
 	if err := saveHierarchy(hierarchy, outputFile); err != nil {
 		fmt.Printf("Error saving hierarchy: %v\n", err)

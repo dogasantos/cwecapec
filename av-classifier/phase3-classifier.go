@@ -163,10 +163,10 @@ func main() {
 	if showDetails {
 		fmt.Println("Loading CWE hierarchy...")
 	}
-	hierarchy, err := loadCWEHierarchy("cwe_hierarchy.json")
+	hierarchy, err := loadCWEHierarchy("resources/cwe_hierarchy.json")
 	if err != nil {
 		fmt.Printf("Error loading CWE hierarchy: %v\n", err)
-		fmt.Println("Run 'cwe-builder' first to generate cwe_hierarchy.json")
+		fmt.Println("Run 'cwe-builder' first to generate resources/cwe_hierarchy.json")
 		os.Exit(1)
 	}
 	if showDetails {
@@ -177,10 +177,10 @@ func main() {
 	if showDetails {
 		fmt.Println("Loading Naive Bayes model...")
 	}
-	model, err := loadNaiveBayesModel("naive_bayes_model.json")
+	model, err := loadNaiveBayesModel("resources/naive_bayes_model.json")
 	if err != nil {
 		fmt.Printf("Error loading Naive Bayes model: %v\n", err)
-		fmt.Println("Run 'trainer' first to generate naive_bayes_model.json")
+		fmt.Println("Run 'trainer' first to generate resources/naive_bayes_model.json")
 		os.Exit(1)
 	}
 	if showDetails {
@@ -210,14 +210,14 @@ func main() {
 		if showDetails {
 			fmt.Println("\nLoading CAPEC data...")
 		}
-		capecData, err := loadCAPECData("capec_training_data.json")
+		capecData, err := loadCAPECData("resources/capec_training_data.json")
 		if err != nil {
 			if showDetails {
 				fmt.Printf("Warning: Could not load CAPEC data: %v\n", err)
 			}
 		} else {
 			// Load relationships
-			relationships, err := loadRelationships("relationships_db.json")
+			relationships, err := loadRelationships("resources/relationships_db.json")
 			if err != nil {
 				if showDetails {
 					fmt.Printf("Warning: Could not load relationships: %v\n", err)

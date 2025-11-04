@@ -119,8 +119,8 @@ var supplementaryMappings = map[string][]string{
 }
 
 func main() {
-	outputFile := flag.String("o", "capec_training_data.json", "Output JSON file for training data")
-	relationshipsFile := flag.String("r", "relationships_db.json", "Output JSON file for relationships database")
+	outputFile := flag.String("o", "resources/capec_training_data.json", "Output JSON file for training data")
+	relationshipsFile := flag.String("r", "resources/relationships_db.json", "Output JSON file for relationships database")
 	flag.Parse()
 
 	fmt.Println("=================================================================")
