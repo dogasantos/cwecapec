@@ -87,7 +87,9 @@ func main() {
 	}
 
 	// Initialize OpenAI client
-	client := openai.NewClient(option.WithAPIKey(apiKey))
+	client := openai.NewClient(
+		option.WithAPIKey(apiKey),
+	)
 
 	// Step 1: Load all CAPECs
 	fmt.Println("[1/4] Loading CAPEC database...")
@@ -119,7 +121,7 @@ func main() {
 	for id, capec := range capecs {
 		text := fmt.Sprintf("%s: %s", capec.Name, capec.Description)
 
-		embedding, err := getEmbedding(client, text)
+		embedding, err := getEmbedding(&client, text)
 		if err != nil {
 			fmt.Printf("    Warning: Failed to generate embedding for CAPEC-%s: %v\n", id, err)
 			continue
@@ -150,7 +152,7 @@ func main() {
 	// Generate CVE embeddings
 	fmt.Printf("\n  Processing CVEs...\n")
 	for _, cve := range cves {
-		embedding, err := getEmbedding(client, cve.Description)
+		embedding, err := getEmbedding(&client, cve.Description)
 		if err != nil {
 			fmt.Printf("    Warning: Failed to generate embedding for %s: %v\n", cve.ID, err)
 			continue
@@ -329,10 +331,10 @@ func getEmbedding(client *openai.Client, text string) ([]float64, error) {
 	ctx := context.Background()
 
 	resp, err := client.Embeddings.New(ctx, openai.EmbeddingNewParams{
-		Input: openai.F[openai.EmbeddingNewParamsInputUnion](
-			openai.EmbeddingNewParamsInputArrayOfStrings([]string{text}),
-		),
-		Model: openai.F(openai.EmbeddingModelTextEmbedding3Small),
+		Input: openai.EmbeddingNewParamsInputUnion{
+			OfString: openai.String(text),
+		},
+		Model: openai.EmbeddingModelTextEmbedding3Small,
 	})
 
 	if err != nil {
