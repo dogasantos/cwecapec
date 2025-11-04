@@ -32,12 +32,11 @@ var (
 
 // ML models (loaded at startup)
 var (
-	cweHierarchy        *CWEHierarchy
-	nbModel             *AttackVectorModel
-	taxonomy            *AttackVectorTaxonomy
-	capecData           map[string]CAPECTrainingData
-	keywordExpansionMap map[string][]string
-	mlEnabled           bool
+	cweHierarchy *CWEHierarchy
+	nbModel      *AttackVectorModel
+	taxonomy     *AttackVectorTaxonomy
+	capecData    map[string]CAPECTrainingData
+	mlEnabled    bool
 )
 
 // CAPEC training data for ranking
@@ -75,15 +74,12 @@ var cweToVector = map[string][]string{
 	"121": {"buffer_overflow"},
 	"122": {"buffer_overflow"},
 	"787": {"buffer_overflow"},
-	// Authentication & Authorization
-	"287": {"auth_bypass", "authentication"},
-	"288": {"auth_bypass", "authentication"},
-	"290": {"auth_bypass", "authentication"},
-	"306": {"auth_bypass", "authentication"},
+	// Authentication
+	"287": {"authentication"},
+	"288": {"authentication"},
+	"290": {"authentication"},
+	"306": {"authentication"},
 	"798": {"authentication"},
-	"285": {"authz_bypass", "authorization"},
-	"862": {"authz_bypass", "authorization"},
-	"863": {"authz_bypass", "idor"},
 	// Privilege Escalation
 	"269": {"privilege_escalation"},
 	"250": {"privilege_escalation"},
@@ -92,12 +88,6 @@ var cweToVector = map[string][]string{
 	"665": {"privilege_escalation"},
 	// SSRF
 	"918": {"ssrf"},
-	// HTTP Request Smuggling
-	"444": {"http_smuggling"},
-	// CRLF Injection
-	"93": {"crlf_injection"},
-	// Trust Boundary
-	"501": {"trust_boundary"},
 	// CSRF
 	"352": {"csrf"},
 	// XXE
@@ -354,7 +344,6 @@ type CWEDetail struct {
 	ID          string
 	Name        string
 	Description string
-	IsBest      bool
 }
 
 type CAPECDetail struct {
@@ -456,7 +445,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error generating HTML: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println("[+] HTML report generated successfully")
+		fmt.Println("✓ HTML report generated successfully")
 	}
 
 	// Always output to console
@@ -637,31 +626,19 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 		}
 	}
 
-	// Fallback: if no ML match, use all CWEs but limit to top 2
+	// Fallback: if no ML match, use all CWEs
 	if len(bestCWEs) == 0 {
 		bestCWEs = allCWEIDs
 	}
 
-	// Limit to top 2 CWEs for focused CAPEC selection
-	if len(bestCWEs) > 2 {
-		bestCWEs = bestCWEs[:2]
-	}
+	fmt.Printf("  Found %d CWEs (filtered to %d best matches)\n", len(allCWEIDs), len(bestCWEs))
 
-	fmt.Printf("  Found %d CWEs (using top %d for CAPEC selection)\n", len(allCWEIDs), len(bestCWEs))
-
-	// Build CWE details (show all, mark best ones)
-	bestCWESet := make(map[string]bool)
+	// Build CWE details (show only best matching CWEs)
 	for _, cweID := range bestCWEs {
-		bestCWESet[cweID] = true
-	}
-
-	for _, cweID := range allCWEIDs {
 		if cweInfo, ok := db.CWEs[cweID]; ok {
-			isBest := bestCWESet[cweID]
 			report.CWEs = append(report.CWEs, CWEDetail{
-				ID:     cweID,
-				Name:   cweInfo.Name,
-				IsBest: isBest,
+				ID:   cweID,
+				Name: cweInfo.Name,
 			})
 		}
 	}
@@ -1105,20 +1082,15 @@ func printConsoleReport(report Report) {
 	// ML-Detected Attack Vector
 	if report.BestAttackVector != "" {
 		fmt.Printf("\n[ML-DETECTED ATTACK VECTOR]\n")
-		fmt.Printf("  Primary Attack Type: %s (ML-Classified)\n", strings.ToUpper(report.BestAttackVector))
+		fmt.Printf("🎯 Primary Attack Type: %s (ML-Classified)\n", strings.ToUpper(report.BestAttackVector))
 	}
 
 	// CWEs
 	if len(report.CWEs) > 0 {
 		fmt.Printf("\n[RELATED CWEs] (%d)\n", len(report.CWEs))
 		for _, cwe := range report.CWEs {
-			marker := " "
-			if cwe.IsBest {
-				marker = "★" // Star indicates this CWE is used for CAPEC selection
-			}
-			fmt.Printf("  %s CWE-%s: %s\n", marker, cwe.ID, cwe.Name)
+			fmt.Printf("  • CWE-%s: %s\n", cwe.ID, cwe.Name)
 		}
-		fmt.Printf("  (★ = Used for CAPEC selection)\n")
 	}
 
 	// CAPECs
@@ -1508,7 +1480,7 @@ func buildHTMLReport(report Report) string {
 		html += fmt.Sprintf(`
             <!-- ML-Detected Attack Vector -->
             <div class="section" style="border-left: 4px solid #ff6b6b;">
-                <h2>ML-Detected Attack Vector</h2>
+                <h2>🎯 ML-Detected Attack Vector</h2>
                 <div class="info-box" style="background: #fff5f5; border-left-color: #ff6b6b;">
                     <p style="font-size: 1.3em; font-weight: bold; color: #c92a2a;">
                         Primary Attack Type: %s
@@ -1559,7 +1531,7 @@ func buildHTMLReport(report Report) string {
             <div class="section">
                 <h2>Most Relevant Attack Patterns (CAPEC)<span class="badge badge-count">Top %d</span></h2>
                 <div class="info-box">
-                    <strong>Note:</strong> These attack patterns were selected using a hybrid scoring system that considers CVE context, ATT&CK mappings, and keyword relevance to show only the most applicable patterns.
+                    <strong>ℹ️ Intelligent Filtering:</strong> These attack patterns were selected using a hybrid scoring system that considers CVE context, ATT&CK mappings, and keyword relevance to show only the most applicable patterns.
                 </div>
                 <ul class="item-list">`, len(report.CAPECs))
 		for _, capec := range report.CAPECs {
@@ -1814,32 +1786,8 @@ func loadMLModels(db *LocalDB) {
 	}
 	fmt.Printf("  CAPEC ranking data loaded (%d CAPECs)\n", len(capecData))
 
-	// Try to load keyword expansion map
-	if err := loadKeywordExpansionMap(); err != nil {
-		fmt.Printf("  Warning: Error loading keyword map: %v\n", err)
-		// Continue without keyword expansion
-	}
-
 	mlEnabled = true
 	fmt.Printf("  ML models loaded successfully (%d attack vectors)\n", len(model.VectorPriors))
-}
-
-// Load keyword expansion map for improved CAPEC ranking
-func loadKeywordExpansionMap() error {
-	data, err := os.ReadFile("resources/keyword_expansion_map.json")
-	if err != nil {
-		// Keyword map is optional, continue without it
-		fmt.Println("  Info: keyword_expansion_map.json not found (using basic tokenization)")
-		keywordExpansionMap = nil
-		return nil
-	}
-
-	if err := json.Unmarshal(data, &keywordExpansionMap); err != nil {
-		return fmt.Errorf("error parsing keyword map: %w", err)
-	}
-
-	fmt.Printf("  Keyword expansion map loaded (%d keywords)\n", len(keywordExpansionMap))
-	return nil
 }
 
 // Hybrid ML-based attack vector detection
@@ -2161,48 +2109,14 @@ func tokenizeForRanking(text string) []string {
 		"been": true, "being": true, "have": true, "has": true, "had": true,
 		"but": true, "not": true, "can": true, "will": true, "would": true,
 		"could": true, "should": true, "may": true, "might": true, "must": true,
-		"into": true, "through": true, "during": true, "before": true, "after": true,
-		"above": true, "below": true, "between": true, "under": true, "again": true,
-		"further": true, "then": true, "once": true, "here": true, "there": true,
-		"when": true, "where": true, "why": true, "how": true, "all": true,
-		"each": true, "other": true, "some": true, "such": true, "only": true,
-		"own": true, "same": true, "than": true, "too": true, "very": true,
 	}
 
-	// Collect base tokens
-	baseTokens := make([]string, 0, len(words))
+	filtered := make([]string, 0, len(words))
 	for _, word := range words {
-		if !stopwords[word] && len(word) >= 3 {
-			baseTokens = append(baseTokens, word)
+		if !stopwords[word] {
+			filtered = append(filtered, word)
 		}
 	}
 
-	// Expand with keyword map if available
-	if keywordExpansionMap != nil && len(keywordExpansionMap) > 0 {
-		expandedSet := make(map[string]bool)
-
-		// Add base tokens
-		for _, token := range baseTokens {
-			expandedSet[token] = true
-		}
-
-		// Add related keywords
-		for _, token := range baseTokens {
-			if related, exists := keywordExpansionMap[token]; exists {
-				for _, relatedToken := range related {
-					expandedSet[relatedToken] = true
-				}
-			}
-		}
-
-		// Convert back to slice
-		result := make([]string, 0, len(expandedSet))
-		for token := range expandedSet {
-			result = append(result, token)
-		}
-		return result
-	}
-
-	// No expansion available, return base tokens
-	return baseTokens
+	return filtered
 }
