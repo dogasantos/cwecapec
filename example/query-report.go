@@ -2057,20 +2057,45 @@ func classifyGranular(baseVector, description string) GranularResult {
 	return result
 }
 
-// Calculate TF-IDF similarity between CVE description and CAPEC description
+// Calculate Naive Bayes similarity using Jaccard similarity (same as phase3-classifier)
 func calculateCAPECSimilarity(cveDesc string, capecInfo CAPECTrainingData) float64 {
 	// Tokenize both descriptions
 	cveTokens := tokenizeForRanking(cveDesc)
 	capecText := capecInfo.Description + " " + capecInfo.Name + " " + strings.Join(capecInfo.Prerequisites, " ")
 	capecTokens := tokenizeForRanking(capecText)
 
-	// Calculate term frequencies
-	cveTF := calculateTermFreq(cveTokens)
-	capecTF := calculateTermFreq(capecTokens)
+	// Create sets for Jaccard similarity
+	cveSet := make(map[string]bool)
+	for _, token := range cveTokens {
+		cveSet[token] = true
+	}
 
-	// For IDF, we use a simple approach: terms in both documents get higher weight
-	// Calculate cosine similarity
-	return cosineSim(cveTF, capecTF)
+	capecSet := make(map[string]bool)
+	for _, token := range capecTokens {
+		capecSet[token] = true
+	}
+
+	// Calculate Jaccard similarity: intersection / union
+	intersection := 0
+	for token := range cveSet {
+		if capecSet[token] {
+			intersection++
+		}
+	}
+
+	union := len(cveSet) + len(capecSet) - intersection
+	if union == 0 {
+		return 0.0
+	}
+
+	jaccardSim := float64(intersection) / float64(union)
+
+	// Boost if severity is high (same as phase3-classifier)
+	if capecInfo.TypicalSeverity == "High" || capecInfo.TypicalSeverity == "Very High" {
+		jaccardSim *= 1.2
+	}
+
+	return jaccardSim
 }
 
 func tokenizeForRanking(text string) []string {
@@ -2104,59 +2129,4 @@ func tokenizeForRanking(text string) []string {
 	}
 
 	return filtered
-}
-
-func calculateTermFreq(tokens []string) map[string]float64 {
-	freq := make(map[string]int)
-	for _, token := range tokens {
-		freq[token]++
-	}
-
-	tf := make(map[string]float64)
-	maxFreq := 0
-	for _, count := range freq {
-		if count > maxFreq {
-			maxFreq = count
-		}
-	}
-
-	if maxFreq == 0 {
-		return tf
-	}
-
-	for term, count := range freq {
-		tf[term] = float64(count) / float64(maxFreq)
-	}
-
-	return tf
-}
-
-func cosineSim(vec1, vec2 map[string]float64) float64 {
-	// Calculate dot product
-	dotProduct := 0.0
-	for term, val1 := range vec1 {
-		if val2, exists := vec2[term]; exists {
-			dotProduct += val1 * val2
-		}
-	}
-
-	// Calculate magnitudes
-	mag1 := 0.0
-	for _, val := range vec1 {
-		mag1 += val * val
-	}
-	mag1 = math.Sqrt(mag1)
-
-	mag2 := 0.0
-	for _, val := range vec2 {
-		mag2 += val * val
-	}
-	mag2 = math.Sqrt(mag2)
-
-	// Avoid division by zero
-	if mag1 == 0 || mag2 == 0 {
-		return 0.0
-	}
-
-	return dotProduct / (mag1 * mag2)
 }
