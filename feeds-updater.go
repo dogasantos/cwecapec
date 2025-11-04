@@ -1083,6 +1083,10 @@ func writeJSON(filepath string, data interface{}) error {
 }
 
 func cleanText(s string) string {
+	// Remove HTML/XML tags (including <xhtml:p>, </xhtml:p>, etc.)
+	tagRegex := regexp.MustCompile(`<[^>]+>`)
+	s = tagRegex.ReplaceAllString(s, "")
+
 	// Remove excessive whitespace
 	s = strings.TrimSpace(s)
 	s = regexp.MustCompile(`\s+`).ReplaceAllString(s, " ")
