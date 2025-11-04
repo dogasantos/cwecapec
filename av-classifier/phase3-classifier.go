@@ -69,6 +69,29 @@ type ClassificationResult struct {
 	Source      string  `json:"source"` // "cwe_hierarchy", "naive_bayes", or "hybrid"
 }
 
+// CAPEC structures
+type CAPECData struct {
+	CAPECID         string   `json:"capec_id"`
+	Name            string   `json:"name"`
+	Description     string   `json:"description"`
+	RelatedCWEs     []string `json:"related_cwes"`
+	TypicalSeverity string   `json:"typical_severity"`
+}
+
+// CWE to CAPEC relationships
+type RelationshipsDB struct {
+	CWEToCapec    map[string][]string `json:"CWEToCapec"`
+	CapecToAttack map[string][]string `json:"CapecToAttack"`
+}
+
+// CAPEC ranking result
+type CAPECResult struct {
+	CAPECID     string  `json:"capec_id"`
+	Name        string  `json:"name"`
+	Probability float64 `json:"probability"`
+	Confidence  string  `json:"confidence"`
+}
+
 var (
 	cveID       string
 	cveDesc     string
@@ -178,6 +201,46 @@ func main() {
 		fmt.Printf("   Source: %s\n", result.Source)
 		if i < len(results)-1 {
 			fmt.Println()
+		}
+	}
+
+	// CAPEC Ranking
+	if len(results) > 0 && len(cwes) > 0 {
+		// Load CAPEC data
+		if showDetails {
+			fmt.Println("\nLoading CAPEC data...")
+		}
+		capecData, err := loadCAPECData("capec_training_data.json")
+		if err != nil {
+			if showDetails {
+				fmt.Printf("Warning: Could not load CAPEC data: %v\n", err)
+			}
+		} else {
+			// Load relationships
+			relationships, err := loadRelationships("relationships_db.json")
+			if err != nil {
+				if showDetails {
+					fmt.Printf("Warning: Could not load relationships: %v\n", err)
+				}
+			} else {
+				// Rank CAPECs using the best CWEs
+				capecResults := rankCAPECs(cveDesc, cwes, capecData, relationships, 2, showDetails)
+
+				// Display CAPEC results
+				if len(capecResults) > 0 {
+					fmt.Println("\n==================================================================")
+					fmt.Println("Best Matching CAPECs:")
+					fmt.Println("=================================================================\n")
+
+					for i, capec := range capecResults {
+						fmt.Printf("%d. CAPEC-%s: %s\n", i+1, capec.CAPECID, capec.Name)
+						fmt.Printf("   Probability: %.2f%% (%s confidence)\n", capec.Probability*100, capec.Confidence)
+						if i < len(capecResults)-1 {
+							fmt.Println()
+						}
+					}
+				}
+			}
 		}
 	}
 }
@@ -627,4 +690,156 @@ func loadNaiveBayesModel(filename string) (*AttackVectorModel, error) {
 	}
 
 	return &model, nil
+}
+
+// Load CAPEC data from JSON file
+func loadCAPECData(filename string) ([]CAPECData, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var capecs []CAPECData
+	if err := json.Unmarshal(data, &capecs); err != nil {
+		return nil, err
+	}
+
+	return capecs, nil
+}
+
+// Load CWE to CAPEC relationships
+func loadRelationships(filename string) (*RelationshipsDB, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var rels RelationshipsDB
+	if err := json.Unmarshal(data, &rels); err != nil {
+		return nil, err
+	}
+
+	return &rels, nil
+}
+
+// Get candidate CAPECs from best CWEs
+func getCandidateCAPECsFromCWEs(cweIDs []string, relationships *RelationshipsDB, verbose bool) map[string]bool {
+	candidates := make(map[string]bool)
+
+	if verbose {
+		fmt.Printf("\nGetting candidate CAPECs from %d best CWEs...\n", len(cweIDs))
+	}
+
+	for _, cweID := range cweIDs {
+		cweKey := "CWE-" + cweID
+		if capecs, exists := relationships.CWEToCapec[cweKey]; exists {
+			for _, capecID := range capecs {
+				candidates[capecID] = true
+			}
+			if verbose {
+				fmt.Printf("  %s → %d CAPECs\n", cweKey, len(capecs))
+			}
+		}
+	}
+
+	if verbose {
+		fmt.Printf("Total candidate CAPECs: %d\n", len(candidates))
+	}
+
+	return candidates
+}
+
+// Classify CAPECs using Naive Bayes (simple overlap scoring)
+func classifyNaiveBayesCAPEC(description string, candidates []CAPECData) []CAPECResult {
+	// Tokenize description
+	tokens := tokenize(description)
+	descSet := make(map[string]bool)
+	for _, token := range tokens {
+		descSet[token] = true
+	}
+
+	// Calculate scores for each candidate CAPEC
+	var results []CAPECResult
+
+	for _, capec := range candidates {
+		// Tokenize CAPEC description and name
+		capecText := capec.Description + " " + capec.Name
+		capecTokens := tokenize(capecText)
+
+		// Calculate overlap
+		overlap := 0
+		capecSet := make(map[string]bool)
+		for _, token := range capecTokens {
+			capecSet[token] = true
+			if descSet[token] {
+				overlap++
+			}
+		}
+
+		// Calculate probability (Jaccard similarity)
+		union := len(descSet) + len(capecSet) - overlap
+		probability := float64(overlap) / float64(union+1)
+
+		// Boost if severity is high
+		if capec.TypicalSeverity == "High" || capec.TypicalSeverity == "Very High" {
+			probability *= 1.2
+		}
+
+		// Determine confidence
+		confidence := "low"
+		if probability > 0.15 {
+			confidence = "high"
+		} else if probability > 0.08 {
+			confidence = "medium"
+		}
+
+		results = append(results, CAPECResult{
+			CAPECID:     capec.CAPECID,
+			Name:        capec.Name,
+			Probability: probability,
+			Confidence:  confidence,
+		})
+	}
+
+	// Sort by probability (descending)
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Probability > results[j].Probability
+	})
+
+	return results
+}
+
+// Rank CAPECs based on best CWEs
+func rankCAPECs(description string, bestCWEs []string, capecData []CAPECData, relationships *RelationshipsDB, topN int, verbose bool) []CAPECResult {
+	// Step 1: Get candidate CAPECs from best CWEs only
+	candidateCAPECs := getCandidateCAPECsFromCWEs(bestCWEs, relationships, verbose)
+
+	if len(candidateCAPECs) == 0 {
+		if verbose {
+			fmt.Println("No CAPECs found for the given CWEs")
+		}
+		return []CAPECResult{}
+	}
+
+	// Step 2: Filter CAPEC data to candidates only
+	var candidates []CAPECData
+	for _, capec := range capecData {
+		if candidateCAPECs[capec.CAPECID] {
+			candidates = append(candidates, capec)
+		}
+	}
+
+	if verbose {
+		fmt.Printf("Ranking %d candidate CAPECs...\n", len(candidates))
+	}
+
+	// Step 3: Rank using Naive Bayes
+	results := classifyNaiveBayesCAPEC(description, candidates)
+
+	// Step 4: Take top N
+	if len(results) > topN {
+		results = results[:topN]
+	}
+
+	return results
 }
