@@ -406,10 +406,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Load ML models (optional, graceful degradation)
-	fmt.Println("Loading ML models...")
-	loadMLModels()
-
 	// Load local databases
 	fmt.Println("Loading local databases...")
 	db, err := loadLocalDB()
@@ -417,6 +413,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error loading databases: %v\n", err)
 		os.Exit(1)
 	}
+
+	// Load ML models (optional, graceful degradation)
+	fmt.Println("Loading ML models...")
+	loadMLModels(db)
 
 	// Query CVE from NVD
 	fmt.Printf("Querying NVD for %s...\n", cveID)
@@ -842,16 +842,18 @@ func matchesPattern(text, pattern string) bool {
 	return re.MatchString(text)
 }
 
-// Score CAPEC relevance using TF-IDF similarity (NEW APPROACH)
+// Score CAPEC relevance using Naive Bayes + Jaccard similarity
 func scoreCAPECRelevance(capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
-	// If CAPEC data is available, use TF-IDF similarity
-	if capecData != nil {
+	// If CAPEC training data is available, use Naive Bayes + Jaccard similarity
+	if capecData != nil && len(capecData) > 0 {
 		if capecInfo, exists := capecData[capecID]; exists {
-			// Calculate TF-IDF similarity
+			// Calculate Jaccard similarity (Naive Bayes approach)
 			similarity := calculateCAPECSimilarity(cveDesc, capecInfo)
 			// Scale to 0-100 range
 			return similarity * 100.0
 		}
+		// Debug: CAPEC ID not found in training data, falling back to keyword scoring
+		// This happens when the CAPEC exists in capec_db.json but not in capec_training_data.json
 	}
 
 	// Fallback to keyword-based scoring if CAPEC data not available
@@ -1733,7 +1735,7 @@ func escapeHTML(s string) string {
 }
 
 // Load ML models for hybrid classification
-func loadMLModels() {
+func loadMLModels(db *LocalDB) {
 	mlEnabled = false
 
 	// Try to load CWE hierarchy
@@ -1778,23 +1780,21 @@ func loadMLModels() {
 		}
 	}
 
-	// Try to load CAPEC ranking data
-	capecRankerData, err := os.ReadFile("resources/capec_training_data.json")
-	if err != nil {
-		fmt.Printf("  Warning: capec_training_data.json not found (CAPEC ranking disabled)\n")
-	} else {
-		var capecList []CAPECTrainingData
-		if err := json.Unmarshal(capecRankerData, &capecList); err != nil {
-			fmt.Printf("  Warning: Failed to parse capec_training_data.json: %v\n", err)
-		} else {
-			// Convert to map for easy lookup
-			capecData = make(map[string]CAPECTrainingData)
-			for _, capec := range capecList {
-				capecData[capec.CAPECID] = capec
-			}
-			fmt.Printf("  CAPEC ranking data loaded (%d CAPECs)\n", len(capecData))
+	// Load CAPEC data from capec_db.json (already loaded in db.CAPECs)
+	// Convert to CAPECTrainingData format for Naive Bayes ranking
+	capecData = make(map[string]CAPECTrainingData)
+	for capecID, capecInfo := range db.CAPECs {
+		capecData[capecID] = CAPECTrainingData{
+			CAPECID:            capecID,
+			Name:               capecInfo.Name,
+			Description:        capecInfo.Description,
+			LikelihoodOfAttack: capecInfo.LikelihoodOfAttack,
+			TypicalSeverity:    capecInfo.TypicalSeverity,
+			RelatedCWEs:        capecInfo.RelatedWeaknesses,
+			Prerequisites:      capecInfo.Prerequisites,
 		}
 	}
+	fmt.Printf("  CAPEC ranking data loaded (%d CAPECs)\n", len(capecData))
 
 	mlEnabled = true
 	fmt.Printf("  ML models loaded successfully (%d attack vectors)\n", len(model.VectorPriors))

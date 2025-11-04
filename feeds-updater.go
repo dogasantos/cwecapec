@@ -202,7 +202,7 @@ type CAPECCatalog struct {
 type CAPECPattern struct {
 	ID                    string                    `xml:"ID,attr"`
 	Name                  string                    `xml:"Name,attr"`
-	Description           string                    `xml:"Description"`
+	Description           XMLDescription            `xml:"Description"`
 	LikelihoodOfAttack    string                    `xml:"Likelihood_Of_Attack"`
 	TypicalSeverity       string                    `xml:"Typical_Severity"`
 	RelatedAttackPatterns *XMLRelatedAttackPatterns `xml:"Related_Attack_Patterns"`
@@ -212,6 +212,10 @@ type CAPECPattern struct {
 	Consequences          *XMLConsequences          `xml:"Consequences"`
 	RelatedWeaknesses     *XMLRelatedWeaknesses     `xml:"Related_Weaknesses"`
 	TaxonomyMappings      *XMLTaxonomyMappings      `xml:"Taxonomy_Mappings"`
+}
+
+type XMLDescription struct {
+	Text string `xml:",innerxml"`
 }
 
 type XMLRelatedAttackPatterns struct {
