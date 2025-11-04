@@ -24,7 +24,7 @@ type KeywordScore struct {
 
 func main() {
 	// Load CAPEC data
-	data, err := os.ReadFile("final_capec_data.json")
+	data, err := os.ReadFile("capec_training_data.json")
 	if err != nil {
 		fmt.Printf("Error reading file: %v\n", err)
 		os.Exit(1)
