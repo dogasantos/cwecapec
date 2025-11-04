@@ -356,7 +356,7 @@ func processCAPEC() (*CAPECData, error) {
 	for _, p := range catalog.AttackPatterns {
 		info := CAPECInfo{
 			Name:               p.Name,
-			Description:        cleanText(p.Description),
+			Description:        cleanText(p.Description.Text),
 			LikelihoodOfAttack: p.LikelihoodOfAttack,
 			TypicalSeverity:    p.TypicalSeverity,
 		}
