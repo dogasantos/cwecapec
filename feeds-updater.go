@@ -16,8 +16,9 @@ import (
 // Constants and file paths
 const (
 	// CWE
-	CWEZipURL   = "http://cwe.mitre.org/data/xml/cwec_latest.xml.zip"
-	CWEJSONPath = "resources/cwe_db.json"
+	CWEZipURL        = "http://cwe.mitre.org/data/xml/cwec_latest.xml.zip"
+	CWEJSONPath      = "resources/cwe_db.json"
+	CWEHierarchyPath = "resources/cwe_hierarchy.json"
 
 	// CAPEC
 	CAPECZipURL   = "https://capec.mitre.org/data/archive/capec_latest.zip"
@@ -91,6 +92,7 @@ type CWECatalog struct {
 type Weakness struct {
 	ID                    string                      `xml:"ID,attr"`
 	Name                  string                      `xml:"Name,attr"`
+	Abstraction           string                      `xml:"Abstraction,attr"`
 	RelatedWeaknesses     *RelatedWeaknessesBlock     `xml:"Related_Weaknesses"`
 	RelatedAttackPatterns *RelatedAttackPatternsBlock `xml:"Related_Attack_Patterns"`
 }
@@ -122,6 +124,137 @@ type CWEInfo struct {
 type CWEData struct {
 	Version string             `json:"-"`
 	CWEs    map[string]CWEInfo `json:"-"`
+}
+
+// CWE Hierarchy structures (for ML classification)
+type CWEHierarchyInfo struct {
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Abstraction   string   `json:"abstraction"`
+	Parents       []string `json:"parents"`
+	Children      []string `json:"children"`
+	AttackVectors []string `json:"attack_vectors"`
+}
+
+type CWEHierarchy struct {
+	CWEs                map[string]*CWEHierarchyInfo `json:"cwes"`
+	AttackVectorMapping map[string][]string          `json:"attack_vector_mapping"`
+}
+
+// CWE to Attack Vector mapping (for ML classification)
+var cweToAttackVector = map[string][]string{
+	// Injection family
+	"74":   {"injection"},
+	"77":   {"command_injection"},
+	"78":   {"command_injection"},
+	"79":   {"xss"},
+	"89":   {"sql_injection"},
+	"90":   {"ldap_injection"},
+	"91":   {"xml_injection", "xxe"},
+	"93":   {"crlf_injection", "http_desync"},
+	"94":   {"code_injection", "rce"},
+	"95":   {"code_injection", "rce"},
+	"96":   {"code_injection"},
+	"98":   {"file_upload", "rce"},
+	"99":   {"rce"},
+	"113":  {"http_desync"},
+	"917":  {"jndi_injection", "rce"},
+	"943":  {"nosql_injection"},
+	"1336": {"ssti"},
+	// Path Traversal
+	"22": {"path_traversal"},
+	"23": {"path_traversal"},
+	"36": {"path_traversal"},
+	"73": {"path_traversal"},
+	// Authentication & Authorization
+	"287": {"auth_bypass"},
+	"288": {"auth_bypass"},
+	"290": {"auth_bypass"},
+	"294": {"auth_bypass", "session_fixation"},
+	"295": {"auth_bypass", "crypto_failure"},
+	"306": {"auth_bypass"},
+	"307": {"auth_bypass"},
+	"285": {"authz_bypass"},
+	"284": {"authz_bypass"},
+	"862": {"authz_bypass"},
+	"639": {"authz_bypass"},
+	"425": {"authz_bypass"},
+	"863": {"idor"},
+	// CSRF & Session
+	"352": {"csrf"},
+	"346": {"csrf"},
+	"384": {"session_fixation"},
+	"472": {"session_fixation"},
+	"613": {"session_fixation"},
+	// Information Disclosure
+	"200": {"info_disclosure"},
+	"201": {"info_disclosure"},
+	"209": {"info_disclosure"},
+	"213": {"info_disclosure"},
+	"215": {"info_disclosure"},
+	"359": {"info_disclosure"},
+	"532": {"info_disclosure"},
+	"538": {"info_disclosure"},
+	// Deserialization
+	"502": {"deserialization", "rce"},
+	// File Upload
+	"434": {"file_upload", "rce"},
+	"616": {"file_upload"},
+	// SSRF
+	"918": {"ssrf"},
+	// XXE
+	"611": {"xxe"},
+	"827": {"xxe"},
+	// Open Redirect
+	"601": {"open_redirect"},
+	// Cryptographic Failures
+	"327": {"crypto_failure"},
+	"328": {"crypto_failure"},
+	"330": {"crypto_failure"},
+	"331": {"crypto_failure"},
+	"326": {"crypto_failure"},
+	"321": {"hardcoded_credentials"},
+	// Hard-coded Credentials
+	"259": {"hardcoded_credentials"},
+	"798": {"hardcoded_credentials"},
+	// Buffer Overflow
+	"119": {"buffer_overflow", "rce"},
+	"120": {"buffer_overflow"},
+	"121": {"buffer_overflow"},
+	"122": {"buffer_overflow"},
+	"125": {"buffer_overflow"},
+	"787": {"buffer_overflow", "rce"},
+	// Integer Overflow
+	"190": {"integer_overflow"},
+	"191": {"integer_overflow"},
+	// Use After Free
+	"416": {"use_after_free", "rce"},
+	"415": {"use_after_free"},
+	// NULL Pointer
+	"476": {"null_pointer"},
+	"690": {"null_pointer"},
+	// Format String
+	"134": {"format_string", "rce"},
+	// Race Condition
+	"362": {"race_condition"},
+	"366": {"race_condition"},
+	"367": {"race_condition"},
+	// DoS
+	"400": {"dos"},
+	"770": {"dos"},
+	"835": {"dos"},
+	"674": {"dos"},
+	"404": {"dos"},
+	// Privilege Escalation
+	"269": {"privilege_escalation"},
+	"250": {"privilege_escalation"},
+	"266": {"privilege_escalation"},
+	"268": {"privilege_escalation"},
+	"274": {"privilege_escalation"},
+	// Input Validation
+	"20":   {"input_validation"},
+	"129":  {"input_validation"},
+	"1284": {"input_validation"},
 }
 
 func processCWE() (*CWEData, error) {
@@ -188,7 +321,62 @@ func processCWE() (*CWEData, error) {
 		return nil, err
 	}
 
+	// Build CWE hierarchy with attack vector mappings (for ML classification)
+	hierarchy := buildCWEHierarchy(&catalog)
+	if err := writeJSON(CWEHierarchyPath, hierarchy); err != nil {
+		return nil, err
+	}
+
 	return &CWEData{Version: catalog.Version, CWEs: results}, nil
+}
+
+// Build CWE hierarchy with attack vector mappings
+func buildCWEHierarchy(catalog *CWECatalog) *CWEHierarchy {
+	hierarchy := &CWEHierarchy{
+		CWEs:                make(map[string]*CWEHierarchyInfo),
+		AttackVectorMapping: make(map[string][]string),
+	}
+
+	// First pass: create all CWE entries
+	for _, weakness := range catalog.Weaknesses {
+		cweInfo := &CWEHierarchyInfo{
+			ID:            weakness.ID,
+			Name:          weakness.Name,
+			Abstraction:   weakness.Abstraction,
+			Parents:       []string{},
+			Children:      []string{},
+			AttackVectors: []string{},
+		}
+
+		// Map to attack vectors if available
+		if vectors, exists := cweToAttackVector[weakness.ID]; exists {
+			cweInfo.AttackVectors = vectors
+			hierarchy.AttackVectorMapping[weakness.ID] = vectors
+		}
+
+		hierarchy.CWEs[weakness.ID] = cweInfo
+	}
+
+	// Second pass: build relationships
+	for _, weakness := range catalog.Weaknesses {
+		cweInfo := hierarchy.CWEs[weakness.ID]
+
+		if weakness.RelatedWeaknesses != nil {
+			for _, rel := range weakness.RelatedWeaknesses.Items {
+				if rel.Nature == "ChildOf" {
+					// This CWE is a child of rel.CWEID
+					cweInfo.Parents = append(cweInfo.Parents, rel.CWEID)
+
+					// Add this CWE as a child of the parent
+					if parent, exists := hierarchy.CWEs[rel.CWEID]; exists {
+						parent.Children = append(parent.Children, weakness.ID)
+					}
+				}
+			}
+		}
+	}
+
+	return hierarchy
 }
 
 // -------------------- CAPEC Processing --------------------
