@@ -32,11 +32,12 @@ var (
 
 // ML models (loaded at startup)
 var (
-	cweHierarchy *CWEHierarchy
-	nbModel      *AttackVectorModel
-	taxonomy     *AttackVectorTaxonomy
-	capecData    map[string]CAPECTrainingData
-	mlEnabled    bool
+	cweHierarchy        *CWEHierarchy
+	nbModel             *AttackVectorModel
+	taxonomy            *AttackVectorTaxonomy
+	capecData           map[string]CAPECTrainingData
+	keywordExpansionMap map[string][]string
+	mlEnabled           bool
 )
 
 // CAPEC training data for ranking
@@ -1786,8 +1787,32 @@ func loadMLModels(db *LocalDB) {
 	}
 	fmt.Printf("  CAPEC ranking data loaded (%d CAPECs)\n", len(capecData))
 
+	// Try to load keyword expansion map
+	if err := loadKeywordExpansionMap(); err != nil {
+		fmt.Printf("  Warning: Error loading keyword map: %v\n", err)
+		// Continue without keyword expansion
+	}
+
 	mlEnabled = true
 	fmt.Printf("  ML models loaded successfully (%d attack vectors)\n", len(model.VectorPriors))
+}
+
+// Load keyword expansion map for improved CAPEC ranking
+func loadKeywordExpansionMap() error {
+	data, err := os.ReadFile("resources/keyword_expansion_map.json")
+	if err != nil {
+		// Keyword map is optional, continue without it
+		fmt.Println("  Info: keyword_expansion_map.json not found (using basic tokenization)")
+		keywordExpansionMap = nil
+		return nil
+	}
+
+	if err := json.Unmarshal(data, &keywordExpansionMap); err != nil {
+		return fmt.Errorf("error parsing keyword map: %w", err)
+	}
+
+	fmt.Printf("  Keyword expansion map loaded (%d keywords)\n", len(keywordExpansionMap))
+	return nil
 }
 
 // Hybrid ML-based attack vector detection
@@ -2109,14 +2134,48 @@ func tokenizeForRanking(text string) []string {
 		"been": true, "being": true, "have": true, "has": true, "had": true,
 		"but": true, "not": true, "can": true, "will": true, "would": true,
 		"could": true, "should": true, "may": true, "might": true, "must": true,
+		"into": true, "through": true, "during": true, "before": true, "after": true,
+		"above": true, "below": true, "between": true, "under": true, "again": true,
+		"further": true, "then": true, "once": true, "here": true, "there": true,
+		"when": true, "where": true, "why": true, "how": true, "all": true,
+		"each": true, "other": true, "some": true, "such": true, "only": true,
+		"own": true, "same": true, "than": true, "too": true, "very": true,
 	}
 
-	filtered := make([]string, 0, len(words))
+	// Collect base tokens
+	baseTokens := make([]string, 0, len(words))
 	for _, word := range words {
-		if !stopwords[word] {
-			filtered = append(filtered, word)
+		if !stopwords[word] && len(word) >= 3 {
+			baseTokens = append(baseTokens, word)
 		}
 	}
 
-	return filtered
+	// Expand with keyword map if available
+	if keywordExpansionMap != nil && len(keywordExpansionMap) > 0 {
+		expandedSet := make(map[string]bool)
+
+		// Add base tokens
+		for _, token := range baseTokens {
+			expandedSet[token] = true
+		}
+
+		// Add related keywords
+		for _, token := range baseTokens {
+			if related, exists := keywordExpansionMap[token]; exists {
+				for _, relatedToken := range related {
+					expandedSet[relatedToken] = true
+				}
+			}
+		}
+
+		// Convert back to slice
+		result := make([]string, 0, len(expandedSet))
+		for token := range expandedSet {
+			result = append(result, token)
+		}
+		return result
+	}
+
+	// No expansion available, return base tokens
+	return baseTokens
 }
