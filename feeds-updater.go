@@ -93,6 +93,8 @@ type Weakness struct {
 	ID                    string                      `xml:"ID,attr"`
 	Name                  string                      `xml:"Name,attr"`
 	Abstraction           string                      `xml:"Abstraction,attr"`
+	Description           string                      `xml:"Description"`
+	ExtendedDescription   XMLDescription              `xml:"Extended_Description"`
 	RelatedWeaknesses     *RelatedWeaknessesBlock     `xml:"Related_Weaknesses"`
 	RelatedAttackPatterns *RelatedAttackPatternsBlock `xml:"Related_Attack_Patterns"`
 }
@@ -117,6 +119,7 @@ type RelatedAttackPattern struct {
 
 type CWEInfo struct {
 	Name                  string   `json:"name"`
+	Description           string   `json:"description,omitempty"`
 	ChildOf               []string `json:"childOf"`
 	RelatedAttackPatterns []string `json:"relatedAttackPatterns"`
 }
@@ -309,8 +312,20 @@ func processCWE() (*CWEData, error) {
 			}
 		}
 
+		// Combine description and extended description
+		desc := cleanText(w.Description)
+		if w.ExtendedDescription.Text != "" {
+			extDesc := cleanText(w.ExtendedDescription.Text)
+			if desc != "" && extDesc != "" {
+				desc = desc + " " + extDesc
+			} else if extDesc != "" {
+				desc = extDesc
+			}
+		}
+
 		results[w.ID] = CWEInfo{
 			Name:                  w.Name,
+			Description:           desc,
 			ChildOf:               setToSlice(childSet),
 			RelatedAttackPatterns: setToSlice(attackSet),
 		}
