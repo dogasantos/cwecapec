@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,7 +13,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"context"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -256,16 +256,6 @@ type GranularResult struct {
 	RelevantCAPECs []string
 }
 
-
-// ============================================================================
-// EMBEDDINGS-BASED CAPEC SCORING
-// ============================================================================
-
-// Embeddings-based CAPEC scoring module
-// This replaces the Jaccard similarity + keyword boost approach with semantic embeddings
-
-package main
-
 // Embedding structures
 type EmbeddingRecord struct {
 	ID        string    `json:"id"`
@@ -282,10 +272,10 @@ type EmbeddingRecord struct {
 }
 
 type EmbeddingsDatabase struct {
-	CVEEmbeddings    map[string][]float64 // CVE ID -> embedding
-	CAPECEmbeddings  map[string][]float64 // CAPEC ID -> embedding
-	client           *openai.Client       // For generating new CVE embeddings
-	embeddingDim     int                  // Dimension of embeddings (1536 for text-embedding-3-small)
+	CVEEmbeddings   map[string][]float64 // CVE ID -> embedding
+	CAPECEmbeddings map[string][]float64 // CAPEC ID -> embedding
+	client          *openai.Client       // For generating new CVE embeddings
+	embeddingDim    int                  // Dimension of embeddings (1536 for text-embedding-3-small)
 }
 
 // Global embeddings database
@@ -294,7 +284,7 @@ var embeddingsDB *EmbeddingsDatabase
 // Initialize embeddings database from file
 func loadEmbeddingsDatabase(filename string) (*EmbeddingsDatabase, error) {
 	fmt.Println("  Loading embeddings database...")
-	
+
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read embeddings file: %v", err)
@@ -330,7 +320,7 @@ func loadEmbeddingsDatabase(filename string) (*EmbeddingsDatabase, error) {
 		db.client = openai.NewClient(option.WithAPIKey(apiKey))
 	}
 
-	fmt.Printf("  Loaded %d CVE embeddings and %d CAPEC embeddings (%d dimensions)\n", 
+	fmt.Printf("  Loaded %d CVE embeddings and %d CAPEC embeddings (%d dimensions)\n",
 		len(db.CVEEmbeddings), len(db.CAPECEmbeddings), db.embeddingDim)
 
 	return db, nil
@@ -349,7 +339,7 @@ func (db *EmbeddingsDatabase) getOrGenerateCVEEmbedding(cveID, cveDesc string) (
 	}
 
 	ctx := context.Background()
-	
+
 	// Truncate if too long
 	text := strings.TrimSpace(cveDesc)
 	if len(text) > 30000 {
@@ -372,7 +362,7 @@ func (db *EmbeddingsDatabase) getOrGenerateCVEEmbedding(cveID, cveDesc string) (
 	}
 
 	embedding := resp.Data[0].Embedding
-	
+
 	// Cache it
 	db.CVEEmbeddings[cveID] = embedding
 
@@ -470,8 +460,8 @@ func getEmbeddingsStats() string {
 	if embeddingsDB == nil {
 		return "Embeddings: Not loaded"
 	}
-	return fmt.Sprintf("Embeddings: %d CVEs, %d CAPECs (%d dims)", 
-		len(embeddingsDB.CVEEmbeddings), 
+	return fmt.Sprintf("Embeddings: %d CVEs, %d CAPECs (%d dims)",
+		len(embeddingsDB.CVEEmbeddings),
 		len(embeddingsDB.CAPECEmbeddings),
 		embeddingsDB.embeddingDim)
 }
