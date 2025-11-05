@@ -750,7 +750,7 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 				if !capecSet[capecID] {
 					capecSet[capecID] = true
 					if capecInfo, ok := db.CAPECs[capecID]; ok {
-						score := scoreCAPECRelevance(capecID, capecInfo, cveDescription, detectedVectors, db)
+						score := scoreCAPECRelevance(cve.ID, capecID, capecInfo, cveDescription, detectedVectors, db)
 						capecCandidates = append(capecCandidates, ScoredCAPEC{
 							ID:    capecID,
 							Info:  capecInfo,
