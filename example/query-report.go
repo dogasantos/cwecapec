@@ -142,18 +142,21 @@ func cosineSimilarityTFIDF(a, b []float64) float64 {
 // Score a CAPEC against a CVE description using TF-IDF
 func scoreCAPECWithTFIDF(cveDescription, capecID string) float64 {
 	if tfidfModel == nil {
+		fmt.Printf("      [DEBUG] scoreCAPECWithTFIDF: tfidfModel is NIL\n")
 		return 0
 	}
 
 	// Get pre-computed CAPEC vector
 	capecVector, exists := tfidfModel.CAPECVectors[capecID]
 	if !exists {
+		fmt.Printf("      [DEBUG] scoreCAPECWithTFIDF: %s not found in CAPECVectors\n", capecID)
 		return 0
 	}
 
 	// Convert CVE description to vector
 	cveVector := textToTFIDFVector(cveDescription)
 	if cveVector == nil {
+		fmt.Printf("      [DEBUG] scoreCAPECWithTFIDF: cveVector is nil\n")
 		return 0
 	}
 
@@ -161,7 +164,9 @@ func scoreCAPECWithTFIDF(cveDescription, capecID string) float64 {
 	similarity := cosineSimilarityTFIDF(cveVector, capecVector)
 
 	// Scale to 0-100 for consistency with other scoring methods
-	return similarity * 100.0
+	finalScore := similarity * 100.0
+	fmt.Printf("      [DEBUG] scoreCAPECWithTFIDF: %s similarity=%.4f, score=%.2f\n", capecID, similarity, finalScore)
+	return finalScore
 }
 
 // Batch score multiple CAPECs
@@ -347,9 +352,11 @@ func calculateImpactPenalty(capecText string) float64 {
 func scoreCAPECWithCWEContext(cveID, cveDesc, capecID string, bestCWEs []string, db *LocalDB) float64 {
 	// 1. Get base TF-IDF similarity
 	baseScore := scoreCAPECWithTFIDF(cveDesc, capecID)
+	fmt.Printf("    [DEBUG] %s TF-IDF base score: %.2f\n", capecID, baseScore)
 
 	// If TF-IDF not available or score is 0, return 0
 	if baseScore == 0 {
+		fmt.Printf("    [DEBUG] %s TF-IDF returned 0, skipping\n", capecID)
 		return 0
 	}
 
@@ -404,6 +411,8 @@ func scoreCAPECWithCWEContext(cveID, cveDesc, capecID string, bestCWEs []string,
 
 	// 6. Combine all factors
 	finalScore := baseScore * contextBoost * impactPenalty
+	fmt.Printf("    [DEBUG] %s: base=%.2f × context=%.2f × impact=%.2f = FINAL=%.2f\n",
+		capecID, baseScore, contextBoost, impactPenalty, finalScore)
 
 	return finalScore
 }
@@ -1297,13 +1306,17 @@ func matchesPattern(text, pattern string) bool {
 
 // Score CAPEC relevance using Naive Bayes + Jaccard similarity
 func scoreCAPECRelevance(cveID, capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB, bestCWEs []string) float64 {
+	fmt.Printf("  [DEBUG] Scoring %s...\n", capecID)
 	// If CAPEC training data is available, use Naive Bayes + Jaccard similarity
 	if capecData != nil && len(capecData) > 0 {
 		if capecInfo, exists := capecData[capecID]; exists {
+			fmt.Printf("  [DEBUG] %s found in training data, using calculateCAPECSimilarity\n", capecID)
 			// Calculate Jaccard similarity (Naive Bayes approach)
 			similarity := calculateCAPECSimilarity(cveID, cveDesc, capecInfo)
 			// Scale to 0-100 range
-			return similarity * 100.0
+			finalScore := similarity * 100.0
+			fmt.Printf("  [DEBUG] %s similarity=%.4f, final=%.2f\n", capecID, similarity, finalScore)
+			return finalScore
 		}
 		// Debug: CAPEC ID not found in training data, falling back to keyword scoring
 		// This happens when the CAPEC exists in capec_db.json but not in capec_training_data.json
@@ -2507,13 +2520,19 @@ func classifyGranular(baseVector, description string) GranularResult {
 
 // Calculate Naive Bayes similarity using Jaccard similarity (same as phase3-classifier)
 func calculateCAPECSimilarity(cveID, cveDesc string, capecInfo CAPECTrainingData) float64 {
+	fmt.Printf("    [DEBUG] calculateCAPECSimilarity for CAPEC-%s\n", capecInfo.CAPECID)
 	// Try TF-IDF first (offline)
 	if tfidfModel != nil {
 		capecID := "CAPEC-" + capecInfo.CAPECID
+		fmt.Printf("    [DEBUG] TF-IDF model available, calling scoreCAPECWithTFIDF\n")
 		score := scoreCAPECWithTFIDF(cveDesc, capecID)
+		fmt.Printf("    [DEBUG] TF-IDF score for %s: %.2f\n", capecID, score)
 		if score > 0 {
+			fmt.Printf("    [DEBUG] Returning TF-IDF score: %.4f\n", score/100.0)
 			return score / 100.0
 		}
+	} else {
+		fmt.Printf("    [DEBUG] TF-IDF model is NIL, falling back to Jaccard\n")
 	}
 	// Fallback to Jaccard + keyword boost
 	// Tokenize both descriptions
