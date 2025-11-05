@@ -12,7 +12,10 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"context"
 
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 	"gopkg.in/yaml.v3"
 )
 
@@ -252,6 +255,230 @@ type GranularResult struct {
 	MatchedTerms   []string
 	RelevantCAPECs []string
 }
+
+
+// ============================================================================
+// EMBEDDINGS-BASED CAPEC SCORING
+// ============================================================================
+
+// Embeddings-based CAPEC scoring module
+// This replaces the Jaccard similarity + keyword boost approach with semantic embeddings
+
+package main
+
+// Embedding structures
+type EmbeddingRecord struct {
+	ID        string    `json:"id"`
+	Type      string    `json:"type"` // "CVE" or "CAPEC"
+	Text      string    `json:"text"`
+	Embedding []float64 `json:"embedding"`
+	Metadata  struct {
+		Name       string  `json:"name,omitempty"`
+		Published  string  `json:"published,omitempty"`
+		CVSS       float64 `json:"cvss,omitempty"`
+		Severity   string  `json:"severity,omitempty"`
+		Likelihood string  `json:"likelihood,omitempty"`
+	} `json:"metadata"`
+}
+
+type EmbeddingsDatabase struct {
+	CVEEmbeddings    map[string][]float64 // CVE ID -> embedding
+	CAPECEmbeddings  map[string][]float64 // CAPEC ID -> embedding
+	client           *openai.Client       // For generating new CVE embeddings
+	embeddingDim     int                  // Dimension of embeddings (1536 for text-embedding-3-small)
+}
+
+// Global embeddings database
+var embeddingsDB *EmbeddingsDatabase
+
+// Initialize embeddings database from file
+func loadEmbeddingsDatabase(filename string) (*EmbeddingsDatabase, error) {
+	fmt.Println("  Loading embeddings database...")
+	
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read embeddings file: %v", err)
+	}
+
+	var records []EmbeddingRecord
+	if err := json.Unmarshal(data, &records); err != nil {
+		return nil, fmt.Errorf("failed to parse embeddings JSON: %v", err)
+	}
+
+	db := &EmbeddingsDatabase{
+		CVEEmbeddings:   make(map[string][]float64),
+		CAPECEmbeddings: make(map[string][]float64),
+	}
+
+	// Load embeddings into maps
+	for _, record := range records {
+		if record.Type == "CVE" {
+			db.CVEEmbeddings[record.ID] = record.Embedding
+		} else if record.Type == "CAPEC" {
+			db.CAPECEmbeddings[record.ID] = record.Embedding
+		}
+
+		// Get embedding dimension
+		if db.embeddingDim == 0 && len(record.Embedding) > 0 {
+			db.embeddingDim = len(record.Embedding)
+		}
+	}
+
+	// Initialize OpenAI client for generating new embeddings
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey != "" {
+		db.client = openai.NewClient(option.WithAPIKey(apiKey))
+	}
+
+	fmt.Printf("  Loaded %d CVE embeddings and %d CAPEC embeddings (%d dimensions)\n", 
+		len(db.CVEEmbeddings), len(db.CAPECEmbeddings), db.embeddingDim)
+
+	return db, nil
+}
+
+// Get or generate embedding for a CVE description
+func (db *EmbeddingsDatabase) getOrGenerateCVEEmbedding(cveID, cveDesc string) ([]float64, error) {
+	// Try to get from cache first
+	if embedding, exists := db.CVEEmbeddings[cveID]; exists {
+		return embedding, nil
+	}
+
+	// Generate new embedding if OpenAI client is available
+	if db.client == nil {
+		return nil, fmt.Errorf("OpenAI client not initialized, cannot generate embedding")
+	}
+
+	ctx := context.Background()
+	
+	// Truncate if too long
+	text := strings.TrimSpace(cveDesc)
+	if len(text) > 30000 {
+		text = text[:30000]
+	}
+
+	resp, err := db.client.Embeddings.New(ctx, openai.EmbeddingNewParams{
+		Input: openai.EmbeddingNewParamsInputUnion{
+			OfString: openai.String(text),
+		},
+		Model: openai.EmbeddingModelTextEmbedding3Small,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Data) == 0 {
+		return nil, fmt.Errorf("no embedding returned")
+	}
+
+	embedding := resp.Data[0].Embedding
+	
+	// Cache it
+	db.CVEEmbeddings[cveID] = embedding
+
+	return embedding, nil
+}
+
+// Calculate cosine similarity between two embeddings
+func cosineSimilarity(a, b []float64) float64 {
+	if len(a) != len(b) {
+		return 0.0
+	}
+
+	dotProduct := 0.0
+	normA := 0.0
+	normB := 0.0
+
+	for i := 0; i < len(a); i++ {
+		dotProduct += a[i] * b[i]
+		normA += a[i] * a[i]
+		normB += b[i] * b[i]
+	}
+
+	if normA == 0 || normB == 0 {
+		return 0.0
+	}
+
+	return dotProduct / (math.Sqrt(normA) * math.Sqrt(normB))
+}
+
+// Score CAPEC relevance using embeddings (replaces calculateCAPECSimilarity)
+func scoreCAPECRelevanceWithEmbeddings(cveID, cveDesc, capecID string) float64 {
+	if embeddingsDB == nil {
+		// Fallback to keyword-based scoring if embeddings not loaded
+		return 0.0
+	}
+
+	// Get CVE embedding
+	cveEmbedding, err := embeddingsDB.getOrGenerateCVEEmbedding(cveID, cveDesc)
+	if err != nil {
+		// Failed to get CVE embedding, fallback
+		return 0.0
+	}
+
+	// Get CAPEC embedding
+	capecEmbedding, exists := embeddingsDB.CAPECEmbeddings[capecID]
+	if !exists {
+		// CAPEC embedding not found, fallback
+		return 0.0
+	}
+
+	// Calculate cosine similarity
+	similarity := cosineSimilarity(cveEmbedding, capecEmbedding)
+
+	// Scale to 0-100 range
+	// Cosine similarity is in [-1, 1], but for embeddings it's typically [0, 1]
+	// We scale it to 0-100 for compatibility with existing scoring
+	return similarity * 100.0
+}
+
+// Batch score multiple CAPECs for a CVE (optimized)
+func scoreCAPECsWithEmbeddings(cveID, cveDesc string, capecIDs []string) map[string]float64 {
+	scores := make(map[string]float64)
+
+	if embeddingsDB == nil {
+		return scores
+	}
+
+	// Get CVE embedding once
+	cveEmbedding, err := embeddingsDB.getOrGenerateCVEEmbedding(cveID, cveDesc)
+	if err != nil {
+		return scores
+	}
+
+	// Score all CAPECs
+	for _, capecID := range capecIDs {
+		capecEmbedding, exists := embeddingsDB.CAPECEmbeddings[capecID]
+		if !exists {
+			continue
+		}
+
+		similarity := cosineSimilarity(cveEmbedding, capecEmbedding)
+		scores[capecID] = similarity * 100.0
+	}
+
+	return scores
+}
+
+// Check if embeddings are available
+func embeddingsAvailable() bool {
+	return embeddingsDB != nil && len(embeddingsDB.CAPECEmbeddings) > 0
+}
+
+// Get embeddings statistics
+func getEmbeddingsStats() string {
+	if embeddingsDB == nil {
+		return "Embeddings: Not loaded"
+	}
+	return fmt.Sprintf("Embeddings: %d CVEs, %d CAPECs (%d dims)", 
+		len(embeddingsDB.CVEEmbeddings), 
+		len(embeddingsDB.CAPECEmbeddings),
+		embeddingsDB.embeddingDim)
+}
+
+// ============================================================================
+// END EMBEDDINGS CODE
+// ============================================================================
 
 // NVD API response structures
 type NVDResponse struct {
@@ -866,12 +1093,12 @@ func matchesPattern(text, pattern string) bool {
 }
 
 // Score CAPEC relevance using Naive Bayes + Jaccard similarity
-func scoreCAPECRelevance(capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
+func scoreCAPECRelevance(cveID, capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
 	// If CAPEC training data is available, use Naive Bayes + Jaccard similarity
 	if capecData != nil && len(capecData) > 0 {
 		if capecInfo, exists := capecData[capecID]; exists {
 			// Calculate Jaccard similarity (Naive Bayes approach)
-			similarity := calculateCAPECSimilarity(cveDesc, capecInfo)
+			similarity := calculateCAPECSimilarity(cveID, cveDesc, capecInfo)
 			// Scale to 0-100 range
 			return similarity * 100.0
 		}
@@ -2099,8 +2326,18 @@ func classifyGranular(baseVector, description string) GranularResult {
 	return result
 }
 
-// Calculate Naive Bayes similarity using Jaccard similarity (same as phase3-classifier)
-func calculateCAPECSimilarity(cveDesc string, capecInfo CAPECTrainingData) float64 {
+// Calculate CAPEC similarity using embeddings (if available) or Jaccard similarity (fallback)
+func calculateCAPECSimilarity(cveID, cveDesc string, capecInfo CAPECTrainingData) float64 {
+	// Try embeddings first
+	if embeddingsAvailable() {
+		capecID := "CAPEC-" + capecInfo.CAPECID
+		score := scoreCAPECRelevanceWithEmbeddings(cveID, cveDesc, capecID)
+		if score > 0 {
+			return score / 100.0 // Return as 0-1 range for compatibility
+		}
+	}
+
+	// Fallback to Jaccard similarity + keyword boost
 	// Tokenize both descriptions
 	cveTokens := tokenizeForRanking(cveDesc)
 	// Give MUCH more weight to CAPEC name (3x) vs description
@@ -2137,8 +2374,7 @@ func calculateCAPECSimilarity(cveDesc string, capecInfo CAPECTrainingData) float
 	capecNameLower := strings.ToLower(capecInfo.Name)
 	attackVectorBoost := 0.0
 
-	// Define high-priority attack vector keywords that should appear in CAPEC name
-	// Use VERY HIGH boost values to ensure exact matches rank first
+	// Define high-priority attack vector keywords
 	priorityKeywords := map[string]float64{
 		"authentication bypass": 10.0,
 		"authentication abuse":  8.0,
@@ -2153,9 +2389,7 @@ func calculateCAPECSimilarity(cveDesc string, capecInfo CAPECTrainingData) float
 		"deserialization":       10.0,
 		"ssrf":                  10.0,
 		"csrf":                  10.0,
-		//"session hijacking":     10.0,
-		//"session fixation":      10.0,
-		"authentication": 5.0, // Generic auth gets lower boost
+		"authentication":        5.0,
 	}
 
 	for keyword, boost := range priorityKeywords {
@@ -2167,11 +2401,6 @@ func calculateCAPECSimilarity(cveDesc string, capecInfo CAPECTrainingData) float
 
 	if attackVectorBoost > 0 {
 		jaccardSim *= attackVectorBoost
-	}
-
-	// Boost if severity is high (same as phase3-classifier)
-	if capecInfo.TypicalSeverity == "High" || capecInfo.TypicalSeverity == "Very High" {
-		jaccardSim *= 1.2
 	}
 
 	return jaccardSim
