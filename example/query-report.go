@@ -32,12 +32,11 @@ var (
 
 // ML models (loaded at startup)
 var (
-	cweHierarchy        *CWEHierarchy
-	nbModel             *AttackVectorModel
-	taxonomy            *AttackVectorTaxonomy
-	capecData           map[string]CAPECTrainingData
-	keywordExpansionMap map[string][]string
-	mlEnabled           bool
+	cweHierarchy *CWEHierarchy
+	nbModel      *AttackVectorModel
+	taxonomy     *AttackVectorTaxonomy
+	capecData    map[string]CAPECTrainingData
+	mlEnabled    bool
 )
 
 // Embeddings database (offline, pre-computed)
@@ -2138,24 +2137,6 @@ func loadMLModels(db *LocalDB) {
 	fmt.Printf("  ML models loaded successfully (%d attack vectors)\n", len(model.VectorPriors))
 }
 
-// Load keyword expansion map for improved CAPEC ranking
-func loadKeywordExpansionMap() error {
-	data, err := os.ReadFile("resources/keyword_expansion_map.json")
-	if err != nil {
-		// Keyword map is optional, continue without it
-		fmt.Println("  Info: keyword_expansion_map.json not found (using basic tokenization)")
-		keywordExpansionMap = nil
-		return nil
-	}
-
-	if err := json.Unmarshal(data, &keywordExpansionMap); err != nil {
-		return fmt.Errorf("error parsing keyword map: %w", err)
-	}
-
-	fmt.Printf("  Keyword expansion map loaded (%d keywords)\n", len(keywordExpansionMap))
-	return nil
-}
-
 // Hybrid ML-based attack vector detection
 func detectAttackVectorsML(description string, cweIDs []string) []string {
 	// Get candidates from CWE hierarchy
@@ -2456,42 +2437,6 @@ func calculateCAPECSimilarity(cveID, cveDesc string, capecInfo CAPECTrainingData
 
 	jaccardSim := float64(intersection) / float64(union)
 
-	// STRONG boost if CAPEC name contains key attack vector keywords
-	capecNameLower := strings.ToLower(capecInfo.Name)
-	attackVectorBoost := 0.0
-
-	// Define high-priority attack vector keywords that should appear in CAPEC name
-	// Use VERY HIGH boost values to ensure exact matches rank first
-	priorityKeywords := map[string]float64{
-		"authentication bypass": 10.0,
-		"authentication abuse":  8.0,
-		"authorization bypass":  10.0,
-		"sql injection":         10.0,
-		"code injection":        10.0,
-		"cross-site scripting":  10.0,
-		"xss":                   10.0,
-		"buffer overflow":       10.0,
-		"command injection":     10.0,
-		"path traversal":        10.0,
-		"deserialization":       10.0,
-		"ssrf":                  10.0,
-		"csrf":                  10.0,
-		//"session hijacking":     10.0,
-		//"session fixation":      10.0,
-		"authentication": 5.0, // Generic auth gets lower boost
-	}
-
-	for keyword, boost := range priorityKeywords {
-		if strings.Contains(capecNameLower, keyword) {
-			attackVectorBoost = boost
-			break
-		}
-	}
-
-	if attackVectorBoost > 0 {
-		jaccardSim *= attackVectorBoost
-	}
-
 	// Boost if severity is high (same as phase3-classifier)
 	if capecInfo.TypicalSeverity == "High" || capecInfo.TypicalSeverity == "Very High" {
 		jaccardSim *= 1.2
@@ -2535,32 +2480,6 @@ func tokenizeForRanking(text string) []string {
 		if !stopwords[word] && len(word) >= 3 {
 			baseTokens = append(baseTokens, word)
 		}
-	}
-
-	// Expand with keyword map if available
-	if keywordExpansionMap != nil && len(keywordExpansionMap) > 0 {
-		expandedSet := make(map[string]bool)
-
-		// Add base tokens
-		for _, token := range baseTokens {
-			expandedSet[token] = true
-		}
-
-		// Add related keywords
-		for _, token := range baseTokens {
-			if related, exists := keywordExpansionMap[token]; exists {
-				for _, relatedToken := range related {
-					expandedSet[relatedToken] = true
-				}
-			}
-		}
-
-		// Convert back to slice
-		result := make([]string, 0, len(expandedSet))
-		for token := range expandedSet {
-			result = append(result, token)
-		}
-		return result
 	}
 
 	// No expansion available, return base tokens
