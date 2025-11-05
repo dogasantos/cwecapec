@@ -220,75 +220,14 @@ var (
 	mlEnabled    bool
 )
 
-// Embeddings database (offline, pre-computed)
-var embeddingsDB *EmbeddingsDB
-
-type EmbeddingsDB struct {
-	CVEEmbeddings   map[string][]float64
-	CAPECEmbeddings map[string][]float64
-}
-
-func loadEmbeddingsDB(filename string) (*EmbeddingsDB, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	var records []struct {
-		ID        string    `json:"id"`
-		Type      string    `json:"type"`
-		Embedding []float64 `json:"embedding"`
-	}
-	if err := json.Unmarshal(data, &records); err != nil {
-		return nil, err
-	}
-	db := &EmbeddingsDB{
-		CVEEmbeddings:   make(map[string][]float64),
-		CAPECEmbeddings: make(map[string][]float64),
-	}
-	for _, rec := range records {
-		if rec.Type == "CVE" {
-			db.CVEEmbeddings[rec.ID] = rec.Embedding
-		} else if rec.Type == "CAPEC" {
-			db.CAPECEmbeddings[rec.ID] = rec.Embedding
-		}
-	}
-	return db, nil
-}
-
-func cosineSimilarity(a, b []float64) float64 {
-	if len(a) != len(b) || len(a) == 0 {
-		return 0.0
-	}
-	dot, normA, normB := 0.0, 0.0, 0.0
-	for i := 0; i < len(a); i++ {
-		dot += a[i] * b[i]
-		normA += a[i] * a[i]
-		normB += b[i] * b[i]
-	}
-	if normA == 0 || normB == 0 {
-		return 0.0
-	}
-	return dot / (math.Sqrt(normA) * math.Sqrt(normB))
-}
-
-func scoreCAPECWithEmbeddings(cveID, capecID string) float64 {
-	if embeddingsDB == nil {
-		return 0.0
-	}
-	cveEmb, cveOk := embeddingsDB.CVEEmbeddings[cveID]
-	capecEmb, capecOk := embeddingsDB.CAPECEmbeddings[capecID]
-	if !cveOk || !capecOk {
-		return 0.0
-	}
-	return cosineSimilarity(cveEmb, capecEmb) * 100.0
-}
+// Note: Embeddings code removed - using TF-IDF instead
 
 // ============================================================================
-// CWE-AWARE EMBEDDING FILTERING
+// CWE-AWARE TF-IDF FILTERING
 // ============================================================================
 
-// CWE-Aware Embedding Filtering
-// This module enhances embedding-based CAPEC scoring by using CWE context
+// CWE-Aware TF-IDF Filtering
+// This module enhances TF-IDF-based CAPEC scoring by using CWE context
 // to boost vector-relevant CAPECs and penalize impact-focused ones
 
 // Extract attack vector keywords from CWE name
@@ -405,11 +344,11 @@ func calculateImpactPenalty(capecText string) float64 {
 }
 
 // Score CAPEC with CWE-aware context filtering
-func scoreCAPECWithCWEContext(cveID, capecID string, bestCWEs []string, db *LocalDB) float64 {
-	// 1. Get base embedding similarity
-	baseScore := scoreCAPECWithEmbeddings(cveID, capecID)
+func scoreCAPECWithCWEContext(cveID, cveDesc, capecID string, bestCWEs []string, db *LocalDB) float64 {
+	// 1. Get base TF-IDF similarity
+	baseScore := scoreCAPECWithTFIDF(cveDesc, capecID)
 
-	// If embeddings not available or score is 0, return 0
+	// If TF-IDF not available or score is 0, return 0
 	if baseScore == 0 {
 		return 0
 	}
@@ -470,11 +409,11 @@ func scoreCAPECWithCWEContext(cveID, capecID string, bestCWEs []string, db *Loca
 }
 
 // Batch score multiple CAPECs with CWE context
-func scoreCAPECsWithCWEContext(cveID string, capecIDs []string, bestCWEs []string, db *LocalDB) map[string]float64 {
+func scoreCAPECsWithCWEContext(cveID, cveDesc string, capecIDs []string, bestCWEs []string, db *LocalDB) map[string]float64 {
 	scores := make(map[string]float64)
 
 	for _, capecID := range capecIDs {
-		score := scoreCAPECWithCWEContext(cveID, capecID, bestCWEs, db)
+		score := scoreCAPECWithCWEContext(cveID, cveDesc, capecID, bestCWEs, db)
 		if score > 0 {
 			scores[capecID] = score
 		}
@@ -906,13 +845,13 @@ func main() {
 	fmt.Println("Loading ML models...")
 	loadMLModels(db)
 
-	// Load embeddings database
-	if _, err := os.Stat("resources/embeddings_dataset.json"); err == nil {
-		embeddingsDB, err = loadEmbeddingsDB("resources/embeddings_dataset.json")
+	// Load TF-IDF model
+	if _, err := os.Stat("resources/tfidf_model.json"); err == nil {
+		err = loadTFIDFModel("resources/tfidf_model.json")
 		if err != nil {
-			fmt.Printf("  Warning: Failed to load embeddings: %v\n", err)
+			fmt.Printf("  Warning: Failed to load TF-IDF model: %v\n", err)
 		} else {
-			fmt.Printf("  Embeddings loaded: %d CVEs, %d CAPECs\n", len(embeddingsDB.CVEEmbeddings), len(embeddingsDB.CAPECEmbeddings))
+			fmt.Printf("  TF-IDF model loaded: %s\n", getTFIDFStats())
 		}
 	}
 
@@ -2568,10 +2507,10 @@ func classifyGranular(baseVector, description string) GranularResult {
 
 // Calculate Naive Bayes similarity using Jaccard similarity (same as phase3-classifier)
 func calculateCAPECSimilarity(cveID, cveDesc string, capecInfo CAPECTrainingData) float64 {
-	// Try embeddings first (offline)
-	if embeddingsDB != nil {
+	// Try TF-IDF first (offline)
+	if tfidfModel != nil {
 		capecID := "CAPEC-" + capecInfo.CAPECID
-		score := scoreCAPECWithEmbeddings(cveID, capecID)
+		score := scoreCAPECWithTFIDF(cveDesc, capecID)
 		if score > 0 {
 			return score / 100.0
 		}
