@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -14,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
 	"gopkg.in/yaml.v3"
 )
 
@@ -35,12 +32,11 @@ var (
 
 // ML models (loaded at startup)
 var (
-	cweHierarchy        *CWEHierarchy
-	nbModel             *AttackVectorModel
-	taxonomy            *AttackVectorTaxonomy
-	capecData           map[string]CAPECTrainingData
-	keywordExpansionMap map[string][]string
-	mlEnabled           bool
+	cweHierarchy *CWEHierarchy
+	nbModel      *AttackVectorModel
+	taxonomy     *AttackVectorTaxonomy
+	capecData    map[string]CAPECTrainingData
+	mlEnabled    bool
 )
 
 // CAPEC training data for ranking
@@ -78,15 +74,12 @@ var cweToVector = map[string][]string{
 	"121": {"buffer_overflow"},
 	"122": {"buffer_overflow"},
 	"787": {"buffer_overflow"},
-	// Authentication & Authorization
-	"287": {"auth_bypass", "authentication"},
-	"288": {"auth_bypass", "authentication"},
-	"290": {"auth_bypass", "authentication"},
-	"306": {"auth_bypass", "authentication"},
+	// Authentication
+	"287": {"authentication"},
+	"288": {"authentication"},
+	"290": {"authentication"},
+	"306": {"authentication"},
 	"798": {"authentication"},
-	"285": {"authz_bypass", "authorization"},
-	"862": {"authz_bypass", "authorization"},
-	"863": {"authz_bypass", "idor"},
 	// Privilege Escalation
 	"269": {"privilege_escalation"},
 	"250": {"privilege_escalation"},
@@ -95,12 +88,6 @@ var cweToVector = map[string][]string{
 	"665": {"privilege_escalation"},
 	// SSRF
 	"918": {"ssrf"},
-	// HTTP Request Smuggling
-	"444": {"http_smuggling"},
-	// CRLF Injection
-	"93": {"crlf_injection"},
-	// Trust Boundary
-	"501": {"trust_boundary"},
 	// CSRF
 	"352": {"csrf"},
 	// XXE
@@ -256,220 +243,6 @@ type GranularResult struct {
 	RelevantCAPECs []string
 }
 
-// Embedding structures
-type EmbeddingRecord struct {
-	ID        string    `json:"id"`
-	Type      string    `json:"type"` // "CVE" or "CAPEC"
-	Text      string    `json:"text"`
-	Embedding []float64 `json:"embedding"`
-	Metadata  struct {
-		Name       string  `json:"name,omitempty"`
-		Published  string  `json:"published,omitempty"`
-		CVSS       float64 `json:"cvss,omitempty"`
-		Severity   string  `json:"severity,omitempty"`
-		Likelihood string  `json:"likelihood,omitempty"`
-	} `json:"metadata"`
-}
-
-type EmbeddingsDatabase struct {
-	CVEEmbeddings   map[string][]float64 // CVE ID -> embedding
-	CAPECEmbeddings map[string][]float64 // CAPEC ID -> embedding
-	client          *openai.Client       // For generating new CVE embeddings
-	embeddingDim    int                  // Dimension of embeddings (1536 for text-embedding-3-small)
-}
-
-// Global embeddings database
-var embeddingsDB *EmbeddingsDatabase
-
-// Initialize embeddings database from file
-func loadEmbeddingsDatabase(filename string) (*EmbeddingsDatabase, error) {
-	fmt.Println("  Loading embeddings database...")
-
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read embeddings file: %v", err)
-	}
-
-	var records []EmbeddingRecord
-	if err := json.Unmarshal(data, &records); err != nil {
-		return nil, fmt.Errorf("failed to parse embeddings JSON: %v", err)
-	}
-
-	db := &EmbeddingsDatabase{
-		CVEEmbeddings:   make(map[string][]float64),
-		CAPECEmbeddings: make(map[string][]float64),
-	}
-
-	// Load embeddings into maps
-	for _, record := range records {
-		if record.Type == "CVE" {
-			db.CVEEmbeddings[record.ID] = record.Embedding
-		} else if record.Type == "CAPEC" {
-			db.CAPECEmbeddings[record.ID] = record.Embedding
-		}
-
-		// Get embedding dimension
-		if db.embeddingDim == 0 && len(record.Embedding) > 0 {
-			db.embeddingDim = len(record.Embedding)
-		}
-	}
-
-	// Initialize OpenAI client for generating new embeddings
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey != "" {
-		db.client = openai.NewClient(option.WithAPIKey(apiKey))
-	}
-
-	fmt.Printf("  Loaded %d CVE embeddings and %d CAPEC embeddings (%d dimensions)\n",
-		len(db.CVEEmbeddings), len(db.CAPECEmbeddings), db.embeddingDim)
-
-	return db, nil
-}
-
-// Get or generate embedding for a CVE description
-func (db *EmbeddingsDatabase) getOrGenerateCVEEmbedding(cveID, cveDesc string) ([]float64, error) {
-	// Try to get from cache first
-	if embedding, exists := db.CVEEmbeddings[cveID]; exists {
-		return embedding, nil
-	}
-
-	// Generate new embedding if OpenAI client is available
-	if db.client == nil {
-		return nil, fmt.Errorf("OpenAI client not initialized, cannot generate embedding")
-	}
-
-	ctx := context.Background()
-
-	// Truncate if too long
-	text := strings.TrimSpace(cveDesc)
-	if len(text) > 30000 {
-		text = text[:30000]
-	}
-
-	resp, err := db.client.Embeddings.New(ctx, openai.EmbeddingNewParams{
-		Input: openai.EmbeddingNewParamsInputUnion{
-			OfString: openai.String(text),
-		},
-		Model: openai.EmbeddingModelTextEmbedding3Small,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(resp.Data) == 0 {
-		return nil, fmt.Errorf("no embedding returned")
-	}
-
-	embedding := resp.Data[0].Embedding
-
-	// Cache it
-	db.CVEEmbeddings[cveID] = embedding
-
-	return embedding, nil
-}
-
-// Calculate cosine similarity between two embeddings
-func cosineSimilarity(a, b []float64) float64 {
-	if len(a) != len(b) {
-		return 0.0
-	}
-
-	dotProduct := 0.0
-	normA := 0.0
-	normB := 0.0
-
-	for i := 0; i < len(a); i++ {
-		dotProduct += a[i] * b[i]
-		normA += a[i] * a[i]
-		normB += b[i] * b[i]
-	}
-
-	if normA == 0 || normB == 0 {
-		return 0.0
-	}
-
-	return dotProduct / (math.Sqrt(normA) * math.Sqrt(normB))
-}
-
-// Score CAPEC relevance using embeddings (replaces calculateCAPECSimilarity)
-func scoreCAPECRelevanceWithEmbeddings(cveID, cveDesc, capecID string) float64 {
-	if embeddingsDB == nil {
-		// Fallback to keyword-based scoring if embeddings not loaded
-		return 0.0
-	}
-
-	// Get CVE embedding
-	cveEmbedding, err := embeddingsDB.getOrGenerateCVEEmbedding(cveID, cveDesc)
-	if err != nil {
-		// Failed to get CVE embedding, fallback
-		return 0.0
-	}
-
-	// Get CAPEC embedding
-	capecEmbedding, exists := embeddingsDB.CAPECEmbeddings[capecID]
-	if !exists {
-		// CAPEC embedding not found, fallback
-		return 0.0
-	}
-
-	// Calculate cosine similarity
-	similarity := cosineSimilarity(cveEmbedding, capecEmbedding)
-
-	// Scale to 0-100 range
-	// Cosine similarity is in [-1, 1], but for embeddings it's typically [0, 1]
-	// We scale it to 0-100 for compatibility with existing scoring
-	return similarity * 100.0
-}
-
-// Batch score multiple CAPECs for a CVE (optimized)
-func scoreCAPECsWithEmbeddings(cveID, cveDesc string, capecIDs []string) map[string]float64 {
-	scores := make(map[string]float64)
-
-	if embeddingsDB == nil {
-		return scores
-	}
-
-	// Get CVE embedding once
-	cveEmbedding, err := embeddingsDB.getOrGenerateCVEEmbedding(cveID, cveDesc)
-	if err != nil {
-		return scores
-	}
-
-	// Score all CAPECs
-	for _, capecID := range capecIDs {
-		capecEmbedding, exists := embeddingsDB.CAPECEmbeddings[capecID]
-		if !exists {
-			continue
-		}
-
-		similarity := cosineSimilarity(cveEmbedding, capecEmbedding)
-		scores[capecID] = similarity * 100.0
-	}
-
-	return scores
-}
-
-// Check if embeddings are available
-func embeddingsAvailable() bool {
-	return embeddingsDB != nil && len(embeddingsDB.CAPECEmbeddings) > 0
-}
-
-// Get embeddings statistics
-func getEmbeddingsStats() string {
-	if embeddingsDB == nil {
-		return "Embeddings: Not loaded"
-	}
-	return fmt.Sprintf("Embeddings: %d CVEs, %d CAPECs (%d dims)",
-		len(embeddingsDB.CVEEmbeddings),
-		len(embeddingsDB.CAPECEmbeddings),
-		embeddingsDB.embeddingDim)
-}
-
-// ============================================================================
-// END EMBEDDINGS CODE
-// ============================================================================
-
 // NVD API response structures
 type NVDResponse struct {
 	Vulnerabilities []struct {
@@ -571,7 +344,6 @@ type CWEDetail struct {
 	ID          string
 	Name        string
 	Description string
-	IsBest      bool
 }
 
 type CAPECDetail struct {
@@ -673,7 +445,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error generating HTML: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println("[+] HTML report generated successfully")
+		fmt.Println("✓ HTML report generated successfully")
 	}
 
 	// Always output to console
@@ -854,31 +626,19 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 		}
 	}
 
-	// Fallback: if no ML match, use all CWEs but limit to top 2
+	// Fallback: if no ML match, use all CWEs
 	if len(bestCWEs) == 0 {
 		bestCWEs = allCWEIDs
 	}
 
-	// Limit to top 2 CWEs for focused CAPEC selection
-	if len(bestCWEs) > 2 {
-		bestCWEs = bestCWEs[:2]
-	}
+	fmt.Printf("  Found %d CWEs (filtered to %d best matches)\n", len(allCWEIDs), len(bestCWEs))
 
-	fmt.Printf("  Found %d CWEs (using top %d for CAPEC selection)\n", len(allCWEIDs), len(bestCWEs))
-
-	// Build CWE details (show all, mark best ones)
-	bestCWESet := make(map[string]bool)
+	// Build CWE details (show only best matching CWEs)
 	for _, cweID := range bestCWEs {
-		bestCWESet[cweID] = true
-	}
-
-	for _, cweID := range allCWEIDs {
 		if cweInfo, ok := db.CWEs[cweID]; ok {
-			isBest := bestCWESet[cweID]
 			report.CWEs = append(report.CWEs, CWEDetail{
-				ID:     cweID,
-				Name:   cweInfo.Name,
-				IsBest: isBest,
+				ID:   cweID,
+				Name: cweInfo.Name,
 			})
 		}
 	}
@@ -1083,12 +843,12 @@ func matchesPattern(text, pattern string) bool {
 }
 
 // Score CAPEC relevance using Naive Bayes + Jaccard similarity
-func scoreCAPECRelevance(cveID, capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
+func scoreCAPECRelevance(capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
 	// If CAPEC training data is available, use Naive Bayes + Jaccard similarity
 	if capecData != nil && len(capecData) > 0 {
 		if capecInfo, exists := capecData[capecID]; exists {
 			// Calculate Jaccard similarity (Naive Bayes approach)
-			similarity := calculateCAPECSimilarity(cveID, cveDesc, capecInfo)
+			similarity := calculateCAPECSimilarity(cveDesc, capecInfo)
 			// Scale to 0-100 range
 			return similarity * 100.0
 		}
@@ -1322,20 +1082,15 @@ func printConsoleReport(report Report) {
 	// ML-Detected Attack Vector
 	if report.BestAttackVector != "" {
 		fmt.Printf("\n[ML-DETECTED ATTACK VECTOR]\n")
-		fmt.Printf("  Primary Attack Type: %s (ML-Classified)\n", strings.ToUpper(report.BestAttackVector))
+		fmt.Printf("🎯 Primary Attack Type: %s (ML-Classified)\n", strings.ToUpper(report.BestAttackVector))
 	}
 
 	// CWEs
 	if len(report.CWEs) > 0 {
 		fmt.Printf("\n[RELATED CWEs] (%d)\n", len(report.CWEs))
 		for _, cwe := range report.CWEs {
-			marker := " "
-			if cwe.IsBest {
-				marker = "★" // Star indicates this CWE is used for CAPEC selection
-			}
-			fmt.Printf("  %s CWE-%s: %s\n", marker, cwe.ID, cwe.Name)
+			fmt.Printf("  • CWE-%s: %s\n", cwe.ID, cwe.Name)
 		}
-		fmt.Printf("  (★ = Used for CAPEC selection)\n")
 	}
 
 	// CAPECs
@@ -1725,7 +1480,7 @@ func buildHTMLReport(report Report) string {
 		html += fmt.Sprintf(`
             <!-- ML-Detected Attack Vector -->
             <div class="section" style="border-left: 4px solid #ff6b6b;">
-                <h2>ML-Detected Attack Vector</h2>
+                <h2>🎯 ML-Detected Attack Vector</h2>
                 <div class="info-box" style="background: #fff5f5; border-left-color: #ff6b6b;">
                     <p style="font-size: 1.3em; font-weight: bold; color: #c92a2a;">
                         Primary Attack Type: %s
@@ -1776,7 +1531,7 @@ func buildHTMLReport(report Report) string {
             <div class="section">
                 <h2>Most Relevant Attack Patterns (CAPEC)<span class="badge badge-count">Top %d</span></h2>
                 <div class="info-box">
-                    <strong>Note:</strong> These attack patterns were selected using a hybrid scoring system that considers CVE context, ATT&CK mappings, and keyword relevance to show only the most applicable patterns.
+                    <strong>ℹ️ Intelligent Filtering:</strong> These attack patterns were selected using a hybrid scoring system that considers CVE context, ATT&CK mappings, and keyword relevance to show only the most applicable patterns.
                 </div>
                 <ul class="item-list">`, len(report.CAPECs))
 		for _, capec := range report.CAPECs {
@@ -2011,9 +1766,19 @@ func loadMLModels(db *LocalDB) {
 	}
 	nbModel = &model
 
-	// Granular taxonomy removed - not generated by any tool
-	// The system works fine without it (just skips granular subtype classification)
-	taxonomy = nil
+	// Try to load attack vector taxonomy
+	taxonomyData, err := os.ReadFile("resources/attack_vector_taxonomy.json")
+	if err != nil {
+		fmt.Printf("  Warning: attack_vector_taxonomy.json not found (granular classification disabled)\n")
+	} else {
+		var tax AttackVectorTaxonomy
+		if err := json.Unmarshal(taxonomyData, &tax); err != nil {
+			fmt.Printf("  Warning: Failed to parse attack_vector_taxonomy.json: %v\n", err)
+		} else {
+			taxonomy = &tax
+			fmt.Printf("  Granular taxonomy loaded (%d base vectors)\n", len(tax.AttackVectors))
+		}
+	}
 
 	// Load CAPEC data from capec_db.json (already loaded in db.CAPECs)
 	// Convert to CAPECTrainingData format for Naive Bayes ranking
@@ -2031,32 +1796,8 @@ func loadMLModels(db *LocalDB) {
 	}
 	fmt.Printf("  CAPEC ranking data loaded (%d CAPECs)\n", len(capecData))
 
-	// Try to load keyword expansion map
-	if err := loadKeywordExpansionMap(); err != nil {
-		fmt.Printf("  Warning: Error loading keyword map: %v\n", err)
-		// Continue without keyword expansion
-	}
-
 	mlEnabled = true
 	fmt.Printf("  ML models loaded successfully (%d attack vectors)\n", len(model.VectorPriors))
-}
-
-// Load keyword expansion map for improved CAPEC ranking
-func loadKeywordExpansionMap() error {
-	data, err := os.ReadFile("resources/keyword_expansion_map.json")
-	if err != nil {
-		// Keyword map is optional, continue without it
-		fmt.Println("  Info: keyword_expansion_map.json not found (using basic tokenization)")
-		keywordExpansionMap = nil
-		return nil
-	}
-
-	if err := json.Unmarshal(data, &keywordExpansionMap); err != nil {
-		return fmt.Errorf("error parsing keyword map: %w", err)
-	}
-
-	fmt.Printf("  Keyword expansion map loaded (%d keywords)\n", len(keywordExpansionMap))
-	return nil
 }
 
 // Hybrid ML-based attack vector detection
@@ -2316,22 +2057,11 @@ func classifyGranular(baseVector, description string) GranularResult {
 	return result
 }
 
-// Calculate CAPEC similarity using embeddings (if available) or Jaccard similarity (fallback)
-func calculateCAPECSimilarity(cveID, cveDesc string, capecInfo CAPECTrainingData) float64 {
-	// Try embeddings first
-	if embeddingsAvailable() {
-		capecID := "CAPEC-" + capecInfo.CAPECID
-		score := scoreCAPECRelevanceWithEmbeddings(cveID, cveDesc, capecID)
-		if score > 0 {
-			return score / 100.0 // Return as 0-1 range for compatibility
-		}
-	}
-
-	// Fallback to Jaccard similarity + keyword boost
+// Calculate Naive Bayes similarity using Jaccard similarity (same as phase3-classifier)
+func calculateCAPECSimilarity(cveDesc string, capecInfo CAPECTrainingData) float64 {
 	// Tokenize both descriptions
 	cveTokens := tokenizeForRanking(cveDesc)
-	// Give MUCH more weight to CAPEC name (3x) vs description
-	capecText := capecInfo.Name + " " + capecInfo.Name + " " + capecInfo.Name + " " + capecInfo.Description + " " + strings.Join(capecInfo.Prerequisites, " ")
+	capecText := capecInfo.Description + " " + capecInfo.Name + " " + strings.Join(capecInfo.Prerequisites, " ")
 	capecTokens := tokenizeForRanking(capecText)
 
 	// Create sets for Jaccard similarity
@@ -2360,37 +2090,9 @@ func calculateCAPECSimilarity(cveID, cveDesc string, capecInfo CAPECTrainingData
 
 	jaccardSim := float64(intersection) / float64(union)
 
-	// STRONG boost if CAPEC name contains key attack vector keywords
-	capecNameLower := strings.ToLower(capecInfo.Name)
-	attackVectorBoost := 0.0
-
-	// Define high-priority attack vector keywords
-	priorityKeywords := map[string]float64{
-		"authentication bypass": 10.0,
-		"authentication abuse":  8.0,
-		"authorization bypass":  10.0,
-		"sql injection":         10.0,
-		"code injection":        10.0,
-		"cross-site scripting":  10.0,
-		"xss":                   10.0,
-		"buffer overflow":       10.0,
-		"command injection":     10.0,
-		"path traversal":        10.0,
-		"deserialization":       10.0,
-		"ssrf":                  10.0,
-		"csrf":                  10.0,
-		"authentication":        5.0,
-	}
-
-	for keyword, boost := range priorityKeywords {
-		if strings.Contains(capecNameLower, keyword) {
-			attackVectorBoost = boost
-			break
-		}
-	}
-
-	if attackVectorBoost > 0 {
-		jaccardSim *= attackVectorBoost
+	// Boost if severity is high (same as phase3-classifier)
+	if capecInfo.TypicalSeverity == "High" || capecInfo.TypicalSeverity == "Very High" {
+		jaccardSim *= 1.2
 	}
 
 	return jaccardSim
@@ -2417,48 +2119,14 @@ func tokenizeForRanking(text string) []string {
 		"been": true, "being": true, "have": true, "has": true, "had": true,
 		"but": true, "not": true, "can": true, "will": true, "would": true,
 		"could": true, "should": true, "may": true, "might": true, "must": true,
-		"into": true, "through": true, "during": true, "before": true, "after": true,
-		"above": true, "below": true, "between": true, "under": true, "again": true,
-		"further": true, "then": true, "once": true, "here": true, "there": true,
-		"when": true, "where": true, "why": true, "how": true, "all": true,
-		"each": true, "other": true, "some": true, "such": true, "only": true,
-		"own": true, "same": true, "than": true, "too": true, "very": true,
 	}
 
-	// Collect base tokens
-	baseTokens := make([]string, 0, len(words))
+	filtered := make([]string, 0, len(words))
 	for _, word := range words {
-		if !stopwords[word] && len(word) >= 3 {
-			baseTokens = append(baseTokens, word)
+		if !stopwords[word] {
+			filtered = append(filtered, word)
 		}
 	}
 
-	// Expand with keyword map if available
-	if keywordExpansionMap != nil && len(keywordExpansionMap) > 0 {
-		expandedSet := make(map[string]bool)
-
-		// Add base tokens
-		for _, token := range baseTokens {
-			expandedSet[token] = true
-		}
-
-		// Add related keywords
-		for _, token := range baseTokens {
-			if related, exists := keywordExpansionMap[token]; exists {
-				for _, relatedToken := range related {
-					expandedSet[relatedToken] = true
-				}
-			}
-		}
-
-		// Convert back to slice
-		result := make([]string, 0, len(expandedSet))
-		for token := range expandedSet {
-			result = append(result, token)
-		}
-		return result
-	}
-
-	// No expansion available, return base tokens
-	return baseTokens
+	return filtered
 }
