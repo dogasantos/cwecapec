@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -48,6 +49,11 @@ type Metadata struct {
 	Likelihood string  `json:"likelihood,omitempty"`
 }
 
+type Progress struct {
+	ProcessedIDs map[string]bool `json:"processed_ids"`
+	TotalCount   int             `json:"total_count"`
+}
+
 // NVD Feed structures
 type NVDFeed struct {
 	CVEItems []struct {
@@ -77,7 +83,7 @@ type NVDFeed struct {
 
 func main() {
 	fmt.Println("================================================================================")
-	fmt.Println("EMBEDDINGS DATASET GENERATOR v2")
+	fmt.Println("EMBEDDINGS DATASET GENERATOR v3 (Memory-Efficient + Resumable)")
 	fmt.Println("================================================================================")
 	fmt.Println()
 
@@ -91,6 +97,21 @@ func main() {
 	// Initialize OpenAI client
 	client := openai.NewClient(option.WithAPIKey(apiKey))
 
+	outputFile := "resources/embeddings_dataset.json"
+	progressFile := "resources/embeddings_progress.json"
+
+	// Load progress if exists
+	progress := loadProgress(progressFile)
+	fmt.Printf("Loaded progress: %d items already processed\n\n", len(progress.ProcessedIDs))
+
+	// Open output file for appending
+	file, err := openOutputFile(outputFile, len(progress.ProcessedIDs) == 0)
+	if err != nil {
+		fmt.Printf("Error opening output file: %v\n", err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
 	// Step 1: Load all CAPECs
 	fmt.Println("[1/4] Loading CAPEC database...")
 	capecs, err := loadCAPECs("resources/capec_db.json")
@@ -100,7 +121,7 @@ func main() {
 	}
 	fmt.Printf("  Loaded %d CAPECs\n", len(capecs))
 
-	// Step 2: Load CVEs from local file or download from NVD feed
+	// Step 2: Load CVEs
 	fmt.Println("\n[2/4] Loading CVE data...")
 
 	var cves []CVEItem
@@ -127,26 +148,35 @@ func main() {
 		fmt.Printf("  Downloaded %d CVEs from 2024\n", len(cves))
 	}
 
-	// Step 3: Generate embeddings
-	fmt.Println("\n[3/4] Generating embeddings...")
-
-	var allEmbeddings []EmbeddingRecord
 	totalItems := len(cves) + len(capecs)
-	processed := 0
+	processed := len(progress.ProcessedIDs)
 
-	// Generate CAPEC embeddings
-	fmt.Printf("\n  Processing CAPECs...\n")
+	// Step 3: Generate embeddings (incrementally)
+	fmt.Println("\n[3/4] Generating embeddings...")
+	fmt.Printf("  Total items: %d\n", totalItems)
+	fmt.Printf("  Already processed: %d\n", processed)
+	fmt.Printf("  Remaining: %d\n\n", totalItems-processed)
+
+	// Process CAPECs
+	fmt.Printf("  Processing CAPECs...\n")
 	for id, capec := range capecs {
+		capecID := "CAPEC-" + id
+
+		// Skip if already processed
+		if progress.ProcessedIDs[capecID] {
+			continue
+		}
+
 		text := fmt.Sprintf("%s: %s", capec.Name, capec.Description)
 
 		embedding, err := getEmbedding(&client, text)
 		if err != nil {
-			fmt.Printf("    Warning: Failed to generate embedding for CAPEC-%s: %v\n", id, err)
+			fmt.Printf("    Warning: Failed to generate embedding for %s: %v\n", capecID, err)
 			continue
 		}
 
 		record := EmbeddingRecord{
-			ID:        "CAPEC-" + id,
+			ID:        capecID,
 			Type:      "CAPEC",
 			Text:      text,
 			Embedding: embedding,
@@ -156,20 +186,35 @@ func main() {
 				Likelihood: capec.LikelihoodOfAttack,
 			},
 		}
-		allEmbeddings = append(allEmbeddings, record)
 
-		processed++
-		if processed%10 == 0 {
-			fmt.Printf("    Progress: %d/%d (%.1f%%)\n", processed, totalItems, float64(processed)/float64(totalItems)*100)
+		// Write immediately to file
+		if err := writeRecord(file, record, processed == 0); err != nil {
+			fmt.Printf("    Error writing record: %v\n", err)
+			continue
 		}
 
-		// Rate limiting: OpenAI allows ~3000 RPM for embeddings
+		// Update progress
+		progress.ProcessedIDs[capecID] = true
+		processed++
+
+		if processed%10 == 0 {
+			fmt.Printf("    Progress: %d/%d (%.1f%%)\n", processed, totalItems, float64(processed)/float64(totalItems)*100)
+			// Save progress periodically
+			saveProgress(progress, progressFile)
+		}
+
+		// Rate limiting
 		time.Sleep(20 * time.Millisecond)
 	}
 
-	// Generate CVE embeddings
+	// Process CVEs
 	fmt.Printf("\n  Processing CVEs...\n")
 	for _, cve := range cves {
+		// Skip if already processed
+		if progress.ProcessedIDs[cve.ID] {
+			continue
+		}
+
 		embedding, err := getEmbedding(&client, cve.Description)
 		if err != nil {
 			fmt.Printf("    Warning: Failed to generate embedding for %s: %v\n", cve.ID, err)
@@ -186,61 +231,116 @@ func main() {
 				CVSS:      cve.CVSS,
 			},
 		}
-		allEmbeddings = append(allEmbeddings, record)
 
+		// Write immediately to file
+		if err := writeRecord(file, record, false); err != nil {
+			fmt.Printf("    Error writing record: %v\n", err)
+			continue
+		}
+
+		// Update progress
+		progress.ProcessedIDs[cve.ID] = true
 		processed++
+
 		if processed%100 == 0 {
 			fmt.Printf("    Progress: %d/%d (%.1f%%)\n", processed, totalItems, float64(processed)/float64(totalItems)*100)
+			// Save progress periodically
+			saveProgress(progress, progressFile)
 		}
 
 		// Rate limiting
 		time.Sleep(20 * time.Millisecond)
 	}
 
-	fmt.Printf("\n  Total embeddings generated: %d\n", len(allEmbeddings))
+	// Close JSON array
+	file.WriteString("\n]\n")
 
-	// Step 4: Save dataset
-	fmt.Println("\n[4/4] Saving embeddings dataset...")
+	// Save final progress
+	progress.TotalCount = processed
+	saveProgress(progress, progressFile)
 
-	outputFile := "resources/embeddings_dataset.json"
-	if err := saveEmbeddings(allEmbeddings, outputFile); err != nil {
-		fmt.Printf("Error saving dataset: %v\n", err)
-		os.Exit(1)
-	}
+	fmt.Printf("\n  Total embeddings generated: %d\n", processed)
 
-	fmt.Printf("  Saved to: %s\n", outputFile)
+	// Step 4: Statistics
+	fmt.Println("\n[4/4] Generation complete!")
 
-	// Generate statistics
-	fmt.Println("\n================================================================================")
-	fmt.Println("DATASET STATISTICS")
-	fmt.Println("================================================================================")
-	fmt.Printf("Total records:     %d\n", len(allEmbeddings))
-
-	cveCount := 0
-	capecCount := 0
-	for _, rec := range allEmbeddings {
-		if rec.Type == "CVE" {
-			cveCount++
-		} else {
-			capecCount++
-		}
-	}
-
-	fmt.Printf("CVEs:              %d\n", cveCount)
-	fmt.Printf("CAPECs:            %d\n", capecCount)
-	if len(allEmbeddings) > 0 {
-		fmt.Printf("Embedding dims:    %d\n", len(allEmbeddings[0].Embedding))
-	}
-
-	// Calculate file size
 	fileInfo, _ := os.Stat(outputFile)
-	fmt.Printf("Dataset size:      %.2f MB\n", float64(fileInfo.Size())/(1024*1024))
+	fmt.Printf("  Output file: %s\n", outputFile)
+	fmt.Printf("  File size: %.2f MB\n", float64(fileInfo.Size())/(1024*1024))
 
-	fmt.Println("\n[+] Embeddings dataset generated successfully!")
+	fmt.Println("\n================================================================================")
+	fmt.Println("[+] Embeddings dataset generated successfully!")
+	fmt.Println("    You can safely delete: resources/embeddings_progress.json")
+	fmt.Println("================================================================================")
 	fmt.Println()
 }
 
 // -------------------- Helper Functions --------------------
+
+func loadProgress(filename string) Progress {
+	progress := Progress{
+		ProcessedIDs: make(map[string]bool),
+	}
+
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return progress // File doesn't exist, start fresh
+	}
+
+	json.Unmarshal(data, &progress)
+	return progress
+}
+
+func saveProgress(progress Progress, filename string) error {
+	data, err := json.MarshalIndent(progress, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filename, data, 0644)
+}
+
+func openOutputFile(filename string, isNew bool) (*os.File, error) {
+	if isNew {
+		// Create new file and write JSON array opening
+		file, err := os.Create(filename)
+		if err != nil {
+			return nil, err
+		}
+		file.WriteString("[\n")
+		return file, nil
+	} else {
+		// Append to existing file
+		// Remove the closing ']' and append
+		file, err := os.OpenFile(filename, os.O_RDWR, 0644)
+		if err != nil {
+			return nil, err
+		}
+
+		// Seek to end and remove last ']'
+		info, _ := file.Stat()
+		if info.Size() > 2 {
+			file.Seek(-2, io.SeekEnd) // Remove '\n]'
+			file.WriteString(",\n")
+		}
+
+		return file, nil
+	}
+}
+
+func writeRecord(file *os.File, record EmbeddingRecord, isFirst bool) error {
+	data, err := json.MarshalIndent(record, "  ", "  ")
+	if err != nil {
+		return err
+	}
+
+	if !isFirst {
+		file.WriteString(",\n")
+	}
+	file.WriteString("  ")
+	file.Write(data)
+
+	return nil
+}
 
 func loadCAPECs(filename string) (map[string]CAPECInfo, error) {
 	data, err := os.ReadFile(filename)
@@ -282,7 +382,6 @@ func loadCVEsFromTrainingData(filename string) ([]CVEItem, error) {
 }
 
 func downloadCVEsFromFeed(year int) ([]CVEItem, error) {
-	// Try NVD JSON feed 1.1 format
 	feedURL := fmt.Sprintf("https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz", year)
 
 	fmt.Printf("  Downloading from: %s\n", feedURL)
@@ -297,23 +396,19 @@ func downloadCVEsFromFeed(year int) ([]CVEItem, error) {
 		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 	}
 
-	// Decompress gzip
 	gzReader, err := gzip.NewReader(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 	defer gzReader.Close()
 
-	// Parse JSON
 	var feed NVDFeed
 	if err := json.NewDecoder(gzReader).Decode(&feed); err != nil {
 		return nil, err
 	}
 
-	// Convert to CVEItem format
 	var cves []CVEItem
 	for _, item := range feed.CVEItems {
-		// Get English description
 		description := ""
 		for _, desc := range item.CVE.Description.DescriptionData {
 			if desc.Lang == "en" {
@@ -334,13 +429,11 @@ func downloadCVEsFromFeed(year int) ([]CVEItem, error) {
 }
 
 func getEmbedding(client *openai.Client, text string) ([]float64, error) {
-	// Clean text
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return nil, fmt.Errorf("empty text")
 	}
 
-	// Truncate if too long (OpenAI has 8191 token limit)
 	if len(text) > 30000 {
 		text = text[:30000]
 	}
@@ -363,13 +456,4 @@ func getEmbedding(client *openai.Client, text string) ([]float64, error) {
 	}
 
 	return resp.Data[0].Embedding, nil
-}
-
-func saveEmbeddings(embeddings []EmbeddingRecord, filename string) error {
-	data, err := json.MarshalIndent(embeddings, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(filename, data, 0644)
 }
