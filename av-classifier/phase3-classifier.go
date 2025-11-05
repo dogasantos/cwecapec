@@ -677,6 +677,28 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 		scores[vector] = logProb
 	}
 
+	// Apply pattern-based boosting before normalization
+	descLower := strings.ToLower(description)
+
+	// Boost deserialization if JNDI/LDAP/lookup patterns detected
+	if containsAnyPattern(descLower, []string{"jndi", "ldap", "lookup", "unmarsh", "pickle", "deserializ"}) {
+		if _, exists := scores["deserialization"]; exists {
+			scores["deserialization"] += 50.0 // Strong boost for log probabilities
+		}
+		if _, exists := scores["jndi_injection"]; exists {
+			scores["jndi_injection"] += 40.0
+		}
+	}
+
+	// Prefer specific attack vectors over generic ones
+	// If both deserialization and rce are candidates, boost deserialization
+	if _, hasDeser := scores["deserialization"]; hasDeser {
+		if _, hasRCE := scores["rce"]; hasRCE {
+			// Deserialization is more specific than RCE
+			scores["deserialization"] += 30.0
+		}
+	}
+
 	// Convert to probabilities and sort
 	results := make([]ClassificationResult, 0, len(scores))
 
