@@ -2390,41 +2390,6 @@ func calculateCAPECSimilarity(cveID, cveDesc string, capecInfo CAPECTrainingData
 	jaccardSim := float64(intersection) / float64(union)
 
 	// STRONG boost if CAPEC name contains key attack vector keywords
-	capecNameLower := strings.ToLower(capecInfo.Name)
-	attackVectorBoost := 0.0
-
-	// Define high-priority attack vector keywords that should appear in CAPEC name
-	// Use VERY HIGH boost values to ensure exact matches rank first
-	priorityKeywords := map[string]float64{
-		"authentication bypass": 10.0,
-		"authentication abuse":  8.0,
-		"authorization bypass":  10.0,
-		"sql injection":         10.0,
-		"code injection":        10.0,
-		"cross-site scripting":  10.0,
-		"xss":                   10.0,
-		"buffer overflow":       10.0,
-		"command injection":     10.0,
-		"path traversal":        10.0,
-		"deserialization":       10.0,
-		"ssrf":                  10.0,
-		"csrf":                  10.0,
-		//"session hijacking":     10.0,
-		//"session fixation":      10.0,
-		"authentication": 5.0, // Generic auth gets lower boost
-	}
-
-	for keyword, boost := range priorityKeywords {
-		if strings.Contains(capecNameLower, keyword) {
-			attackVectorBoost = boost
-			break
-		}
-	}
-
-	if attackVectorBoost > 0 {
-		jaccardSim *= attackVectorBoost
-	}
-
 	// Boost if severity is high (same as phase3-classifier)
 	if capecInfo.TypicalSeverity == "High" || capecInfo.TypicalSeverity == "Very High" {
 		jaccardSim *= 1.2
