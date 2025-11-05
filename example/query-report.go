@@ -220,6 +220,230 @@ func getTFIDFStats() string {
 }
 
 // ============================================================================
+// BM25 + CWE-AWARE SCORING MODULE
+// ============================================================================
+
+// BM25 parameters (standard values)
+const (
+	BM25_K1 = 1.5  // Term frequency saturation parameter
+	BM25_B  = 0.75 // Length normalization parameter
+)
+
+// BM25Model stores document statistics
+type BM25Model struct {
+	DocumentCount int                 // Total number of documents
+	AvgDocLength  float64             // Average document length
+	DocFreq       map[string]int      // Document frequency for each term
+	CAPECDocs     map[string][]string // CAPEC ID -> tokenized document
+	CAPECLengths  map[string]int      // CAPEC ID -> document length
+}
+
+var bm25Model *BM25Model
+
+// Tokenize text for BM25 (same as TF-IDF for consistency)
+func tokenizeBM25(text string) []string {
+	// Convert to lowercase
+	text = strings.ToLower(text)
+
+	// Remove special characters
+	re := regexp.MustCompile(`[^a-z0-9\s]+`)
+	text = re.ReplaceAllString(text, " ")
+
+	// Split and filter
+	words := strings.Fields(text)
+
+	stopwords := map[string]bool{
+		"the": true, "a": true, "an": true, "and": true, "or": true,
+		"but": true, "in": true, "on": true, "at": true, "to": true,
+		"for": true, "of": true, "with": true, "by": true, "from": true,
+		"as": true, "is": true, "was": true, "are": true, "were": true,
+		"be": true, "been": true, "being": true, "have": true, "has": true,
+		"had": true, "do": true, "does": true, "did": true, "will": true,
+		"would": true, "could": true, "should": true, "may": true, "might": true,
+		"can": true, "this": true, "that": true, "these": true, "those": true,
+		"it": true, "its": true, "they": true, "them": true, "their": true,
+	}
+
+	filtered := []string{}
+	for _, word := range words {
+		if len(word) >= 3 && !stopwords[word] {
+			filtered = append(filtered, word)
+		}
+	}
+
+	return filtered
+}
+
+// Build BM25 model from CAPEC database
+func buildBM25Model(capecDB map[string]CAPECInfo) *BM25Model {
+	model := &BM25Model{
+		DocumentCount: len(capecDB),
+		DocFreq:       make(map[string]int),
+		CAPECDocs:     make(map[string][]string),
+		CAPECLengths:  make(map[string]int),
+	}
+
+	totalLength := 0
+
+	// Tokenize all CAPECs and build document frequency
+	for capecID, capec := range capecDB {
+		// Combine name and description (name gets more weight by appearing first)
+		text := capec.Name + " " + capec.Name + " " + capec.Description
+		tokens := tokenizeBM25(text)
+
+		model.CAPECDocs[capecID] = tokens
+		model.CAPECLengths[capecID] = len(tokens)
+		totalLength += len(tokens)
+
+		// Count document frequency
+		seen := make(map[string]bool)
+		for _, token := range tokens {
+			if !seen[token] {
+				model.DocFreq[token]++
+				seen[token] = true
+			}
+		}
+	}
+
+	// Calculate average document length
+	if len(capecDB) > 0 {
+		model.AvgDocLength = float64(totalLength) / float64(len(capecDB))
+	}
+
+	return model
+}
+
+// Calculate IDF for a term (BM25 variant)
+func calculateBM25IDF(term string, model *BM25Model) float64 {
+	df := float64(model.DocFreq[term])
+	N := float64(model.DocumentCount)
+
+	if df == 0 {
+		return 0
+	}
+
+	// BM25 IDF: log((N - df + 0.5) / (df + 0.5) + 1)
+	return math.Log((N-df+0.5)/(df+0.5) + 1.0)
+}
+
+// Calculate BM25 score for a query against a document
+func scoreBM25(queryTokens []string, docTokens []string, docLength int, model *BM25Model) float64 {
+	// Count term frequencies in query and document
+	queryTF := make(map[string]int)
+	for _, token := range queryTokens {
+		queryTF[token]++
+	}
+
+	docTF := make(map[string]int)
+	for _, token := range docTokens {
+		docTF[token]++
+	}
+
+	score := 0.0
+
+	// Calculate BM25 score
+	for term, qtf := range queryTF {
+		dtf := float64(docTF[term])
+		if dtf == 0 {
+			continue
+		}
+
+		idf := calculateBM25IDF(term, model)
+
+		// BM25 formula
+		numerator := dtf * (BM25_K1 + 1.0)
+		denominator := dtf + BM25_K1*(1.0-BM25_B+BM25_B*float64(docLength)/model.AvgDocLength)
+
+		score += idf * (numerator / denominator) * float64(qtf)
+	}
+
+	return score
+}
+
+// Extract key terms from CWE name for query augmentation
+func extractCWEKeyTerms(cweName string) []string {
+	// Use CWE name only
+	text := cweName
+
+	// Tokenize
+	tokens := tokenizeBM25(text)
+
+	// Remove duplicates
+	seen := make(map[string]bool)
+	unique := []string{}
+	for _, token := range tokens {
+		if !seen[token] {
+			unique = append(unique, token)
+			seen[token] = true
+		}
+	}
+
+	return unique
+}
+
+// Score CAPEC using BM25 with CWE-augmented query
+func scoreCAPECWithBM25(cveDescription string, capecID string, bestCWEName string) float64 {
+	if bm25Model == nil {
+		fmt.Printf("      [DEBUG] BM25 model not initialized\n")
+		return 0
+	}
+
+	// Get CAPEC document
+	docTokens, exists := bm25Model.CAPECDocs[capecID]
+	if !exists {
+		fmt.Printf("      [DEBUG] CAPEC %s not found in BM25 model\n", capecID)
+		return 0
+	}
+
+	docLength := bm25Model.CAPECLengths[capecID]
+
+	// Build augmented query: CVE description + CWE key terms
+	cveTokens := tokenizeBM25(cveDescription)
+	cweTokens := extractCWEKeyTerms(bestCWEName)
+
+	// Combine with CWE terms getting 2x weight
+	augmentedQuery := append(cveTokens, cweTokens...)
+	augmentedQuery = append(augmentedQuery, cweTokens...) // Add twice for 2x weight
+
+	fmt.Printf("      [DEBUG] Query: %d CVE tokens + %d CWE tokens (2x) = %d total\n",
+		len(cveTokens), len(cweTokens), len(augmentedQuery))
+
+	// Calculate BM25 score
+	score := scoreBM25(augmentedQuery, docTokens, docLength, bm25Model)
+
+	// Normalize to 0-100 range (BM25 scores can vary widely)
+	// Typical BM25 scores for good matches: 10-50
+	// We'll scale by dividing by expected max and multiplying by 100
+	normalizedScore := math.Min(score*2.0, 100.0) // Scale factor of 2
+
+	fmt.Printf("      [DEBUG] BM25 raw score: %.2f, normalized: %.2f\n", score, normalizedScore)
+
+	return normalizedScore
+}
+
+// Initialize BM25 model (call this at startup)
+func initBM25Model(db *LocalDB) {
+	fmt.Print("  Building BM25 model...")
+	bm25Model = buildBM25Model(db.CAPECs)
+	fmt.Printf(" ✓ (avg doc length: %.1f tokens)\n", bm25Model.AvgDocLength)
+}
+
+// Check if BM25 model is available
+func bm25Available() bool {
+	return bm25Model != nil
+}
+
+// Get BM25 model statistics
+func getBM25Stats() string {
+	if bm25Model == nil {
+		return "not loaded"
+	}
+
+	return fmt.Sprintf("%d CAPECs, %d unique terms, avg length: %.1f",
+		bm25Model.DocumentCount, len(bm25Model.DocFreq), bm25Model.AvgDocLength)
+}
+
+// ============================================================================
 // MAIN QUERY CODE
 // ============================================================================
 
@@ -1325,22 +1549,37 @@ func matchesPattern(text, pattern string) bool {
 	return re.MatchString(text)
 }
 
-// Score CAPEC relevance using Naive Bayes + Jaccard similarity
+// Score CAPEC relevance using BM25 + CWE-aware augmentation
 func scoreCAPECRelevance(cveID, capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB, bestCWEs []string) float64 {
 	fmt.Printf("  [DEBUG] Scoring %s...\n", capecID)
-	// If CAPEC training data is available, use Naive Bayes + Jaccard similarity
+
+	// Get the #1 best CWE for query augmentation
+	var bestCWEName string
+	if len(bestCWEs) > 0 {
+		if cweInfo, ok := db.CWEs[bestCWEs[0]]; ok {
+			bestCWEName = cweInfo.Name
+			fmt.Printf("  [DEBUG] Using best CWE: %s - %s\n", bestCWEs[0], bestCWEName)
+		}
+	}
+
+	// Try BM25 + CWE-aware scoring first
+	if bm25Available() && bestCWEName != "" {
+		fmt.Printf("  [DEBUG] Using BM25 + CWE-aware scoring\n")
+		score := scoreCAPECWithBM25(cveDesc, capecID, bestCWEName)
+		fmt.Printf("  [DEBUG] %s BM25+CWE score: %.2f\n", capecID, score)
+		return score
+	}
+
+	// Fallback to training data if BM25 not available
 	if capecData != nil && len(capecData) > 0 {
-		if capecInfo, exists := capecData[capecID]; exists {
-			fmt.Printf("  [DEBUG] %s found in training data, using calculateCAPECSimilarity\n", capecID)
-			// Calculate Jaccard similarity (Naive Bayes approach)
+		capecIDNum := strings.TrimPrefix(capecID, "CAPEC-")
+		if capecInfo, exists := capecData[capecIDNum]; exists {
+			fmt.Printf("  [DEBUG] Falling back to training data similarity\n")
 			similarity := calculateCAPECSimilarity(cveID, cveDesc, capecInfo)
-			// Scale to 0-100 range
 			finalScore := similarity * 100.0
 			fmt.Printf("  [DEBUG] %s similarity=%.4f, final=%.2f\n", capecID, similarity, finalScore)
 			return finalScore
 		}
-		// Debug: CAPEC ID not found in training data, falling back to keyword scoring
-		// This happens when the CAPEC exists in capec_db.json but not in capec_training_data.json
 	}
 
 	// Fallback to keyword-based scoring if CAPEC data not available
