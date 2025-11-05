@@ -92,6 +92,12 @@ type CAPECResult struct {
 	Confidence  string  `json:"confidence"`
 }
 
+// ScoredCWE represents a CWE with its relevance score
+type ScoredCWE struct {
+	ID    string
+	Score float64
+}
+
 var (
 	cveID       string
 	cveDesc     string
@@ -316,11 +322,197 @@ func fetchCVEFromNVD(cveID string) (string, []string, error) {
 	return description, cweList, nil
 }
 
-func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy, model *AttackVectorModel, topN int, verbose bool) []ClassificationResult {
-	// Step 1: Get candidate attack vectors from CWE hierarchy
-	candidates := getCandidatesFromCWEs(cweIDs, hierarchy, verbose)
+// rankCWEsByRelevance scores and ranks CWEs based on their relevance to the CVE description
+// Returns the top N CWEs sorted by relevance score (descending)
+func rankCWEsByRelevance(cweIDs []string, description string, hierarchy *CWEHierarchy, topN int) []string {
+	if len(cweIDs) == 0 {
+		return []string{}
+	}
 
-	// Step 2: Apply Naive Bayes
+	// Score each CWE
+	scoredCWEs := []ScoredCWE{}
+	descLower := strings.ToLower(description)
+
+	for _, cweID := range cweIDs {
+		score := scoreCWERelevance(cweID, descLower, hierarchy)
+		scoredCWEs = append(scoredCWEs, ScoredCWE{
+			ID:    cweID,
+			Score: score,
+		})
+	}
+
+	// Sort by score (descending)
+	sort.Slice(scoredCWEs, func(i, j int) bool {
+		return scoredCWEs[i].Score > scoredCWEs[j].Score
+	})
+
+	// Take top N
+	resultCount := topN
+	if len(scoredCWEs) < topN {
+		resultCount = len(scoredCWEs)
+	}
+
+	result := make([]string, resultCount)
+	for i := 0; i < resultCount; i++ {
+		result[i] = scoredCWEs[i].ID
+	}
+
+	return result
+}
+
+// scoreCWERelevance calculates a relevance score for a CWE based on the CVE description
+func scoreCWERelevance(cweID string, descLower string, hierarchy *CWEHierarchy) float64 {
+	cwe, exists := hierarchy.CWEs[cweID]
+	if !exists {
+		return 0.0
+	}
+
+	score := 0.0
+	cweName := strings.ToLower(cwe.Name)
+
+	// 1. Base keyword matching
+	keywords := extractCWEKeywords(cweName)
+	for _, keyword := range keywords {
+		if len(keyword) < 3 {
+			continue
+		}
+		if strings.Contains(descLower, keyword) {
+			score += 10.0
+		}
+	}
+
+	// 2. Priority boost for critical CWEs
+	priorityCWEs := map[string]float64{
+		"502": 50.0, "78": 45.0, "79": 40.0, "89": 45.0, "94": 45.0,
+		"77": 40.0, "22": 35.0, "434": 35.0, "611": 35.0, "918": 40.0,
+		"917": 40.0, "119": 30.0, "787": 30.0, "416": 30.0, "352": 25.0,
+		"306": 25.0, "862": 25.0,
+	}
+	if boost, exists := priorityCWEs[cweID]; exists {
+		score += boost
+	}
+
+	// 3. Pattern-based boosting
+	if containsAnyPattern(descLower, []string{"deserializ", "jndi", "ldap", "lookup", "unmarsh", "pickle"}) {
+		if cweID == "502" {
+			score += 100.0
+		}
+		if cweID == "917" {
+			score += 50.0
+		}
+	}
+
+	if containsAnyPattern(descLower, []string{"inject", "execut", "eval", "code execution"}) {
+		if containsAnyPattern(descLower, []string{"code", "arbitrary"}) && cweID == "94" {
+			score += 80.0
+		}
+		if containsAnyPattern(descLower, []string{"command", "shell", "os"}) && (cweID == "78" || cweID == "77") {
+			score += 80.0
+		}
+	}
+
+	if containsAnyPattern(descLower, []string{"sql", "database", "query"}) && cweID == "89" {
+		score += 100.0
+	}
+
+	if containsAnyPattern(descLower, []string{"xss", "cross-site scripting", "script injection"}) && cweID == "79" {
+		score += 100.0
+	}
+
+	if containsAnyPattern(descLower, []string{"path traversal", "directory traversal", "../", "..\\", "path manipulation"}) && cweID == "22" {
+		score += 80.0
+	}
+
+	if containsAnyPattern(descLower, []string{"ssrf", "server-side request", "internal request", "url fetch"}) && cweID == "918" {
+		score += 100.0
+	}
+
+	if containsAnyPattern(descLower, []string{"xxe", "xml external entity", "xml injection"}) && cweID == "611" {
+		score += 100.0
+	}
+
+	if containsAnyPattern(descLower, []string{"buffer overflow", "buffer overrun", "heap overflow", "stack overflow"}) && (cweID == "119" || cweID == "787") {
+		score += 80.0
+	}
+
+	if containsAnyPattern(descLower, []string{"authentication bypass", "auth bypass", "without authentication"}) && cweID == "306" {
+		score += 80.0
+	}
+
+	if containsAnyPattern(descLower, []string{"authorization bypass", "privilege escalation", "unauthorized access"}) && (cweID == "862" || cweID == "269") {
+		score += 80.0
+	}
+
+	// 4. Penalty for generic CWEs
+	genericCWEs := map[string]float64{
+		"20": -20.0, "400": -15.0, "703": -20.0, "707": -20.0,
+	}
+	if penalty, exists := genericCWEs[cweID]; exists {
+		score += penalty
+	}
+
+	// 5. Boost for CWEs with attack vector mappings
+	if len(cwe.AttackVectors) > 0 {
+		score += float64(len(cwe.AttackVectors)) * 5.0
+	}
+
+	if score < 0 {
+		score = 0
+	}
+
+	return score
+}
+
+// extractCWEKeywords extracts meaningful keywords from CWE name
+func extractCWEKeywords(text string) []string {
+	stopWords := map[string]bool{
+		"improper": true, "insufficient": true, "incorrect": true,
+		"missing": true, "lack": true, "inadequate": true,
+		"the": true, "of": true, "in": true, "to": true, "for": true,
+		"and": true, "or": true, "a": true, "an": true,
+	}
+
+	re := regexp.MustCompile(`[^a-z0-9]+`)
+	words := re.Split(text, -1)
+
+	keywords := []string{}
+	for _, word := range words {
+		if len(word) >= 3 && !stopWords[word] {
+			keywords = append(keywords, word)
+		}
+	}
+
+	return keywords
+}
+
+// containsAnyPattern checks if the text contains any of the patterns
+func containsAnyPattern(text string, patterns []string) bool {
+	for _, pattern := range patterns {
+		if strings.Contains(text, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy, model *AttackVectorModel, topN int, verbose bool) []ClassificationResult {
+	// Step 1: Rank CWEs by relevance and select top 2
+	rankedCWEs := rankCWEsByRelevance(cweIDs, description, hierarchy, 2)
+
+	if verbose && len(cweIDs) > 0 {
+		fmt.Printf("\nCWE Ranking (top 2 of %d):\n", len(cweIDs))
+		for i, cweID := range rankedCWEs {
+			if cwe, exists := hierarchy.CWEs[cweID]; exists {
+				score := scoreCWERelevance(cweID, strings.ToLower(description), hierarchy)
+				fmt.Printf("  %d. CWE-%s: %s (score: %.1f)\n", i+1, cweID, cwe.Name, score)
+			}
+		}
+	}
+
+	// Step 2: Get candidate attack vectors from top 2 CWEs only
+	candidates := getCandidatesFromCWEs(rankedCWEs, hierarchy, verbose)
+
+	// Step 3: Apply Naive Bayes
 	if len(candidates) > 0 {
 		if verbose {
 			fmt.Printf("\nApplying Naive Bayes to %d candidate attack vectors...\n", len(candidates))
