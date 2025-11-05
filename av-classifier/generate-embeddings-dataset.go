@@ -17,11 +17,12 @@ import (
 
 // -------------------- Data Structures --------------------
 
+// CVEItem for training_data.json format
 type CVEItem struct {
-	ID          string  `json:"id"`
-	Description string  `json:"description"`
-	Published   string  `json:"published"`
-	CVSS        float64 `json:"cvss"`
+	CVEID       string   `json:"cve_id"` // Changed from "id" to "cve_id"
+	Description string   `json:"description"`
+	CWEs        []string `json:"cwes"`
+	Published   string   `json:"published_date"` // Changed from "published" to "published_date"
 }
 
 type CAPECInfo struct {
@@ -83,7 +84,7 @@ type NVDFeed struct {
 
 func main() {
 	fmt.Println("================================================================================")
-	fmt.Println("EMBEDDINGS DATASET GENERATOR v3 (Memory-Efficient + Resumable)")
+	fmt.Println("EMBEDDINGS DATASET GENERATOR v4 (Fixed JSON Fields)")
 	fmt.Println("================================================================================")
 	fmt.Println()
 
@@ -193,9 +194,11 @@ func main() {
 			continue
 		}
 
-		// Update progress
-		progress.ProcessedIDs[capecID] = true
-		processed++
+		// Update progress (skip empty IDs)
+		if capecID != "" {
+			progress.ProcessedIDs[capecID] = true
+			processed++
+		}
 
 		if processed%10 == 0 {
 			fmt.Printf("    Progress: %d/%d (%.1f%%)\n", processed, totalItems, float64(processed)/float64(totalItems)*100)
@@ -209,26 +212,32 @@ func main() {
 
 	// Process CVEs
 	fmt.Printf("\n  Processing CVEs...\n")
+	skipped := 0
 	for _, cve := range cves {
+		// Validate CVE data
+		if cve.CVEID == "" || cve.Description == "" {
+			skipped++
+			continue
+		}
+
 		// Skip if already processed
-		if progress.ProcessedIDs[cve.ID] {
+		if progress.ProcessedIDs[cve.CVEID] {
 			continue
 		}
 
 		embedding, err := getEmbedding(&client, cve.Description)
 		if err != nil {
-			fmt.Printf("    Warning: Failed to generate embedding for %s: %v\n", cve.ID, err)
+			fmt.Printf("    Warning: Failed to generate embedding for %s: %v\n", cve.CVEID, err)
 			continue
 		}
 
 		record := EmbeddingRecord{
-			ID:        cve.ID,
+			ID:        cve.CVEID,
 			Type:      "CVE",
 			Text:      cve.Description,
 			Embedding: embedding,
 			Metadata: Metadata{
 				Published: cve.Published,
-				CVSS:      cve.CVSS,
 			},
 		}
 
@@ -238,9 +247,11 @@ func main() {
 			continue
 		}
 
-		// Update progress
-		progress.ProcessedIDs[cve.ID] = true
-		processed++
+		// Update progress (skip empty IDs)
+		if cve.CVEID != "" {
+			progress.ProcessedIDs[cve.CVEID] = true
+			processed++
+		}
 
 		if processed%100 == 0 {
 			fmt.Printf("    Progress: %d/%d (%.1f%%)\n", processed, totalItems, float64(processed)/float64(totalItems)*100)
@@ -250,6 +261,10 @@ func main() {
 
 		// Rate limiting
 		time.Sleep(20 * time.Millisecond)
+	}
+
+	if skipped > 0 {
+		fmt.Printf("  Skipped %d CVEs with empty ID or description\n", skipped)
 	}
 
 	// Close JSON array
@@ -288,10 +303,17 @@ func loadProgress(filename string) Progress {
 	}
 
 	json.Unmarshal(data, &progress)
+
+	// Clean up empty string entries
+	delete(progress.ProcessedIDs, "")
+
 	return progress
 }
 
 func saveProgress(progress Progress, filename string) error {
+	// Clean up empty string entries before saving
+	delete(progress.ProcessedIDs, "")
+
 	data, err := json.MarshalIndent(progress, "", "  ")
 	if err != nil {
 		return err
@@ -362,23 +384,13 @@ func loadCVEsFromTrainingData(filename string) ([]CVEItem, error) {
 		return nil, err
 	}
 
-	// Try to parse as array of CVEItem first
+	// Parse as array of CVEItem with correct field names
 	var cves []CVEItem
-	if err := json.Unmarshal(data, &cves); err == nil {
-		return cves, nil
+	if err := json.Unmarshal(data, &cves); err != nil {
+		return nil, fmt.Errorf("unable to parse training_data.json: %v", err)
 	}
 
-	// If that fails, try to parse as map[string]CVEItem
-	var cveMap map[string]CVEItem
-	if err := json.Unmarshal(data, &cveMap); err == nil {
-		cves = make([]CVEItem, 0, len(cveMap))
-		for _, cve := range cveMap {
-			cves = append(cves, cve)
-		}
-		return cves, nil
-	}
-
-	return nil, fmt.Errorf("unable to parse training_data.json")
+	return cves, nil
 }
 
 func downloadCVEsFromFeed(year int) ([]CVEItem, error) {
@@ -418,10 +430,9 @@ func downloadCVEsFromFeed(year int) ([]CVEItem, error) {
 		}
 
 		cves = append(cves, CVEItem{
-			ID:          item.CVE.CVEDataMeta.ID,
+			CVEID:       item.CVE.CVEDataMeta.ID,
 			Description: description,
 			Published:   item.PublishedDate,
-			CVSS:        item.Impact.BaseMetricV3.CVSSV3.BaseScore,
 		})
 	}
 
