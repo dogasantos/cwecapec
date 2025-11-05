@@ -2523,8 +2523,9 @@ func calculateCAPECSimilarity(cveID, cveDesc string, capecInfo CAPECTrainingData
 	fmt.Printf("    [DEBUG] calculateCAPECSimilarity for CAPEC-%s\n", capecInfo.CAPECID)
 	// Try TF-IDF first (offline)
 	if tfidfModel != nil {
-		capecID := "CAPEC-" + capecInfo.CAPECID
-		fmt.Printf("    [DEBUG] TF-IDF model available, calling scoreCAPECWithTFIDF\n")
+		// Model stores CAPECs without "CAPEC-" prefix (e.g., "242" not "CAPEC-242")
+		capecID := capecInfo.CAPECID
+		fmt.Printf("    [DEBUG] TF-IDF model available, calling scoreCAPECWithTFIDF with ID: %s\n", capecID)
 		score := scoreCAPECWithTFIDF(cveDesc, capecID)
 		fmt.Printf("    [DEBUG] TF-IDF score for %s: %.2f\n", capecID, score)
 		if score > 0 {
