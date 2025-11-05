@@ -13,6 +13,183 @@ import (
 	"strings"
 	"time"
 
+// TF-IDF SCORING MODULE
+type TFIDFModel struct {
+	Vocabulary    map[string]int       `json:"vocabulary"`
+	IDF           map[string]float64   `json:"idf"`
+	DocumentCount int                  `json:"document_count"`
+	CAPECVectors  map[string][]float64 `json:"capec_vectors"`
+}
+
+var tfidfModel *TFIDFModel
+
+// Load TF-IDF model from file
+func loadTFIDFModel(filename string) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+	
+	var model TFIDFModel
+	if err := json.Unmarshal(data, &model); err != nil {
+		return err
+	}
+	
+	tfidfModel = &model
+	return nil
+}
+
+// Tokenize text (must match training tokenization)
+func tokenizeTFIDF(text string) []string {
+	// Convert to lowercase
+	text = strings.ToLower(text)
+	
+	// Remove special characters
+	re := regexp.MustCompile(`[^a-z0-9\s]+`)
+	text = re.ReplaceAllString(text, " ")
+	
+	// Split and filter
+	words := strings.Fields(text)
+	
+	stopwords := map[string]bool{
+		"the": true, "a": true, "an": true, "and": true, "or": true,
+		"but": true, "in": true, "on": true, "at": true, "to": true,
+		"for": true, "of": true, "with": true, "by": true, "from": true,
+		"as": true, "is": true, "was": true, "are": true, "were": true,
+		"be": true, "been": true, "being": true, "have": true, "has": true,
+		"had": true, "do": true, "does": true, "did": true, "will": true,
+		"would": true, "could": true, "should": true, "may": true, "might": true,
+		"can": true, "this": true, "that": true, "these": true, "those": true,
+		"it": true, "its": true, "they": true, "them": true, "their": true,
+	}
+	
+	filtered := []string{}
+	for _, word := range words {
+		if len(word) >= 3 && !stopwords[word] {
+			filtered = append(filtered, word)
+		}
+	}
+	
+	return filtered
+}
+
+// Calculate TF for tokens
+func calculateTFIDFTF(tokens []string) map[string]float64 {
+	tf := make(map[string]float64)
+	total := float64(len(tokens))
+	
+	for _, token := range tokens {
+		tf[token]++
+	}
+	
+	for token := range tf {
+		tf[token] = tf[token] / total
+	}
+	
+	return tf
+}
+
+// Convert text to TF-IDF vector
+func textToTFIDFVector(text string) []float64 {
+	if tfidfModel == nil {
+		return nil
+	}
+	
+	tokens := tokenizeTFIDF(text)
+	tf := calculateTFIDFTF(tokens)
+	
+	// Create vector
+	vector := make([]float64, len(tfidfModel.Vocabulary))
+	
+	for word, tfScore := range tf {
+		if idx, exists := tfidfModel.Vocabulary[word]; exists {
+			if idfScore, hasIDF := tfidfModel.IDF[word]; hasIDF {
+				vector[idx] = tfScore * idfScore
+			}
+		}
+	}
+	
+	return vector
+}
+
+// Calculate cosine similarity between two vectors
+func cosineSimilarityTFIDF(a, b []float64) float64 {
+	if len(a) != len(b) || len(a) == 0 {
+		return 0
+	}
+	
+	var dotProduct, normA, normB float64
+	
+	for i := range a {
+		dotProduct += a[i] * b[i]
+		normA += a[i] * a[i]
+		normB += b[i] * b[i]
+	}
+	
+	if normA == 0 || normB == 0 {
+		return 0
+	}
+	
+	return dotProduct / (math.Sqrt(normA) * math.Sqrt(normB))
+}
+
+// Score a CAPEC against a CVE description using TF-IDF
+func scoreCAPECWithTFIDF(cveDescription, capecID string) float64 {
+	if tfidfModel == nil {
+		return 0
+	}
+	
+	// Get pre-computed CAPEC vector
+	capecVector, exists := tfidfModel.CAPECVectors[capecID]
+	if !exists {
+		return 0
+	}
+	
+	// Convert CVE description to vector
+	cveVector := textToTFIDFVector(cveDescription)
+	if cveVector == nil {
+		return 0
+	}
+	
+	// Calculate similarity
+	similarity := cosineSimilarityTFIDF(cveVector, capecVector)
+	
+	// Scale to 0-100 for consistency with other scoring methods
+	return similarity * 100.0
+}
+
+// Batch score multiple CAPECs
+func scoreCAPECsWithTFIDF(cveDescription string, capecIDs []string) map[string]float64 {
+	scores := make(map[string]float64)
+	
+	for _, capecID := range capecIDs {
+		score := scoreCAPECWithTFIDF(cveDescription, capecID)
+		if score > 0 {
+			scores[capecID] = score
+		}
+	}
+	
+	return scores
+}
+
+// Check if TF-IDF model is loaded
+func tfidfAvailable() bool {
+	return tfidfModel != nil
+}
+
+// Get TF-IDF model statistics
+func getTFIDFStats() string {
+	if tfidfModel == nil {
+		return "not loaded"
+	}
+	
+	return fmt.Sprintf("%d terms, %d CAPECs", 
+		len(tfidfModel.Vocabulary), len(tfidfModel.CAPECVectors))
+}
+
+
+
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -32,11 +209,12 @@ var (
 
 // ML models (loaded at startup)
 var (
-	cweHierarchy *CWEHierarchy
-	nbModel      *AttackVectorModel
-	taxonomy     *AttackVectorTaxonomy
-	capecData    map[string]CAPECTrainingData
-	mlEnabled    bool
+	cweHierarchy        *CWEHierarchy
+	nbModel             *AttackVectorModel
+	taxonomy            *AttackVectorTaxonomy
+	capecData           map[string]CAPECTrainingData
+	keywordExpansionMap map[string][]string
+	mlEnabled           bool
 )
 
 // Embeddings database (offline, pre-computed)
@@ -100,243 +278,6 @@ func scoreCAPECWithEmbeddings(cveID, capecID string) float64 {
 		return 0.0
 	}
 	return cosineSimilarity(cveEmb, capecEmb) * 100.0
-}
-
-// ============================================================================
-// CWE-AWARE EMBEDDING FILTERING
-// ============================================================================
-
-// CWE-Aware Embedding Filtering
-// This module enhances embedding-based CAPEC scoring by using CWE context
-// to boost vector-relevant CAPECs and penalize impact-focused ones
-
-// Extract attack vector keywords from CWE name
-// Example: "CWE-89: SQL Injection" → ["sql", "injection"]
-func extractCWEContext(cweName string) []string {
-	// Remove CWE ID prefix (e.g., "CWE-89: ")
-	re := regexp.MustCompile(`^CWE-\d+:\s*`)
-	name := re.ReplaceAllString(cweName, "")
-
-	// Remove parenthetical descriptions
-	name = regexp.MustCompile(`\([^)]+\)`).ReplaceAllString(name, "")
-
-	// Convert to lowercase and tokenize
-	name = strings.ToLower(name)
-
-	// Remove common stop words that don't add context
-	stopWords := map[string]bool{
-		"improper": true, "insufficient": true, "missing": true,
-		"incorrect": true, "inadequate": true, "weak": true,
-		"of": true, "the": true, "a": true, "an": true, "in": true,
-		"to": true, "for": true, "with": true, "from": true,
-		"control": true, "protection": true, "verification": true,
-		"validation": true, "neutralization": true, "handling": true,
-	}
-
-	// Extract meaningful keywords
-	words := strings.Fields(name)
-	keywords := []string{}
-
-	for _, word := range words {
-		// Clean punctuation
-		word = strings.Trim(word, "',.-")
-
-		// Skip stop words and short words
-		if len(word) < 3 || stopWords[word] {
-			continue
-		}
-
-		keywords = append(keywords, word)
-	}
-
-	// Also add the full cleaned name as a phrase
-	if len(keywords) > 0 {
-		keywords = append(keywords, strings.Join(keywords, " "))
-	}
-
-	return keywords
-}
-
-// Impact keywords that should be penalized (these are consequences, not attack vectors)
-var impactKeywords = []string{
-	// Access/Privilege impacts
-	"privilege escalation", "escalate privileges", "gain privileges",
-	"unauthorized access", "bypass authentication", "bypass authorization",
-
-	// Session impacts
-	"session takeover", "session hijacking", "session fixation",
-	"steal session", "session theft",
-
-	// Data impacts
-	"information disclosure", "data disclosure", "data leakage",
-	"sensitive information", "confidential data", "expose data",
-
-	// Execution impacts
-	"remote code execution", "arbitrary code execution", "execute code",
-	"command execution", "rce",
-
-	// Availability impacts
-	"denial of service", "dos", "crash", "resource exhaustion",
-
-	// Integrity impacts
-	"data modification", "tamper", "modify data", "corrupt data",
-}
-
-// Calculate context match score for a CAPEC based on CWE keywords
-func calculateContextMatch(capecText string, cweKeywords []string) float64 {
-	capecLower := strings.ToLower(capecText)
-	matchScore := 0.0
-
-	// Check each CWE keyword
-	for _, keyword := range cweKeywords {
-		if strings.Contains(capecLower, keyword) {
-			// Longer keywords get higher weight
-			weight := float64(len(keyword)) / 10.0
-			if weight < 1.0 {
-				weight = 1.0
-			}
-			matchScore += weight
-		}
-	}
-
-	return matchScore
-}
-
-// Calculate impact penalty for a CAPEC (if it focuses on impacts rather than vectors)
-func calculateImpactPenalty(capecText string) float64 {
-	capecLower := strings.ToLower(capecText)
-	impactMatches := 0
-
-	for _, impactKw := range impactKeywords {
-		if strings.Contains(capecLower, impactKw) {
-			impactMatches++
-		}
-	}
-
-	// Penalize based on number of impact keyword matches
-	// 0 matches = 1.0 (no penalty)
-	// 1 match = 0.85
-	// 2+ matches = 0.7
-	if impactMatches == 0 {
-		return 1.0
-	} else if impactMatches == 1 {
-		return 0.85
-	} else {
-		return 0.7
-	}
-}
-
-// Score CAPEC with CWE-aware context filtering
-func scoreCAPECWithCWEContext(cveID, capecID string, bestCWEs []string, db *LocalDB) float64 {
-	// 1. Get base embedding similarity
-	baseScore := scoreCAPECWithEmbeddings(cveID, capecID)
-
-	// If embeddings not available or score is 0, return 0
-	if baseScore == 0 {
-		return 0
-	}
-
-	// 2. Get CAPEC information
-	capecInfo, ok := db.CAPECs[capecID]
-	if !ok {
-		return baseScore
-	}
-
-	// Combine CAPEC name and description for context matching
-	capecText := capecInfo.Name + " " + capecInfo.Description
-
-	// 3. Extract CWE context from best CWEs
-	allCWEKeywords := []string{}
-	for _, cweID := range bestCWEs {
-		if cweInfo, ok := db.CWEs[cweID]; ok {
-			keywords := extractCWEContext(cweInfo.Name)
-			allCWEKeywords = append(allCWEKeywords, keywords...)
-		}
-	}
-
-	// Remove duplicates
-	uniqueKeywords := make(map[string]bool)
-	for _, kw := range allCWEKeywords {
-		uniqueKeywords[kw] = true
-	}
-	cweKeywords := []string{}
-	for kw := range uniqueKeywords {
-		cweKeywords = append(cweKeywords, kw)
-	}
-
-	// 4. Calculate context match boost
-	contextMatch := calculateContextMatch(capecText, cweKeywords)
-	contextBoost := 1.0
-
-	if contextMatch > 0 {
-		// Boost based on how many CWE keywords match
-		// 1-2 matches: 1.3x
-		// 3-4 matches: 1.5x
-		// 5+ matches: 2.0x
-		if contextMatch >= 5.0 {
-			contextBoost = 2.0
-		} else if contextMatch >= 3.0 {
-			contextBoost = 1.5
-		} else {
-			contextBoost = 1.3
-		}
-	}
-
-	// 5. Calculate impact penalty
-	impactPenalty := calculateImpactPenalty(capecText)
-
-	// 6. Combine all factors
-	finalScore := baseScore * contextBoost * impactPenalty
-
-	return finalScore
-}
-
-// Batch score multiple CAPECs with CWE context
-func scoreCAPECsWithCWEContext(cveID string, capecIDs []string, bestCWEs []string, db *LocalDB) map[string]float64 {
-	scores := make(map[string]float64)
-
-	for _, capecID := range capecIDs {
-		score := scoreCAPECWithCWEContext(cveID, capecID, bestCWEs, db)
-		if score > 0 {
-			scores[capecID] = score
-		}
-	}
-
-	return scores
-}
-
-// Get CWE context summary for debugging/display
-func getCWEContextSummary(bestCWEs []string, db *LocalDB) string {
-	keywords := []string{}
-
-	for _, cweID := range bestCWEs {
-		if cweInfo, ok := db.CWEs[cweID]; ok {
-			extracted := extractCWEContext(cweInfo.Name)
-			keywords = append(keywords, extracted...)
-		}
-	}
-
-	// Remove duplicates and limit to top 5
-	uniqueKeywords := make(map[string]bool)
-	for _, kw := range keywords {
-		if len(kw) > 3 { // Skip very short keywords
-			uniqueKeywords[kw] = true
-		}
-	}
-
-	result := []string{}
-	for kw := range uniqueKeywords {
-		result = append(result, kw)
-		if len(result) >= 5 {
-			break
-		}
-	}
-
-	if len(result) == 0 {
-		return "none"
-	}
-
-	return strings.Join(result, ", ")
 }
 
 // CAPEC training data for ranking
@@ -957,10 +898,6 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 	}
 
 	fmt.Printf("  Found %d CWEs (using top %d for CAPEC selection)\n", len(allCWEIDs), len(bestCWEs))
-	if len(bestCWEs) > 0 {
-		contextSummary := getCWEContextSummary(bestCWEs, db)
-		fmt.Printf("  CWE context: %s\n", contextSummary)
-	}
 
 	// Build CWE details (show all, mark best ones)
 	bestCWESet := make(map[string]bool)
@@ -990,7 +927,7 @@ func buildReport(cve CVEItem, epss EPSSDetail, db *LocalDB) Report {
 				if !capecSet[capecID] {
 					capecSet[capecID] = true
 					if capecInfo, ok := db.CAPECs[capecID]; ok {
-						score := scoreCAPECRelevance(cve.ID, capecID, capecInfo, cveDescription, detectedVectors, db, bestCWEs)
+						score := scoreCAPECRelevance(cve.ID, capecID, capecInfo, cveDescription, detectedVectors, db)
 						capecCandidates = append(capecCandidates, ScoredCAPEC{
 							ID:    capecID,
 							Info:  capecInfo,
@@ -1179,7 +1116,7 @@ func matchesPattern(text, pattern string) bool {
 }
 
 // Score CAPEC relevance using Naive Bayes + Jaccard similarity
-func scoreCAPECRelevance(cveID, capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB, bestCWEs []string) float64 {
+func scoreCAPECRelevance(cveID, capecID string, capec CAPECInfo, cveDesc string, detectedVectors []string, db *LocalDB) float64 {
 	// If CAPEC training data is available, use Naive Bayes + Jaccard similarity
 	if capecData != nil && len(capecData) > 0 {
 		if capecInfo, exists := capecData[capecID]; exists {
@@ -2127,8 +2064,32 @@ func loadMLModels(db *LocalDB) {
 	}
 	fmt.Printf("  CAPEC ranking data loaded (%d CAPECs)\n", len(capecData))
 
+	// Try to load keyword expansion map
+	if err := loadKeywordExpansionMap(); err != nil {
+		fmt.Printf("  Warning: Error loading keyword map: %v\n", err)
+		// Continue without keyword expansion
+	}
+
 	mlEnabled = true
 	fmt.Printf("  ML models loaded successfully (%d attack vectors)\n", len(model.VectorPriors))
+}
+
+// Load keyword expansion map for improved CAPEC ranking
+func loadKeywordExpansionMap() error {
+	data, err := os.ReadFile("resources/keyword_expansion_map.json")
+	if err != nil {
+		// Keyword map is optional, continue without it
+		fmt.Println("  Info: keyword_expansion_map.json not found (using basic tokenization)")
+		keywordExpansionMap = nil
+		return nil
+	}
+
+	if err := json.Unmarshal(data, &keywordExpansionMap); err != nil {
+		return fmt.Errorf("error parsing keyword map: %w", err)
+	}
+
+	fmt.Printf("  Keyword expansion map loaded (%d keywords)\n", len(keywordExpansionMap))
+	return nil
 }
 
 // Hybrid ML-based attack vector detection
@@ -2431,6 +2392,42 @@ func calculateCAPECSimilarity(cveID, cveDesc string, capecInfo CAPECTrainingData
 
 	jaccardSim := float64(intersection) / float64(union)
 
+	// STRONG boost if CAPEC name contains key attack vector keywords
+	capecNameLower := strings.ToLower(capecInfo.Name)
+	attackVectorBoost := 0.0
+
+	// Define high-priority attack vector keywords that should appear in CAPEC name
+	// Use VERY HIGH boost values to ensure exact matches rank first
+	priorityKeywords := map[string]float64{
+		"authentication bypass": 10.0,
+		"authentication abuse":  8.0,
+		"authorization bypass":  10.0,
+		"sql injection":         10.0,
+		"code injection":        10.0,
+		"cross-site scripting":  10.0,
+		"xss":                   10.0,
+		"buffer overflow":       10.0,
+		"command injection":     10.0,
+		"path traversal":        10.0,
+		"deserialization":       10.0,
+		"ssrf":                  10.0,
+		"csrf":                  10.0,
+		//"session hijacking":     10.0,
+		//"session fixation":      10.0,
+		"authentication": 5.0, // Generic auth gets lower boost
+	}
+
+	for keyword, boost := range priorityKeywords {
+		if strings.Contains(capecNameLower, keyword) {
+			attackVectorBoost = boost
+			break
+		}
+	}
+
+	if attackVectorBoost > 0 {
+		jaccardSim *= attackVectorBoost
+	}
+
 	// Boost if severity is high (same as phase3-classifier)
 	if capecInfo.TypicalSeverity == "High" || capecInfo.TypicalSeverity == "Very High" {
 		jaccardSim *= 1.2
@@ -2474,6 +2471,32 @@ func tokenizeForRanking(text string) []string {
 		if !stopwords[word] && len(word) >= 3 {
 			baseTokens = append(baseTokens, word)
 		}
+	}
+
+	// Expand with keyword map if available
+	if keywordExpansionMap != nil && len(keywordExpansionMap) > 0 {
+		expandedSet := make(map[string]bool)
+
+		// Add base tokens
+		for _, token := range baseTokens {
+			expandedSet[token] = true
+		}
+
+		// Add related keywords
+		for _, token := range baseTokens {
+			if related, exists := keywordExpansionMap[token]; exists {
+				for _, relatedToken := range related {
+					expandedSet[relatedToken] = true
+				}
+			}
+		}
+
+		// Convert back to slice
+		result := make([]string, 0, len(expandedSet))
+		for token := range expandedSet {
+			result = append(result, token)
+		}
+		return result
 	}
 
 	// No expansion available, return base tokens
