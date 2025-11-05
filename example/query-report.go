@@ -95,7 +95,27 @@ func calculateTFIDFTF(tokens []string) map[string]float64 {
 	return tf
 }
 
-// Convert text to TF-IDF vector
+// Normalize vector to unit length (L2 normalization)
+func normalizeTFIDFVector(vector []float64) []float64 {
+	var norm float64
+	for _, val := range vector {
+		norm += val * val
+	}
+	norm = math.Sqrt(norm)
+
+	if norm == 0 {
+		return vector
+	}
+
+	normalized := make([]float64, len(vector))
+	for i, val := range vector {
+		normalized[i] = val / norm
+	}
+
+	return normalized
+}
+
+// Convert text to TF-IDF vector (normalized)
 func textToTFIDFVector(text string) []float64 {
 	if tfidfModel == nil {
 		return nil
@@ -115,7 +135,8 @@ func textToTFIDFVector(text string) []float64 {
 		}
 	}
 
-	return vector
+	// ✅ NORMALIZE THE VECTOR
+	return normalizeTFIDFVector(vector)
 }
 
 // Calculate cosine similarity between two vectors
