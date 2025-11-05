@@ -111,24 +111,19 @@ func scoreCAPECWithEmbeddings(cveID, capecID string) float64 {
 // This module enhances embedding-based CAPEC scoring by using CWE context
 // to boost vector-relevant CAPECs and penalize impact-focused ones
 
-import (
-	"regexp"
-	"strings"
-)
-
 // Extract attack vector keywords from CWE name
 // Example: "CWE-89: SQL Injection" → ["sql", "injection"]
 func extractCWEContext(cweName string) []string {
 	// Remove CWE ID prefix (e.g., "CWE-89: ")
 	re := regexp.MustCompile(`^CWE-\d+:\s*`)
 	name := re.ReplaceAllString(cweName, "")
-	
+
 	// Remove parenthetical descriptions
 	name = regexp.MustCompile(`\([^)]+\)`).ReplaceAllString(name, "")
-	
+
 	// Convert to lowercase and tokenize
 	name = strings.ToLower(name)
-	
+
 	// Remove common stop words that don't add context
 	stopWords := map[string]bool{
 		"improper": true, "insufficient": true, "missing": true,
@@ -138,28 +133,28 @@ func extractCWEContext(cweName string) []string {
 		"control": true, "protection": true, "verification": true,
 		"validation": true, "neutralization": true, "handling": true,
 	}
-	
+
 	// Extract meaningful keywords
 	words := strings.Fields(name)
 	keywords := []string{}
-	
+
 	for _, word := range words {
 		// Clean punctuation
 		word = strings.Trim(word, "',.-")
-		
+
 		// Skip stop words and short words
 		if len(word) < 3 || stopWords[word] {
 			continue
 		}
-		
+
 		keywords = append(keywords, word)
 	}
-	
+
 	// Also add the full cleaned name as a phrase
 	if len(keywords) > 0 {
 		keywords = append(keywords, strings.Join(keywords, " "))
 	}
-	
+
 	return keywords
 }
 
@@ -168,22 +163,22 @@ var impactKeywords = []string{
 	// Access/Privilege impacts
 	"privilege escalation", "escalate privileges", "gain privileges",
 	"unauthorized access", "bypass authentication", "bypass authorization",
-	
+
 	// Session impacts
 	"session takeover", "session hijacking", "session fixation",
 	"steal session", "session theft",
-	
+
 	// Data impacts
 	"information disclosure", "data disclosure", "data leakage",
 	"sensitive information", "confidential data", "expose data",
-	
+
 	// Execution impacts
 	"remote code execution", "arbitrary code execution", "execute code",
 	"command execution", "rce",
-	
+
 	// Availability impacts
 	"denial of service", "dos", "crash", "resource exhaustion",
-	
+
 	// Integrity impacts
 	"data modification", "tamper", "modify data", "corrupt data",
 }
@@ -192,7 +187,7 @@ var impactKeywords = []string{
 func calculateContextMatch(capecText string, cweKeywords []string) float64 {
 	capecLower := strings.ToLower(capecText)
 	matchScore := 0.0
-	
+
 	// Check each CWE keyword
 	for _, keyword := range cweKeywords {
 		if strings.Contains(capecLower, keyword) {
@@ -204,7 +199,7 @@ func calculateContextMatch(capecText string, cweKeywords []string) float64 {
 			matchScore += weight
 		}
 	}
-	
+
 	return matchScore
 }
 
@@ -212,13 +207,13 @@ func calculateContextMatch(capecText string, cweKeywords []string) float64 {
 func calculateImpactPenalty(capecText string) float64 {
 	capecLower := strings.ToLower(capecText)
 	impactMatches := 0
-	
+
 	for _, impactKw := range impactKeywords {
 		if strings.Contains(capecLower, impactKw) {
 			impactMatches++
 		}
 	}
-	
+
 	// Penalize based on number of impact keyword matches
 	// 0 matches = 1.0 (no penalty)
 	// 1 match = 0.85
@@ -236,21 +231,21 @@ func calculateImpactPenalty(capecText string) float64 {
 func scoreCAPECWithCWEContext(cveID, capecID string, bestCWEs []string, db *LocalDB) float64 {
 	// 1. Get base embedding similarity
 	baseScore := scoreCAPECWithEmbeddings(cveID, capecID)
-	
+
 	// If embeddings not available or score is 0, return 0
 	if baseScore == 0 {
 		return 0
 	}
-	
+
 	// 2. Get CAPEC information
 	capecInfo, ok := db.CAPECs[capecID]
 	if !ok {
 		return baseScore
 	}
-	
+
 	// Combine CAPEC name and description for context matching
 	capecText := capecInfo.Name + " " + capecInfo.Description
-	
+
 	// 3. Extract CWE context from best CWEs
 	allCWEKeywords := []string{}
 	for _, cweID := range bestCWEs {
@@ -259,7 +254,7 @@ func scoreCAPECWithCWEContext(cveID, capecID string, bestCWEs []string, db *Loca
 			allCWEKeywords = append(allCWEKeywords, keywords...)
 		}
 	}
-	
+
 	// Remove duplicates
 	uniqueKeywords := make(map[string]bool)
 	for _, kw := range allCWEKeywords {
@@ -269,11 +264,11 @@ func scoreCAPECWithCWEContext(cveID, capecID string, bestCWEs []string, db *Loca
 	for kw := range uniqueKeywords {
 		cweKeywords = append(cweKeywords, kw)
 	}
-	
+
 	// 4. Calculate context match boost
 	contextMatch := calculateContextMatch(capecText, cweKeywords)
 	contextBoost := 1.0
-	
+
 	if contextMatch > 0 {
 		// Boost based on how many CWE keywords match
 		// 1-2 matches: 1.3x
@@ -287,41 +282,41 @@ func scoreCAPECWithCWEContext(cveID, capecID string, bestCWEs []string, db *Loca
 			contextBoost = 1.3
 		}
 	}
-	
+
 	// 5. Calculate impact penalty
 	impactPenalty := calculateImpactPenalty(capecText)
-	
+
 	// 6. Combine all factors
 	finalScore := baseScore * contextBoost * impactPenalty
-	
+
 	return finalScore
 }
 
 // Batch score multiple CAPECs with CWE context
 func scoreCAPECsWithCWEContext(cveID string, capecIDs []string, bestCWEs []string, db *LocalDB) map[string]float64 {
 	scores := make(map[string]float64)
-	
+
 	for _, capecID := range capecIDs {
 		score := scoreCAPECWithCWEContext(cveID, capecID, bestCWEs, db)
 		if score > 0 {
 			scores[capecID] = score
 		}
 	}
-	
+
 	return scores
 }
 
 // Get CWE context summary for debugging/display
 func getCWEContextSummary(bestCWEs []string, db *LocalDB) string {
 	keywords := []string{}
-	
+
 	for _, cweID := range bestCWEs {
 		if cweInfo, ok := db.CWEs[cweID]; ok {
 			extracted := extractCWEContext(cweInfo.Name)
 			keywords = append(keywords, extracted...)
 		}
 	}
-	
+
 	// Remove duplicates and limit to top 5
 	uniqueKeywords := make(map[string]bool)
 	for _, kw := range keywords {
@@ -329,7 +324,7 @@ func getCWEContextSummary(bestCWEs []string, db *LocalDB) string {
 			uniqueKeywords[kw] = true
 		}
 	}
-	
+
 	result := []string{}
 	for kw := range uniqueKeywords {
 		result = append(result, kw)
@@ -337,14 +332,13 @@ func getCWEContextSummary(bestCWEs []string, db *LocalDB) string {
 			break
 		}
 	}
-	
+
 	if len(result) == 0 {
 		return "none"
 	}
-	
+
 	return strings.Join(result, ", ")
 }
-
 
 // CAPEC training data for ranking
 type CAPECTrainingData struct {
