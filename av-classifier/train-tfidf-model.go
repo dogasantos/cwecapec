@@ -133,7 +133,27 @@ func calculateIDF(allTokens [][]string, vocab map[string]int) map[string]float64
 	return idf
 }
 
-// Convert TF map to TF-IDF vector
+// Normalize vector to unit length (L2 normalization)
+func normalizeVector(vector []float64) []float64 {
+	var norm float64
+	for _, val := range vector {
+		norm += val * val
+	}
+	norm = math.Sqrt(norm)
+
+	if norm == 0 {
+		return vector
+	}
+
+	normalized := make([]float64, len(vector))
+	for i, val := range vector {
+		normalized[i] = val / norm
+	}
+
+	return normalized
+}
+
+// Convert TF map to TF-IDF vector (normalized)
 func tfToVector(tf map[string]float64, idf map[string]float64, vocab map[string]int) []float64 {
 	vector := make([]float64, len(vocab))
 
@@ -143,12 +163,13 @@ func tfToVector(tf map[string]float64, idf map[string]float64, vocab map[string]
 		}
 	}
 
-	return vector
+	// ✅ NORMALIZE THE VECTOR
+	return normalizeVector(vector)
 }
 
 func main() {
 	fmt.Println("================================================================================")
-	fmt.Println("TF-IDF MODEL TRAINING")
+	fmt.Println("TF-IDF MODEL TRAINING (WITH NORMALIZATION)")
 	fmt.Println("================================================================================")
 	fmt.Println()
 
@@ -226,21 +247,21 @@ func main() {
 	idf := calculateIDF(allTokens, vocab)
 	fmt.Println(" ✓")
 
-	// Pre-compute CAPEC vectors
-	fmt.Printf("  Computing CAPEC vectors...")
+	// Pre-compute CAPEC vectors (NORMALIZED)
+	fmt.Printf("  Computing CAPEC vectors (normalized)...")
 	capecVectors := make(map[string][]float64)
 	idx = 0
 	for id, tokens := range capecTokens {
 		tf := calculateTF(tokens)
-		vector := tfToVector(tf, idf, vocab)
+		vector := tfToVector(tf, idf, vocab) // Now returns normalized vector
 		capecVectors[id] = vector
 		idx++
 
 		if idx%100 == 0 {
-			fmt.Printf("\r  Computing CAPEC vectors... %d/%d", idx, len(capecTokens))
+			fmt.Printf("\r  Computing CAPEC vectors (normalized)... %d/%d", idx, len(capecTokens))
 		}
 	}
-	fmt.Printf("\r  Computing CAPEC vectors... %d/%d ✓\n\n", len(capecTokens), len(capecTokens))
+	fmt.Printf("\r  Computing CAPEC vectors (normalized)... %d/%d ✓\n\n", len(capecTokens), len(capecTokens))
 
 	// Step 5: Save model
 	fmt.Println("[5/5] Saving TF-IDF model...")
@@ -283,7 +304,7 @@ func main() {
 	fmt.Printf("  Vocabulary size: %d terms\n", len(vocab))
 	fmt.Printf("  Training documents: %d CVEs + %d CAPECs = %d total\n",
 		len(cves), len(capecDB), len(allTokens))
-	fmt.Printf("  Pre-computed CAPEC vectors: %d\n", len(capecVectors))
+	fmt.Printf("  Pre-computed CAPEC vectors: %d (NORMALIZED)\n", len(capecVectors))
 	fmt.Println()
 	fmt.Println("  Usage:")
 	fmt.Println("    1. Copy resources/tfidf_model.json to your project")
