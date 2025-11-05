@@ -2305,12 +2305,6 @@ func loadMLModels(db *LocalDB) {
 	}
 	fmt.Printf("  CAPEC ranking data loaded (%d CAPECs)\n", len(capecData))
 
-	// Try to load keyword expansion map
-	if err := loadKeywordExpansionMap(); err != nil {
-		fmt.Printf("  Warning: Error loading keyword map: %v\n", err)
-		// Continue without keyword expansion
-	}
-
 	mlEnabled = true
 	fmt.Printf("  ML models loaded successfully (%d attack vectors)\n", len(model.VectorPriors))
 }
