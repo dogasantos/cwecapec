@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+)
 
 // TF-IDF SCORING MODULE
 type TFIDFModel struct {
