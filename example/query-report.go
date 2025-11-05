@@ -1099,15 +1099,9 @@ func main() {
 	fmt.Println("Loading ML models...")
 	loadMLModels(db)
 
-	// Load TF-IDF model
-	if _, err := os.Stat("resources/tfidf_model.json"); err == nil {
-		err = loadTFIDFModel("resources/tfidf_model.json")
-		if err != nil {
-			fmt.Printf("  Warning: Failed to load TF-IDF model: %v\n", err)
-		} else {
-			fmt.Printf("  TF-IDF model loaded: %s\n", getTFIDFStats())
-		}
-	}
+	// Initialize BM25 model (pure offline, no training needed)
+	initBM25Model(db)
+	fmt.Printf("  BM25 model: %s\n", getBM25Stats())
 
 	// Query CVE from NVD
 	fmt.Printf("Querying NVD for %s...\n", cveID)
