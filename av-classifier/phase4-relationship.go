@@ -298,7 +298,19 @@ func getCAPECsForCWE(cweID string) []CAPECResult {
 		return nil
 	}
 
+	// Try to find CAPECs using the CWE ID as-is first
 	capecIDs, exists := relationshipsDB.CWEToCapec[cweID]
+
+	// If not found, try with "CWE-" prefix
+	if !exists {
+		capecIDs, exists = relationshipsDB.CWEToCapec["CWE-"+cweID]
+	}
+
+	// If still not found, try without "CWE-" prefix (in case it was provided with prefix)
+	if !exists && strings.HasPrefix(cweID, "CWE-") {
+		capecIDs, exists = relationshipsDB.CWEToCapec[strings.TrimPrefix(cweID, "CWE-")]
+	}
+
 	if !exists {
 		return nil
 	}
