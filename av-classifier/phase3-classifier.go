@@ -80,8 +80,10 @@ type CAPECData struct {
 
 // CWE to CAPEC relationships
 type RelationshipsDB struct {
-	CWEToCapec    map[string][]string `json:"CWEToCapec"`
-	CapecToAttack map[string][]string `json:"CapecToAttack"`
+	CWEToCapec    map[string][]string `json:"cwe_to_capec"`
+	CapecToCWE    map[string][]string `json:"capec_to_cwe"`
+	CapecToAttack map[string][]string `json:"capec_to_attack"`
+	AttackToCapec map[string][]string `json:"attack_to_capec"`
 }
 
 // CAPEC ranking result
@@ -112,11 +114,13 @@ type PatternTaxonomy struct {
 }
 
 var (
-	cveID       string
-	cveDesc     string
-	cweIDs      string
-	topN        int
-	showDetails bool
+	cveID           string
+	cveDesc         string
+	cweIDs          string
+	topN            int
+	showDetails     bool
+	capecDB         map[string]CAPECData
+	relationshipsDB *RelationshipsDB
 )
 
 func main() {
@@ -216,6 +220,28 @@ func main() {
 			fmt.Printf("Pattern taxonomy loaded: %d attack vectors\n", len(patternTaxonomy.Patterns))
 		}
 	}
+
+	// Load CAPEC and Relationships DBs
+	if _, err := os.Stat("resources/capec_db.json"); err == nil {
+		err = loadCAPECDB("resources/capec_db.json")
+		if err != nil {
+			fmt.Printf("Error loading CAPEC DB: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println("Warning: resources/capec_db.json not found. CAPEC mapping will be skipped.")
+	}
+
+	if _, err := os.Stat("resources/relationships_db.json"); err == nil {
+		err = loadRelationshipsDB("resources/relationships_db.json")
+		if err != nil {
+			fmt.Printf("Error loading Relationships DB: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println("Warning: resources/relationships_db.json not found. CAPEC mapping will be skipped.")
+	}
+
 	if showDetails {
 		fmt.Println()
 	}
@@ -238,44 +264,575 @@ func main() {
 	}
 
 	// CAPEC Ranking
-	if len(results) > 0 && len(cwes) > 0 {
-		// Load CAPEC data
+	// Get CWEs from the top classified attack vector (not from CVE's CWE list)
+	var attackVectorCWEs []string
+	if len(results) > 0 {
+		// Get the top classified attack vector
+		topVector := results[0].Vector
+
 		if showDetails {
-			fmt.Println("\nLoading CAPEC data...")
+			fmt.Printf("\n[DEBUG] Top classified vector: '%s'\n", topVector)
+			fmt.Printf("[DEBUG] Available attack vector mappings: ")
+			count := 0
+			for avKey := range hierarchy.AttackVectorMapping {
+				if count < 5 {
+					fmt.Printf("%s ", avKey)
+					count++
+				}
+			}
+			fmt.Println()
 		}
-		capecData, err := loadCAPECData("resources/capec_training_data.json")
-		if err != nil {
+
+		// Look up CWEs associated with this attack vector
+		if vectorCWEs, exists := hierarchy.AttackVectorMapping[topVector]; exists {
+			attackVectorCWEs = vectorCWEs
 			if showDetails {
-				fmt.Printf("Warning: Could not load CAPEC data: %v\n", err)
+				fmt.Printf("[DEBUG] Attack vector '%s' maps to CWEs: %v\n", topVector, vectorCWEs)
 			}
 		} else {
-			// Load relationships
-			relationships, err := loadRelationships("resources/relationships_db.json")
-			if err != nil {
+			if showDetails {
+				fmt.Printf("[DEBUG] No CWE mapping found for attack vector '%s'\n", topVector)
+				fmt.Printf("[DEBUG] Falling back to top-ranked CWE from CVE data\n")
+			}
+			// Fallback: use top-ranked CWE from CVE's CWE list (deduplicated)
+			topCWEs := rankCWEsByRelevance(cwes, cveDesc, hierarchy, 1)
+			if len(topCWEs) > 0 {
+				attackVectorCWEs = []string{topCWEs[0]}
 				if showDetails {
-					fmt.Printf("Warning: Could not load relationships: %v\n", err)
-				}
-			} else {
-				// Rank CAPECs using the best CWEs
-				capecResults := rankCAPECs(cveDesc, cwes, capecData, relationships, 2, showDetails)
-
-				// Display CAPEC results
-				if len(capecResults) > 0 {
-					fmt.Println("\n==================================================================")
-					fmt.Println("Best Matching CAPECs:")
-					fmt.Println("=================================================================\n")
-
-					for i, capec := range capecResults {
-						fmt.Printf("%d. CAPEC-%s: %s\n", i+1, capec.CAPECID, capec.Name)
-						fmt.Printf("   Probability: %.2f%% (%s confidence)\n", capec.Probability*100, capec.Confidence)
-						if i < len(capecResults)-1 {
-							fmt.Println()
-						}
-					}
+					fmt.Printf("[DEBUG] Using top CWE: %s\n", topCWEs[0])
 				}
 			}
 		}
 	}
+
+	if len(attackVectorCWEs) > 0 {
+		fmt.Println("\n=================================================================")
+		fmt.Println("CWE-to-CAPEC Relationship Mapping")
+		fmt.Println("=================================================================\n")
+
+		for _, cweID := range attackVectorCWEs {
+			// Use two-layer filtering and ranking (top 5 CAPECs)
+			capecResults := getCAPECsForCWEWithFiltering(cweID, cveDesc, 5)
+
+			cweInfo, exists := hierarchy.CWEs[cweID]
+			cweName := "Unknown CWE"
+			if exists && cweInfo != nil {
+				cweName = cweInfo.Name
+			}
+
+			fmt.Printf("CWE-%s: %s\n", cweID, cweName)
+			if len(capecResults) == 0 {
+				fmt.Println("  No direct CAPEC relationships found.")
+			} else {
+				for i, capec := range capecResults {
+					fmt.Printf("  %d. CAPEC-%s: %s (Relevance: %.0f%%, Source: %s)\n",
+						i+1, capec.CAPECID, capec.Name, capec.Probability*100, capec.Confidence)
+				}
+			}
+			fmt.Println()
+		}
+	}
+}
+
+// Layer 1: Filter out strongly unrelated CAPECs
+func filterUnrelatedCAPECs(capecs []CAPECData, cveDescription string) []CAPECData {
+	descLower := strings.ToLower(cveDescription)
+
+	// Define protocol/technology-specific keywords that indicate strong mismatch
+	protocolFilters := map[string][]string{
+		"ldap":      {"ldap", "directory", "active directory", "ad"},
+		"smtp":      {"smtp", "email", "mail server", "sendmail"},
+		"imap":      {"imap", "email", "mail"},
+		"sql":       {"sql", "database", "mysql", "postgresql", "oracle", "mssql"},
+		"xml":       {"xml", "soap", "wsdl"},
+		"xpath":     {"xpath", "xml"},
+		"dns":       {"dns", "domain name"},
+		"ntp":       {"ntp", "time server"},
+		"snmp":      {"snmp", "network management"},
+		"bluetooth": {"bluetooth", "ble"},
+		"nfc":       {"nfc", "near field"},
+		"usb":       {"usb", "universal serial bus"},
+	}
+
+	var filtered []CAPECData
+
+	for _, capec := range capecs {
+		capecNameLower := strings.ToLower(capec.Name)
+		capecDescLower := strings.ToLower(capec.Description)
+
+		// Check if CAPEC is protocol-specific
+		isProtocolSpecific := false
+		mismatchedProtocol := ""
+
+		for protocol, keywords := range protocolFilters {
+			// Check if CAPEC name/description mentions this protocol
+			capecMentionsProtocol := false
+			for _, keyword := range []string{protocol} {
+				if strings.Contains(capecNameLower, keyword) || strings.Contains(capecDescLower, keyword) {
+					capecMentionsProtocol = true
+					break
+				}
+			}
+
+			if capecMentionsProtocol {
+				isProtocolSpecific = true
+
+				// Check if CVE description mentions any related keywords
+				cveMentionsProtocol := false
+				for _, keyword := range keywords {
+					if strings.Contains(descLower, keyword) {
+						cveMentionsProtocol = true
+						break
+					}
+				}
+
+				if !cveMentionsProtocol {
+					mismatchedProtocol = protocol
+					break
+				}
+			}
+		}
+
+		// If protocol-specific CAPEC doesn't match CVE context, filter it out
+		if isProtocolSpecific && mismatchedProtocol != "" {
+			if showDetails {
+				fmt.Printf("  [FILTER] Removing CAPEC-%s (%s) - %s-specific, not in CVE\n",
+					capec.CAPECID, capec.Name, mismatchedProtocol)
+			}
+			continue
+		}
+
+		filtered = append(filtered, capec)
+	}
+
+	return filtered
+}
+
+// Layer 2: Rank CAPECs by relevance to CVE description
+func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string) []CAPECResult {
+	descLower := strings.ToLower(cveDescription)
+	descWords := strings.Fields(descLower)
+
+	// Create word frequency map for CVE description
+	cveWordFreq := make(map[string]int)
+	for _, word := range descWords {
+		// Skip common words
+		if len(word) > 3 {
+			cveWordFreq[word]++
+		}
+	}
+
+	var results []CAPECResult
+
+	for _, capec := range capecs {
+		capecNameLower := strings.ToLower(capec.Name)
+		capecDescLower := strings.ToLower(capec.Description)
+		capecWords := strings.Fields(capecNameLower + " " + capecDescLower)
+
+		// Calculate keyword overlap score
+		overlapScore := 0.0
+		for _, word := range capecWords {
+			if len(word) > 3 {
+				if freq, exists := cveWordFreq[word]; exists {
+					overlapScore += float64(freq)
+				}
+			}
+		}
+
+		// Normalize by CAPEC description length
+		if len(capecWords) > 0 {
+			overlapScore = overlapScore / float64(len(capecWords)) * 100
+		}
+
+		// Bonus for generic/broad attack patterns (they're usually relevant)
+		genericKeywords := []string{"injection", "command", "code execution", "arbitrary", "exploit"}
+		for _, keyword := range genericKeywords {
+			if strings.Contains(capecNameLower, keyword) {
+				overlapScore += 10.0
+				break
+			}
+		}
+
+		// Bonus for high severity alignment
+		if capec.TypicalSeverity == "High" || capec.TypicalSeverity == "Very High" {
+			if strings.Contains(descLower, "critical") || strings.Contains(descLower, "execute") || strings.Contains(descLower, "arbitrary") {
+				overlapScore += 5.0
+			}
+		}
+
+		// Ensure minimum score for all CAPECs that passed filtering
+		if overlapScore < 10.0 {
+			overlapScore = 10.0
+		}
+
+		// Cap at 100%
+		if overlapScore > 100.0 {
+			overlapScore = 100.0
+		}
+
+		// Determine confidence level
+		confidence := "low"
+		if overlapScore >= 70.0 {
+			confidence = "high"
+		} else if overlapScore >= 40.0 {
+			confidence = "medium"
+		}
+
+		results = append(results, CAPECResult{
+			CAPECID:     capec.CAPECID,
+			Name:        capec.Name,
+			Probability: overlapScore / 100.0,
+			Confidence:  confidence,
+		})
+	}
+
+	// Sort by relevance score (descending)
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Probability > results[j].Probability
+	})
+
+	return results
+}
+
+// Get CAPECs for a CWE with two-layer filtering and ranking
+func getCAPECsForCWEWithFiltering(cweID string, cveDescription string, topN int) []CAPECResult {
+	if relationshipsDB == nil || capecDB == nil {
+		if showDetails {
+			fmt.Printf("  [DEBUG] getCAPECsForCWEWithFiltering(%s): relationshipsDB or capecDB is nil\n", cweID)
+		}
+		return nil
+	}
+
+	// Try to find CAPECs using the CWE ID as-is first
+	capecIDs, exists := relationshipsDB.CWEToCapec[cweID]
+	if showDetails {
+		fmt.Printf("  [DEBUG] Lookup '%s': found=%v\n", cweID, exists)
+	}
+
+	// If not found, try with "CWE-" prefix
+	if !exists {
+		capecIDs, exists = relationshipsDB.CWEToCapec["CWE-"+cweID]
+		if showDetails {
+			fmt.Printf("  [DEBUG] Lookup 'CWE-%s': found=%v\n", cweID, exists)
+		}
+	}
+
+	// If still not found, try without "CWE-" prefix (in case it was provided with prefix)
+	if !exists && strings.HasPrefix(cweID, "CWE-") {
+		stripped := strings.TrimPrefix(cweID, "CWE-")
+		capecIDs, exists = relationshipsDB.CWEToCapec[stripped]
+		if showDetails {
+			fmt.Printf("  [DEBUG] Lookup '%s': found=%v\n", stripped, exists)
+		}
+	}
+
+	if !exists {
+		if showDetails {
+			fmt.Printf("  [DEBUG] No CAPEC mappings found for CWE %s in any format\n", cweID)
+		}
+		return nil
+	}
+
+	if showDetails {
+		fmt.Printf("  [DEBUG] Found %d CAPEC IDs for CWE %s: %v\n", len(capecIDs), cweID, capecIDs)
+	}
+
+	// Collect all CAPEC data objects
+	var capecDataList []CAPECData
+	for _, capecID := range capecIDs {
+		if capec, exists := capecDB[capecID]; exists {
+			capecDataList = append(capecDataList, capec)
+		}
+	}
+
+	if len(capecDataList) == 0 {
+		return nil
+	}
+
+	if showDetails {
+		fmt.Printf("  [LAYER 1] Starting with %d CAPECs before filtering\n", len(capecDataList))
+	}
+
+	// Layer 1: Filter out strongly unrelated CAPECs
+	filteredCAPECs := filterUnrelatedCAPECs(capecDataList, cveDescription)
+
+	if showDetails {
+		fmt.Printf("  [LAYER 1] %d CAPECs remaining after filtering\n", len(filteredCAPECs))
+	}
+
+	if len(filteredCAPECs) == 0 {
+		if showDetails {
+			fmt.Printf("  [WARNING] All CAPECs filtered out, using original list\n")
+		}
+		filteredCAPECs = capecDataList
+	}
+
+	// Layer 2: Rank by relevance
+	if showDetails {
+		fmt.Printf("  [LAYER 2] Ranking %d CAPECs by relevance\n", len(filteredCAPECs))
+	}
+
+	rankedResults := rankCAPECsByRelevance(filteredCAPECs, cveDescription)
+
+	// Take top N
+	if len(rankedResults) > topN {
+		rankedResults = rankedResults[:topN]
+	}
+
+	return rankedResults
+}
+
+func getCAPECsForCWE(cweID string) []CAPECResult {
+	if relationshipsDB == nil || capecDB == nil {
+		if showDetails {
+			fmt.Printf("  [DEBUG] getCAPECsForCWE(%s): relationshipsDB or capecDB is nil\n", cweID)
+		}
+		return nil
+	}
+
+	// Try to find CAPECs using the CWE ID as-is first
+	capecIDs, exists := relationshipsDB.CWEToCapec[cweID]
+	if showDetails {
+		fmt.Printf("  [DEBUG] Lookup '%s': found=%v\n", cweID, exists)
+	}
+
+	// If not found, try with "CWE-" prefix
+	if !exists {
+		capecIDs, exists = relationshipsDB.CWEToCapec["CWE-"+cweID]
+		if showDetails {
+			fmt.Printf("  [DEBUG] Lookup 'CWE-%s': found=%v\n", cweID, exists)
+		}
+	}
+
+	// If still not found, try without "CWE-" prefix (in case it was provided with prefix)
+	if !exists && strings.HasPrefix(cweID, "CWE-") {
+		stripped := strings.TrimPrefix(cweID, "CWE-")
+		capecIDs, exists = relationshipsDB.CWEToCapec[stripped]
+		if showDetails {
+			fmt.Printf("  [DEBUG] Lookup '%s': found=%v\n", stripped, exists)
+		}
+	}
+
+	if !exists {
+		if showDetails {
+			fmt.Printf("  [DEBUG] No CAPEC mappings found for CWE %s in any format\n", cweID)
+		}
+		return nil
+	}
+
+	if showDetails {
+		fmt.Printf("  [DEBUG] Found %d CAPEC IDs for CWE %s: %v\n", len(capecIDs), cweID, capecIDs)
+		fmt.Printf("  [DEBUG] capecDB has %d entries\n", len(capecDB))
+	}
+
+	// Collect all CAPEC data objects
+	var capecDataList []CAPECData
+	for _, capecID := range capecIDs {
+		if capec, exists := capecDB[capecID]; exists {
+			capecDataList = append(capecDataList, capec)
+		}
+	}
+
+	if len(capecDataList) == 0 {
+		return nil
+	}
+
+	if showDetails {
+		fmt.Printf("  [DEBUG] Collected %d CAPECs for filtering\n", len(capecDataList))
+	}
+
+	// This function needs CVE description, so it will be called from the main function
+	// For now, return all CAPECs with simple scoring
+	var results []CAPECResult
+	for _, capec := range capecDataList {
+		results = append(results, CAPECResult{
+			CAPECID:     capec.CAPECID,
+			Name:        capec.Name,
+			Probability: 1.0,
+			Confidence:  "Direct CWE Mapping",
+		})
+	}
+
+	// Sort by CAPEC ID for stable output
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].CAPECID < results[j].CAPECID
+	})
+
+	return results
+}
+
+func loadRelationshipsDB(path string) error {
+	fmt.Print("Loading relationships DB...")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	// Try snake_case format first (feeds-updater.go output)
+	type RelationshipsSnakeCase struct {
+		CWEToCapec    map[string][]string `json:"cwe_to_capec"`
+		CapecToCWE    map[string][]string `json:"capec_to_cwe"`
+		CapecToAttack map[string][]string `json:"capec_to_attack"`
+		AttackToCapec map[string][]string `json:"attack_to_capec"`
+	}
+
+	var snakeDB RelationshipsSnakeCase
+	err = json.Unmarshal(data, &snakeDB)
+	if err == nil && len(snakeDB.CWEToCapec) > 0 {
+		// Successfully loaded snake_case format
+		relationshipsDB = &RelationshipsDB{
+			CWEToCapec:    snakeDB.CWEToCapec,
+			CapecToCWE:    snakeDB.CapecToCWE,
+			CapecToAttack: snakeDB.CapecToAttack,
+			AttackToCapec: snakeDB.AttackToCapec,
+		}
+		fmt.Printf(" ✓ (snake_case format, %d CWE mappings)\n", len(relationshipsDB.CWEToCapec))
+		if showDetails {
+			fmt.Printf("  Sample CWE IDs in database: ")
+			count := 0
+			for cweID := range relationshipsDB.CWEToCapec {
+				if count < 5 {
+					fmt.Printf("%s ", cweID)
+					count++
+				}
+			}
+			fmt.Println()
+		}
+		return nil
+	}
+
+	// Try PascalCase format (legacy format)
+	type RelationshipsPascalCase struct {
+		CWEToCapec    map[string][]string `json:"CWEToCapec"`
+		CapecToCWE    map[string][]string `json:"CapecToCWE"`
+		CapecToAttack map[string][]string `json:"CapecToAttack"`
+		AttackToCapec map[string][]string `json:"AttackToCapec"`
+	}
+
+	var pascalDB RelationshipsPascalCase
+	err = json.Unmarshal(data, &pascalDB)
+	if err == nil && len(pascalDB.CWEToCapec) > 0 {
+		// Successfully loaded PascalCase format
+		relationshipsDB = &RelationshipsDB{
+			CWEToCapec:    pascalDB.CWEToCapec,
+			CapecToCWE:    pascalDB.CapecToCWE,
+			CapecToAttack: pascalDB.CapecToAttack,
+			AttackToCapec: pascalDB.AttackToCapec,
+		}
+		fmt.Printf(" ✓ (PascalCase format, %d CWE mappings)\n", len(relationshipsDB.CWEToCapec))
+		if showDetails {
+			fmt.Printf("  Sample CWE IDs in database: ")
+			count := 0
+			for cweID := range relationshipsDB.CWEToCapec {
+				if count < 5 {
+					fmt.Printf("%s ", cweID)
+					count++
+				}
+			}
+			fmt.Println()
+		}
+		return nil
+	}
+
+	return fmt.Errorf("failed to parse relationships DB in either snake_case or PascalCase format")
+}
+
+func loadCAPECDB(path string) error {
+	fmt.Print("Loading CAPEC DB...")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	// Try to unmarshal as array first
+	var capecs []CAPECData
+	err = json.Unmarshal(data, &capecs)
+	if err == nil && len(capecs) > 0 {
+		// Successfully loaded array format
+		capecDB = make(map[string]CAPECData)
+		for _, capec := range capecs {
+			capecDB[capec.CAPECID] = capec
+		}
+		fmt.Printf(" ✓ (%d CAPECs loaded, array format)\n", len(capecDB))
+		if showDetails {
+			fmt.Printf("  Sample CAPEC IDs in database: ")
+			count := 0
+			for capecID := range capecDB {
+				if count < 5 {
+					fmt.Printf("%s ", capecID)
+					count++
+				}
+			}
+			fmt.Println()
+		}
+		return nil
+	}
+
+	// Try to unmarshal as object with "capecs" key
+	var capecObj struct {
+		CAPECs []CAPECData `json:"capecs"`
+	}
+	err = json.Unmarshal(data, &capecObj)
+	if err == nil && len(capecObj.CAPECs) > 0 {
+		// Successfully loaded object with array format
+		capecDB = make(map[string]CAPECData)
+		for _, capec := range capecObj.CAPECs {
+			capecDB[capec.CAPECID] = capec
+		}
+		fmt.Printf(" ✓ (%d CAPECs loaded, object+array format)\n", len(capecDB))
+		if showDetails {
+			fmt.Printf("  Sample CAPEC IDs in database: ")
+			count := 0
+			for capecID := range capecDB {
+				if count < 5 {
+					fmt.Printf("%s ", capecID)
+					count++
+				}
+			}
+			fmt.Println()
+		}
+		return nil
+	}
+
+	// Try to unmarshal as map with CAPEC IDs as keys (feeds-updater.go format)
+	type CAPECEntry struct {
+		Name               string   `json:"name"`
+		Description        string   `json:"description"`
+		RelatedWeaknesses  []string `json:"relatedWeaknesses"`
+		TypicalSeverity    string   `json:"typicalSeverity"`
+		LikelihoodOfAttack string   `json:"likelihoodOfAttack"`
+	}
+
+	var capecMap map[string]CAPECEntry
+	err = json.Unmarshal(data, &capecMap)
+	if err == nil && len(capecMap) > 0 {
+		// Successfully loaded map format (CAPEC IDs as keys)
+		capecDB = make(map[string]CAPECData)
+		for capecID, entry := range capecMap {
+			capecDB[capecID] = CAPECData{
+				CAPECID:         capecID,
+				Name:            entry.Name,
+				Description:     entry.Description,
+				RelatedCWEs:     entry.RelatedWeaknesses,
+				TypicalSeverity: entry.TypicalSeverity,
+			}
+		}
+		fmt.Printf(" ✓ (%d CAPECs loaded, map format)\n", len(capecDB))
+		if showDetails {
+			fmt.Printf("  Sample CAPEC IDs in database: ")
+			count := 0
+			for capecID := range capecDB {
+				if count < 5 {
+					fmt.Printf("%s ", capecID)
+					count++
+				}
+			}
+			fmt.Println()
+		}
+		return nil
+	}
+
+	return fmt.Errorf("failed to parse CAPEC DB (tried array, object+array, and map formats)")
 }
 
 func fetchCVEFromNVD(cveID string) (string, []string, error) {
@@ -702,6 +1259,14 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 		}
 
 		scores[vector] = logProb
+	}
+
+	// Debug: Show raw Naive Bayes scores
+	if verbose {
+		fmt.Println("\n  [Naive Bayes Raw Scores - Log Probabilities]:")
+		for vector, score := range scores {
+			fmt.Printf("    %s: %.2f\n", vector, score)
+		}
 	}
 
 	// Apply data-driven pattern boosting (Layer 3)
