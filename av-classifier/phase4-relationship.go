@@ -297,23 +297,39 @@ func main() {
 
 func getCAPECsForCWE(cweID string) []CAPECResult {
 	if relationshipsDB == nil || capecDB == nil {
+		if showDetails {
+			fmt.Printf("  [DEBUG] getCAPECsForCWE(%s): relationshipsDB or capecDB is nil\n", cweID)
+		}
 		return nil
 	}
 
 	// Try to find CAPECs using the CWE ID as-is first
 	capecIDs, exists := relationshipsDB.CWEToCapec[cweID]
+	if showDetails {
+		fmt.Printf("  [DEBUG] Lookup '%s': found=%v\n", cweID, exists)
+	}
 
 	// If not found, try with "CWE-" prefix
 	if !exists {
 		capecIDs, exists = relationshipsDB.CWEToCapec["CWE-"+cweID]
+		if showDetails {
+			fmt.Printf("  [DEBUG] Lookup 'CWE-%s': found=%v\n", cweID, exists)
+		}
 	}
 
 	// If still not found, try without "CWE-" prefix (in case it was provided with prefix)
 	if !exists && strings.HasPrefix(cweID, "CWE-") {
-		capecIDs, exists = relationshipsDB.CWEToCapec[strings.TrimPrefix(cweID, "CWE-")]
+		stripped := strings.TrimPrefix(cweID, "CWE-")
+		capecIDs, exists = relationshipsDB.CWEToCapec[stripped]
+		if showDetails {
+			fmt.Printf("  [DEBUG] Lookup '%s': found=%v\n", stripped, exists)
+		}
 	}
 
 	if !exists {
+		if showDetails {
+			fmt.Printf("  [DEBUG] No CAPEC mappings found for CWE %s in any format\n", cweID)
+		}
 		return nil
 	}
 
@@ -364,7 +380,18 @@ func loadRelationshipsDB(path string) error {
 			CapecToAttack: snakeDB.CapecToAttack,
 			AttackToCapec: snakeDB.AttackToCapec,
 		}
-		fmt.Println(" ✓")
+		fmt.Printf(" ✓ (snake_case format, %d CWE mappings)\n", len(relationshipsDB.CWEToCapec))
+		if showDetails {
+			fmt.Printf("  Sample CWE IDs in database: ")
+			count := 0
+			for cweID := range relationshipsDB.CWEToCapec {
+				if count < 5 {
+					fmt.Printf("%s ", cweID)
+					count++
+				}
+			}
+			fmt.Println()
+		}
 		return nil
 	}
 
@@ -386,7 +413,18 @@ func loadRelationshipsDB(path string) error {
 			CapecToAttack: pascalDB.CapecToAttack,
 			AttackToCapec: pascalDB.AttackToCapec,
 		}
-		fmt.Println(" ✓")
+		fmt.Printf(" ✓ (PascalCase format, %d CWE mappings)\n", len(relationshipsDB.CWEToCapec))
+		if showDetails {
+			fmt.Printf("  Sample CWE IDs in database: ")
+			count := 0
+			for cweID := range relationshipsDB.CWEToCapec {
+				if count < 5 {
+					fmt.Printf("%s ", cweID)
+					count++
+				}
+			}
+			fmt.Println()
+		}
 		return nil
 	}
 
