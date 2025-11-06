@@ -35,7 +35,7 @@ type CWEFrequencyMap struct {
 type AttackVectorToCWEsMap map[string][]string
 
 const (
-	resourcesPath = "/home/ubuntu/cwecapec/resources"
+	resourcesPath = "resources"
 	inputPath     = resourcesPath + "/cwe_frequency_map.json"
 	outputPath    = resourcesPath + "/attack_vector_to_cwe_map.json"
 	topN          = 5 // Number of top CWEs to include for each vector
