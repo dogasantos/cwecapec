@@ -80,7 +80,7 @@ var (
 	cweHierarchy    *CWEHierarchy
 	nbModel         *AttackVectorModel
 	patternTaxonomy *PatternTaxonomy
-	resourcesPath   = "resources"
+	resourcesPath   = "/home/ubuntu/cwecapec/resources"
 	debugMode       = true // Enable debug output for first 10 CVEs
 	debugCount      = 0
 	debugMutex      sync.Mutex
@@ -486,14 +486,24 @@ func classifyHybrid(description string, cweIDs []string, cveID string) []string 
 		fmt.Printf("Description: %s\n", description)
 		fmt.Printf("CWEs: %v\n", cweIDs)
 	}
-	// Layer 1: CWE Hierarchy lookup (uses the Top 2 Ranked CWEs)
-	hierarchyVectors := classifyByCWEHierarchy(cweIDs)
+
+	// Layer 1: CWE Hierarchy - Get candidate vectors (filter)
+	candidates := classifyByCWEHierarchy(cweIDs)
 	if showDebug {
-		fmt.Printf("\nLayer 1 - CWE Hierarchy: %v\n", hierarchyVectors)
+		fmt.Printf("\nLayer 1 - CWE Hierarchy Candidates: ")
+		for v := range candidates {
+			fmt.Printf("%s ", v)
+		}
+		fmt.Println()
 	}
 
-	// Layer 2: Naive Bayes classification
-	nbResults := classifyByNaiveBayes(description)
+	// If no candidates from CWE hierarchy, return unknown
+	if len(candidates) == 0 {
+		return []string{"unknown"}
+	}
+
+	// Layer 2: Naive Bayes classification (only on candidates)
+	nbResults := classifyByNaiveBayes(description, candidates)
 	if showDebug {
 		fmt.Printf("\nLayer 2 - Naive Bayes (top 5):\n")
 		for i := 0; i < 5 && i < len(nbResults); i++ {
@@ -501,8 +511,8 @@ func classifyHybrid(description string, cweIDs []string, cveID string) []string 
 		}
 	}
 
-	// Layer 3: Pattern matching
-	patternResults := classifyByPatterns(description)
+	// Layer 3: Pattern matching (only on candidates)
+	patternResults := classifyByPatterns(description, candidates)
 	if showDebug {
 		fmt.Printf("\nLayer 3 - Pattern Matching (top 5):\n")
 		for i := 0; i < 5 && i < len(patternResults); i++ {
@@ -513,9 +523,9 @@ func classifyHybrid(description string, cweIDs []string, cveID string) []string 
 	// Combine results
 	vectorScores := make(map[string]float64)
 
-	// Add hierarchy results (highest weight)
-	for _, v := range hierarchyVectors {
-		vectorScores[v] += 3.0
+	// Add base score for all candidates from hierarchy
+	for v := range candidates {
+		vectorScores[v] = 3.0
 	}
 
 	// Add Naive Bayes results
@@ -572,14 +582,14 @@ func classifyHybrid(description string, cweIDs []string, cveID string) []string 
 	return result
 }
 
-func classifyByCWEHierarchy(cweIDs []string) []string {
-	vectorSet := make(map[string]bool)
+func classifyByCWEHierarchy(cweIDs []string) map[string]bool {
+	candidates := make(map[string]bool)
 
 	for _, cweID := range cweIDs {
 		// Direct mapping
 		if vectors, exists := cweHierarchy.CWEToVectorMapping[cweID]; exists {
 			for _, v := range vectors {
-				vectorSet[v] = true
+				candidates[v] = true
 			}
 		}
 
@@ -588,29 +598,26 @@ func classifyByCWEHierarchy(cweIDs []string) []string {
 			for _, parentID := range cweInfo.Parents {
 				if vectors, exists := cweHierarchy.CWEToVectorMapping[parentID]; exists {
 					for _, v := range vectors {
-						vectorSet[v] = true
+						candidates[v] = true
 					}
 				}
 			}
 		}
 	}
 
-	var result []string
-	for v := range vectorSet {
-		result = append(result, v)
-	}
-
-	// Sort alphabetically for deterministic order
-	sort.Strings(result)
-
-	return result
+	return candidates
 }
 
-func classifyByNaiveBayes(description string) []ClassificationResult {
+func classifyByNaiveBayes(description string, candidates map[string]bool) []ClassificationResult {
 	words := tokenize(description)
 	scores := make(map[string]float64)
 
 	for _, vector := range nbModel.AttackVectors {
+		// Skip if not a candidate
+		if !candidates[vector] {
+			continue
+		}
+
 		logProb := math.Log(nbModel.VectorPriors[vector])
 
 		for _, word := range words {
@@ -671,11 +678,16 @@ func classifyByNaiveBayes(description string) []ClassificationResult {
 	return results
 }
 
-func classifyByPatterns(description string) []ClassificationResult {
+func classifyByPatterns(description string, candidates map[string]bool) []ClassificationResult {
 	descLower := strings.ToLower(description)
 	vectorScores := make(map[string]float64)
 
 	for vector, patterns := range patternTaxonomy.Patterns {
+		// Skip if not a candidate
+		if !candidates[vector] {
+			continue
+		}
+
 		totalBoost := 0.0
 
 		for _, pattern := range patterns {
