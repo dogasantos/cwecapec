@@ -52,9 +52,10 @@ type AttackVectorModel struct {
 
 // Pattern taxonomy structures
 type Pattern struct {
-	Pattern     string  `json:"pattern"`
-	Specificity float64 `json:"specificity"`
-	Boost       float64 `json:"boost"`
+	Keywords    []string `json:"keywords"`
+	Specificity float64  `json:"specificity"`
+	Boost       float64  `json:"boost"`
+	Support     int      `json:"support"`
 }
 
 type PatternTaxonomy struct {
@@ -68,12 +69,20 @@ type ClassificationResult struct {
 	Source      string  `json:"source"`
 }
 
+// ScoredCWE represents a CWE with its relevance score
+type ScoredCWE struct {
+	ID    string
+	Score float64
+}
+
 // Global resources
 var (
 	cweHierarchy    *CWEHierarchy
 	nbModel         *AttackVectorModel
 	patternTaxonomy *PatternTaxonomy
-	resourcesPath   = "resources"
+	resourcesPath   = "/home/ubuntu/cwecapec/resources"
+	debugMode       = true // Enable debug output for first 5 CVEs
+	debugCount      = 0
 )
 
 func main() {
@@ -250,8 +259,15 @@ func reclassifyBatch(entries []CVEEntry) []CVEEntry {
 			for i := range jobs {
 				entry := entries[i]
 
-				// Classify using hybrid approach
-				vectors := classifyHybrid(entry.Description, entry.CWEs)
+				// --- MODIFIED LOGIC START ---
+
+				// Step 1: Rank CWEs by relevance and select top 2
+				rankedCWEs := rankCWEsByRelevance(entry.CWEs, entry.Description, cweHierarchy, 2)
+
+				// Step 2: Classify using hybrid approach, but only with the top 2 CWEs
+				vectors := classifyHybrid(entry.Description, rankedCWEs, entry.CVEID)
+
+				// --- MODIFIED LOGIC END ---
 
 				// Update attack vectors
 				entry.AttackVectors = vectors
@@ -280,15 +296,213 @@ func reclassifyBatch(entries []CVEEntry) []CVEEntry {
 	return results
 }
 
-func classifyHybrid(description string, cweIDs []string) []string {
-	// Layer 1: CWE Hierarchy lookup
+// --- CWE RANKING LOGIC (Copied from phase4-relationship.go) ---
+
+func rankCWEsByRelevance(cweIDs []string, description string, hierarchy *CWEHierarchy, topN int) []string {
+	if len(cweIDs) == 0 {
+		return []string{}
+	}
+
+	// Score each CWE
+	scoredCWEs := []ScoredCWE{}
+	descLower := strings.ToLower(description)
+
+	for _, cweID := range cweIDs {
+		score := scoreCWERelevance(cweID, descLower, hierarchy)
+		scoredCWEs = append(scoredCWEs, ScoredCWE{
+			ID:    cweID,
+			Score: score,
+		})
+	}
+
+	// Sort by score (descending)
+	sort.Slice(scoredCWEs, func(i, j int) bool {
+		return scoredCWEs[i].Score > scoredCWEs[j].Score
+	})
+
+	// Take top N
+	resultCount := topN
+	if len(scoredCWEs) < topN {
+		resultCount = len(scoredCWEs)
+	}
+
+	result := make([]string, resultCount)
+	for i := 0; i < resultCount; i++ {
+		result[i] = scoredCWEs[i].ID
+	}
+
+	return result
+}
+
+// scoreCWERelevance calculates a relevance score for a CWE based on the CVE description
+func scoreCWERelevance(cweID string, descLower string, hierarchy *CWEHierarchy) float64 {
+	cwe, exists := hierarchy.CWEs[cweID]
+	if !exists {
+		return 0.0
+	}
+
+	score := 0.0
+	cweName := strings.ToLower(cwe.Name)
+
+	// 1. Base keyword matching
+	keywords := extractCWEKeywords(cweName)
+	for _, keyword := range keywords {
+		if len(keyword) < 3 {
+			continue
+		}
+		if strings.Contains(descLower, keyword) {
+			score += 10.0
+		}
+	}
+
+	// 2. Priority boost for critical CWEs
+	priorityCWEs := map[string]float64{
+		"502": 50.0, "78": 45.0, "79": 40.0, "89": 45.0, "94": 45.0,
+		"77": 40.0, "22": 35.0, "434": 35.0, "611": 35.0, "918": 40.0,
+		"917": 40.0, "119": 30.0, "787": 30.0, "416": 30.0, "352": 25.0,
+		"306": 25.0, "862": 25.0,
+	}
+	if boost, exists := priorityCWEs[cweID]; exists {
+		score += boost
+	}
+
+	// 3. Pattern-based boosting
+	if containsAnyPattern(descLower, []string{"deserializ", "jndi", "ldap", "lookup", "unmarsh", "pickle"}) {
+		if cweID == "502" {
+			score += 100.0
+		}
+		if cweID == "917" {
+			score += 50.0
+		}
+	}
+
+	if containsAnyPattern(descLower, []string{"inject", "execut", "eval", "code execution"}) {
+		if containsAnyPattern(descLower, []string{"code", "arbitrary"}) && cweID == "94" {
+			score += 80.0
+		}
+		if containsAnyPattern(descLower, []string{"command", "shell", "os"}) && (cweID == "78" || cweID == "77") {
+			score += 80.0
+		}
+	}
+
+	if containsAnyPattern(descLower, []string{"sql", "database", "query"}) && cweID == "89" {
+		score += 100.0
+	}
+
+	if containsAnyPattern(descLower, []string{"xss", "cross-site scripting", "script injection"}) && cweID == "79" {
+		score += 100.0
+	}
+
+	if containsAnyPattern(descLower, []string{"path traversal", "directory traversal", "../", "..\\", "path manipulation"}) && cweID == "22" {
+		score += 80.0
+	}
+
+	if containsAnyPattern(descLower, []string{"ssrf", "server-side request", "internal request", "url fetch"}) && cweID == "918" {
+		score += 100.0
+	}
+
+	if containsAnyPattern(descLower, []string{"xxe", "xml external entity", "xml injection"}) && cweID == "611" {
+		score += 100.0
+	}
+
+	if containsAnyPattern(descLower, []string{"buffer overflow", "buffer overrun", "heap overflow", "stack overflow"}) && (cweID == "119" || cweID == "787") {
+		score += 80.0
+	}
+
+	if containsAnyPattern(descLower, []string{"authentication bypass", "auth bypass", "without authentication"}) && cweID == "306" {
+		score += 80.0
+	}
+
+	if containsAnyPattern(descLower, []string{"authorization bypass", "privilege escalation", "unauthorized access"}) && (cweID == "862" || cweID == "269") {
+		score += 80.0
+	}
+
+	// 4. Penalty for generic CWEs
+	genericCWEs := map[string]float64{
+		"20": -20.0, "400": -15.0, "703": -20.0, "707": -20.0,
+	}
+	if penalty, exists := genericCWEs[cweID]; exists {
+		score += penalty
+	}
+
+	// 5. Boost for CWEs with attack vector mappings
+	if cwe, exists := hierarchy.CWEs[cweID]; exists && len(cwe.AttackVectors) > 0 {
+		score += float64(len(cwe.AttackVectors)) * 5.0
+	}
+
+	if score < 0 {
+		score = 0
+	}
+
+	return score
+}
+
+// extractCWEKeywords extracts meaningful keywords from CWE name
+func extractCWEKeywords(text string) []string {
+	stopWords := map[string]bool{
+		"improper": true, "insufficient": true, "incorrect": true,
+		"missing": true, "lack": true, "inadequate": true,
+		"the": true, "of": true, "in": true, "to": true, "for": true,
+		"and": true, "or": true, "a": true, "an": true,
+	}
+
+	re := regexp.MustCompile(`[^a-z0-9]+`)
+	words := re.Split(text, -1)
+
+	keywords := []string{}
+	for _, word := range words {
+		word = strings.ToLower(word)
+		if len(word) >= 3 && !stopWords[word] {
+			keywords = append(keywords, word)
+		}
+	}
+
+	return keywords
+}
+
+// containsAnyPattern checks if the text contains any of the patterns
+func containsAnyPattern(text string, patterns []string) bool {
+	for _, pattern := range patterns {
+		if strings.Contains(text, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// --- HYBRID CLASSIFICATION LOGIC (Modified to use only the provided CWEs) ---
+
+func classifyHybrid(description string, cweIDs []string, cveID string) []string {
+	showDebug := debugMode && debugCount < 5
+	if showDebug {
+		debugCount++
+		fmt.Printf("\n=== DEBUG: %s ===\n", cveID)
+		fmt.Printf("Description: %s\n", description)
+		fmt.Printf("CWEs: %v\n", cweIDs)
+	}
+	// Layer 1: CWE Hierarchy lookup (uses the Top 2 Ranked CWEs)
 	hierarchyVectors := classifyByCWEHierarchy(cweIDs)
+	if showDebug {
+		fmt.Printf("\nLayer 1 - CWE Hierarchy: %v\n", hierarchyVectors)
+	}
 
 	// Layer 2: Naive Bayes classification
 	nbResults := classifyByNaiveBayes(description)
+	if showDebug {
+		fmt.Printf("\nLayer 2 - Naive Bayes (top 5):\n")
+		for i := 0; i < 5 && i < len(nbResults); i++ {
+			fmt.Printf("  %s: %.4f\n", nbResults[i].Vector, nbResults[i].Probability)
+		}
+	}
 
 	// Layer 3: Pattern matching
 	patternResults := classifyByPatterns(description)
+	if showDebug {
+		fmt.Printf("\nLayer 3 - Pattern Matching (top 5):\n")
+		for i := 0; i < 5 && i < len(patternResults); i++ {
+			fmt.Printf("  %s: %.4f\n", patternResults[i].Vector, patternResults[i].Probability)
+		}
+	}
 
 	// Combine results
 	vectorScores := make(map[string]float64)
@@ -322,6 +536,13 @@ func classifyHybrid(description string, cweIDs []string) []string {
 	sort.Slice(scored, func(i, j int) bool {
 		return scored[i].score > scored[j].score
 	})
+
+	if showDebug {
+		fmt.Printf("\nCombined Scores (top 10):\n")
+		for i := 0; i < 10 && i < len(scored); i++ {
+			fmt.Printf("  %s: %.4f\n", scored[i].vector, scored[i].score)
+		}
+	}
 
 	// Return top 3 unique vectors
 	var result []string
@@ -438,21 +659,32 @@ func classifyByPatterns(description string) []ClassificationResult {
 	vectorScores := make(map[string]float64)
 
 	for vector, patterns := range patternTaxonomy.Patterns {
-		score := 0.0
+		totalBoost := 0.0
 
 		for _, pattern := range patterns {
-			re, err := regexp.Compile(pattern.Pattern)
-			if err != nil {
-				continue
+			// Check if all keywords in the pattern are present
+			allMatch := true
+			for _, keyword := range pattern.Keywords {
+				if !strings.Contains(descLower, keyword) {
+					allMatch = false
+					break
+				}
 			}
 
-			if re.MatchString(descLower) {
-				score += pattern.Specificity * pattern.Boost
+			if allMatch {
+				// Normalize boost (divide by 100 since all boosts are 100.0)
+				// and weight by specificity
+				totalBoost += (pattern.Boost / 100.0) * pattern.Specificity
 			}
 		}
 
-		if score > 0 {
-			vectorScores[vector] = score
+		// Cap the maximum boost per vector to prevent overwhelming other layers
+		if totalBoost > 5.0 {
+			totalBoost = 5.0
+		}
+
+		if totalBoost > 0 {
+			vectorScores[vector] = totalBoost
 		}
 	}
 
