@@ -184,7 +184,7 @@ func main() {
 	if showDetails {
 		fmt.Println("Loading CWE hierarchy...")
 	}
-	hierarchy, err := loadCWEHierarchy("/home/ubuntu/cwecapec/resources/cwe_hierarchy.json")
+	hierarchy, err := loadCWEHierarchy("resources/cwe_hierarchy.json")
 	if err != nil {
 		fmt.Printf("Error loading CWE hierarchy: %v\n", err)
 		fmt.Println("Run 'cwe-builder' first to generate resources/cwe_hierarchy.json")
@@ -198,7 +198,7 @@ func main() {
 	if showDetails {
 		fmt.Println("Loading Naive Bayes model...")
 	}
-	model, err := loadNaiveBayesModel("/home/ubuntu/cwecapec/resources/naive_bayes_model.json")
+	model, err := loadNaiveBayesModel("resources/naive_bayes_model.json")
 	if err != nil {
 		fmt.Printf("Error loading Naive Bayes model: %v\n", err)
 		fmt.Println("Run 'trainer' first to generate resources/naive_bayes_model.json")
@@ -210,8 +210,8 @@ func main() {
 
 	// Load pattern taxonomy
 	var patternTaxonomy *PatternTaxonomy
-	if _, err := os.Stat("/home/ubuntu/cwecapec/resources/pattern_taxonomy.json"); err == nil {
-		patternTaxonomy, err = loadPatternTaxonomy("/home/ubuntu/cwecapec/resources/pattern_taxonomy.json")
+	if _, err := os.Stat("resources/pattern_taxonomy.json"); err == nil {
+		patternTaxonomy, err = loadPatternTaxonomy("resources/pattern_taxonomy.json")
 		if err != nil && showDetails {
 			fmt.Printf("Warning: Failed to load pattern taxonomy: %v\n", err)
 		} else if showDetails {
@@ -220,8 +220,8 @@ func main() {
 	}
 
 	// Load CAPEC and Relationships DBs
-	if _, err := os.Stat("/home/ubuntu/cwecapec/resources/capec_db.json"); err == nil {
-		err = loadCAPECDB("/home/ubuntu/cwecapec/resources/capec_db.json")
+	if _, err := os.Stat("resources/capec_db.json"); err == nil {
+		err = loadCAPECDB("resources/capec_db.json")
 		if err != nil {
 			fmt.Printf("Error loading CAPEC DB: %v\n", err)
 			os.Exit(1)
@@ -230,8 +230,8 @@ func main() {
 		fmt.Println("Warning: resources/capec_db.json not found. CAPEC mapping will be skipped.")
 	}
 
-	if _, err := os.Stat("/home/ubuntu/cwecapec/resources/relationships_db.json"); err == nil {
-		err = loadRelationshipsDB("/home/ubuntu/cwecapec/resources/relationships_db.json")
+	if _, err := os.Stat("resources/relationships_db.json"); err == nil {
+		err = loadRelationshipsDB("resources/relationships_db.json")
 		if err != nil {
 			fmt.Printf("Error loading Relationships DB: %v\n", err)
 			os.Exit(1)
