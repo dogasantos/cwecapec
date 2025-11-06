@@ -258,24 +258,71 @@ func addManualCriticalPatterns(taxonomy *PatternTaxonomy) {
 // -------------------- Boost Score Calculation --------------------
 
 func calculateBoostScores(taxonomy *PatternTaxonomy, trainingData []CVETrainingExample) {
-	// Calculate boost based on specificity and support
-	// Boost = base_boost * specificity * log(support)
+	// New scoring system:
+	// - High specificity (>0.8) + high support → Strong boost (3.0-5.0)
+	// - Medium specificity (0.6-0.8) → Medium boost (1.0-3.0)
+	// - Low specificity (<0.6) → Low boost (0.1-1.0)
+	// This prevents generic terms from overwhelming specific signals
 
-	const baseBoost = 50.0
+	// Calculate document frequency for IDF
+	docFreq := calculateDocumentFrequency(trainingData)
+	totalDocs := float64(len(trainingData))
 
 	for vector, patterns := range taxonomy.Patterns {
 		for i := range patterns {
 			pattern := &patterns[i]
 
-			// Boost increases with specificity and support
-			supportFactor := math.Log(float64(pattern.Support) + 1.0)
-			pattern.Boost = baseBoost * pattern.Specificity * supportFactor
+			// Calculate IDF for the first keyword (most discriminative)
+			var idf float64
+			if len(pattern.Keywords) > 0 {
+				df := float64(docFreq[pattern.Keywords[0]])
+				idf = math.Log(totalDocs / (1.0 + df))
+			} else {
+				idf = 0.0
+			}
 
-			// Clamp boost to reasonable range
-			if pattern.Boost < 10.0 {
-				pattern.Boost = 10.0
-			} else if pattern.Boost > 100.0 {
-				pattern.Boost = 100.0
+			// Base boost from specificity
+			var baseBoost float64
+			if pattern.Specificity >= 0.9 {
+				// Very specific (90%+) → Strong signal
+				baseBoost = 5.0
+			} else if pattern.Specificity >= 0.8 {
+				// Highly specific (80-90%) → Good signal
+				baseBoost = 3.0
+			} else if pattern.Specificity >= 0.7 {
+				// Moderately specific (70-80%) → Decent signal
+				baseBoost = 2.0
+			} else if pattern.Specificity >= 0.6 {
+				// Somewhat specific (60-70%) → Weak signal
+				baseBoost = 1.0
+			} else {
+				// Low specificity (<60%) → Very weak signal (penalty)
+				baseBoost = 0.1
+			}
+
+			// Adjust by IDF (rare terms get higher boost)
+			// IDF ranges from ~0 (very common) to ~8 (very rare)
+			// Normalize to 0.5-1.5 multiplier
+			idfFactor := 0.5 + (idf / 16.0) // Maps IDF 0-8 to 0.5-1.0
+			if idfFactor > 1.5 {
+				idfFactor = 1.5
+			}
+
+			// Adjust by support (more evidence = slightly higher boost)
+			// But don't let support dominate (cap at 1.2x)
+			supportFactor := 1.0 + math.Log(float64(pattern.Support)+1.0)/20.0
+			if supportFactor > 1.2 {
+				supportFactor = 1.2
+			}
+
+			// Final boost
+			pattern.Boost = baseBoost * idfFactor * supportFactor
+
+			// Ensure reasonable range [0.1, 5.0]
+			if pattern.Boost < 0.1 {
+				pattern.Boost = 0.1
+			} else if pattern.Boost > 5.0 {
+				pattern.Boost = 5.0
 			}
 		}
 		taxonomy.Patterns[vector] = patterns
