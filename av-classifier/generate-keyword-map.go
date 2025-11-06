@@ -140,7 +140,6 @@ func buildPatternTaxonomy(trainingData []CVETrainingExample) *PatternTaxonomy {
 	}
 
 	// Calculate TF-IDF for each vector
-	allTerms := extractAllTerms(trainingData)
 	docFreq := calculateDocumentFrequency(trainingData)
 	totalDocs := float64(len(trainingData))
 
