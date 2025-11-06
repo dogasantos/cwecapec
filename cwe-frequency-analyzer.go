@@ -48,7 +48,7 @@ func main() {
 	fmt.Println("=================================================================\n")
 
 	resourcesPath := "resources"
-	inputPath := resourcesPath + "/training_data_reclassified.json"
+	inputPath := resourcesPath + "/training_data.json"
 	outputPath := resourcesPath + "/cwe_frequency_map.json"
 
 	// Load training data
