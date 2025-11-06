@@ -47,7 +47,7 @@ func main() {
 	fmt.Println("Generates statistical CWE frequency map from training data")
 	fmt.Println("=================================================================\n")
 
-	resourcesPath := "cwecapec/resources"
+	resourcesPath := "resources"
 	inputPath := resourcesPath + "/training_data_reclassified.json"
 	outputPath := resourcesPath + "/cwe_frequency_map.json"
 
