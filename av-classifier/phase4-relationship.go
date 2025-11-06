@@ -264,15 +264,53 @@ func main() {
 	}
 
 	// CAPEC Ranking
-	// Get the top 2 ranked CWEs from the classification process
-	topCWEs := rankCWEsByRelevance(cwes, cveDesc, hierarchy, 2)
+	// Get CWEs from the top classified attack vector (not from CVE's CWE list)
+	var attackVectorCWEs []string
+	if len(results) > 0 {
+		// Get the top classified attack vector
+		topVector := results[0].Vector
 
-	if len(topCWEs) > 0 {
+		if showDetails {
+			fmt.Printf("\n[DEBUG] Top classified vector: '%s'\n", topVector)
+			fmt.Printf("[DEBUG] Available attack vector mappings: ")
+			count := 0
+			for avKey := range hierarchy.AttackVectorMapping {
+				if count < 5 {
+					fmt.Printf("%s ", avKey)
+					count++
+				}
+			}
+			fmt.Println()
+		}
+
+		// Look up CWEs associated with this attack vector
+		if vectorCWEs, exists := hierarchy.AttackVectorMapping[topVector]; exists {
+			attackVectorCWEs = vectorCWEs
+			if showDetails {
+				fmt.Printf("[DEBUG] Attack vector '%s' maps to CWEs: %v\n", topVector, vectorCWEs)
+			}
+		} else {
+			if showDetails {
+				fmt.Printf("[DEBUG] No CWE mapping found for attack vector '%s'\n", topVector)
+				fmt.Printf("[DEBUG] Falling back to top-ranked CWE from CVE data\n")
+			}
+			// Fallback: use top-ranked CWE from CVE's CWE list (deduplicated)
+			topCWEs := rankCWEsByRelevance(cwes, cveDesc, hierarchy, 1)
+			if len(topCWEs) > 0 {
+				attackVectorCWEs = []string{topCWEs[0]}
+				if showDetails {
+					fmt.Printf("[DEBUG] Using top CWE: %s\n", topCWEs[0])
+				}
+			}
+		}
+	}
+
+	if len(attackVectorCWEs) > 0 {
 		fmt.Println("\n=================================================================")
 		fmt.Println("CWE-to-CAPEC Relationship Mapping")
 		fmt.Println("=================================================================\n")
 
-		for _, cweID := range topCWEs {
+		for _, cweID := range attackVectorCWEs {
 			capecResults := getCAPECsForCWE(cweID)
 
 			cweInfo, exists := hierarchy.CWEs[cweID]
