@@ -346,11 +346,22 @@ func loadCAPECDB(path string) error {
 	if err != nil {
 		return err
 	}
+
+	// Try to unmarshal as array first
 	var capecs []CAPECData
 	err = json.Unmarshal(data, &capecs)
 	if err != nil {
-		return err
+		// If that fails, try to unmarshal as object with "capecs" key
+		var capecObj struct {
+			CAPECs []CAPECData `json:"capecs"`
+		}
+		err = json.Unmarshal(data, &capecObj)
+		if err != nil {
+			return fmt.Errorf("failed to parse CAPEC DB (tried both array and object formats): %v", err)
+		}
+		capecs = capecObj.CAPECs
 	}
+
 	capecDB = make(map[string]CAPECData)
 	for _, capec := range capecs {
 		capecDB[capec.CAPECID] = capec
@@ -908,13 +919,12 @@ func getVectorName(vector string) string {
 	return vector // Return ID if no mapping found
 }
 
-var versionRegex = regexp.MustCompile(`\b\d+\.\d+[\.\d+]*[a-z]*\b`)
-
 func tokenize(text string) []string {
 	// Convert to lowercase
 	text = strings.ToLower(text)
 
 	// Remove version numbers
+	versionRegex := regexp.MustCompile(`\b\d+\.\d+(\.\d+)*\b`)
 	text = versionRegex.ReplaceAllString(text, "")
 
 	// Remove CVE IDs
