@@ -324,37 +324,65 @@ func main() {
 		fmt.Println()
 	}
 
-	// Classify
-	results := classifyHybrid(cveDesc, cwes, hierarchy, model, patternTaxonomy, topN, showDetails)
+	// Check if CVE has exactly 1 CWE - if so, skip classification and go directly to CAPEC mapping
+	var results []ClassificationResult
+	var usedSingleCWE bool
+	var singleCWEID string
 
-	// Filter results based on confidence gap
-	filteredResults := filterByConfidenceGap(results)
+	if len(cwes) == 1 {
+		cweID := cwes[0]
+		if _, exists := hierarchy.CWEs[cweID]; exists {
+			// Use the CWE directly without classification
+			usedSingleCWE = true
+			singleCWEID = cweID
 
-	// Display results
-	fmt.Println("\n=================================================================")
-	fmt.Println("Classification Results:")
-	fmt.Println("=================================================================\n")
-
-	for i, result := range filteredResults {
-		fmt.Printf("%d. %s\n", i+1, result.Name)
-		fmt.Printf("   Probability: %.2f%% (%s confidence)\n", result.Probability*100, result.Confidence)
-
-		// Display layer contributions if available
-		if len(result.LayerContributions) > 0 {
-			fmt.Printf("   Source: %s\n", strings.Join(result.LayerContributions, " + "))
-		} else {
-			fmt.Printf("   Source: %s\n", result.Source)
+			if showDetails {
+				fmt.Printf("[SINGLE CWE MODE] CVE has only 1 CWE: CWE-%s\n", cweID)
+				fmt.Printf("[SINGLE CWE MODE] Skipping classification, using CWE directly for CAPEC mapping\n")
+			}
 		}
+	}
 
-		if i < len(filteredResults)-1 {
-			fmt.Println()
+	// If not single CWE mode, run hybrid classification and display results
+	if !usedSingleCWE {
+		results = classifyHybrid(cveDesc, cwes, hierarchy, model, patternTaxonomy, topN, showDetails)
+
+		// Filter results based on confidence gap
+		filteredResults := filterByConfidenceGap(results)
+
+		// Display results
+		fmt.Println("\n=================================================================")
+		fmt.Println("Classification Results:")
+		fmt.Println("=================================================================\n")
+
+		for i, result := range filteredResults {
+			fmt.Printf("%d. %s\n", i+1, result.Name)
+			fmt.Printf("   Probability: %.2f%% (%s confidence)\n", result.Probability*100, result.Confidence)
+
+			// Display layer contributions if available
+			if len(result.LayerContributions) > 0 {
+				fmt.Printf("   Source: %s\n", strings.Join(result.LayerContributions, " + "))
+			} else {
+				fmt.Printf("   Source: %s\n", result.Source)
+			}
+
+			if i < len(filteredResults)-1 {
+				fmt.Println()
+			}
 		}
 	}
 
 	// CAPEC Ranking
-	// Get CWEs from the top classified attack vector
+	// Get CWE for CAPEC mapping
 	var attackVectorCWEs []string
-	if len(results) > 0 {
+
+	// If single CWE mode, use that CWE directly
+	if usedSingleCWE {
+		attackVectorCWEs = []string{singleCWEID}
+		if showDetails {
+			fmt.Printf("\n[DEBUG] Using single CWE-%s for CAPEC mapping\n", singleCWEID)
+		}
+	} else if len(results) > 0 {
 		// Get the top classified attack vector
 		topVector := results[0].Vector
 
@@ -363,8 +391,6 @@ func main() {
 		}
 
 		// Find CWE(s) from the CVE's CWE list that map to the top attack vector
-		// The attack_vector_mapping is CWE ID -> [attack vectors]
-		// So we need to check each CVE CWE to see if it maps to topVector
 		topVectorLower := strings.ToLower(strings.ReplaceAll(topVector, " ", "_"))
 
 		for _, cweID := range cwes {
