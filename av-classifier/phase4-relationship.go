@@ -312,7 +312,20 @@ func main() {
 
 		for _, cweID := range attackVectorCWEs {
 			// Use two-layer filtering and ranking (top 5 CAPECs)
-			capecResults := getCAPECsForCWEWithFiltering(cweID, cveDesc, 5)
+			// Get classified vector and pattern taxonomy
+			classifiedVector := ""
+			if len(results) > 0 {
+				classifiedVector = results[0].Vector
+			}
+
+			var patternMap map[string][]PatternRule
+			if patternTaxonomy != nil {
+				patternMap = patternTaxonomy.Patterns
+			} else {
+				patternMap = make(map[string][]PatternRule)
+			}
+
+			capecResults := getCAPECsForCWEWithFiltering(cweID, cveDesc, classifiedVector, patternMap, 5)
 
 			cweInfo, exists := hierarchy.CWEs[cweID]
 			cweName := "Unknown CWE"
@@ -408,80 +421,106 @@ func filterUnrelatedCAPECs(capecs []CAPECData, cveDescription string) []CAPECDat
 	return filtered
 }
 
-// Layer 2: Rank CAPECs by relevance to CVE description
-func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string) []CAPECResult {
+// Layer 2: Rank CAPECs by relevance using pattern taxonomy
+func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string, classifiedVector string, patternTaxonomy map[string][]PatternRule) []CAPECResult {
 	descLower := strings.ToLower(cveDescription)
-	descWords := strings.Fields(descLower)
-
-	// Create word frequency map for CVE description
-	cveWordFreq := make(map[string]int)
-	for _, word := range descWords {
-		// Skip common words
-		if len(word) > 3 {
-			cveWordFreq[word]++
-		}
-	}
 
 	var results []CAPECResult
 
 	for _, capec := range capecs {
 		capecNameLower := strings.ToLower(capec.Name)
 		capecDescLower := strings.ToLower(capec.Description)
-		capecWords := strings.Fields(capecNameLower + " " + capecDescLower)
+		capecText := capecNameLower + " " + capecDescLower
 
-		// Calculate keyword overlap score
-		overlapScore := 0.0
-		for _, word := range capecWords {
-			if len(word) > 3 {
-				if freq, exists := cveWordFreq[word]; exists {
-					overlapScore += float64(freq)
+		// Start with base score
+		relevanceScore := 30.0 // Base score for all CAPECs that passed filtering
+
+		// 1. Check if CAPEC name directly matches classified attack vector
+		if strings.Contains(capecNameLower, strings.ToLower(classifiedVector)) {
+			relevanceScore += 40.0
+			if showDetails {
+				fmt.Printf("    [RANK] CAPEC-%s: +40 (name matches vector '%s')\n", capec.CAPECID, classifiedVector)
+			}
+		}
+
+		// 2. Use pattern taxonomy to score CAPEC relevance
+		if patterns, exists := patternTaxonomy[classifiedVector]; exists {
+			for _, pattern := range patterns {
+				matchCount := 0
+				for _, keyword := range pattern.Keywords {
+					if strings.Contains(capecText, strings.ToLower(keyword)) {
+						matchCount++
+					}
+				}
+
+				// If CAPEC matches pattern keywords, add score based on pattern boost
+				if matchCount > 0 {
+					patternScore := (float64(matchCount) / float64(len(pattern.Keywords))) * pattern.Boost * 0.5
+					relevanceScore += patternScore
+					if showDetails && patternScore > 5 {
+						fmt.Printf("    [RANK] CAPEC-%s: +%.1f (pattern match: %d/%d keywords)\n",
+							capec.CAPECID, patternScore, matchCount, len(pattern.Keywords))
+					}
 				}
 			}
 		}
 
-		// Normalize by CAPEC description length
-		if len(capecWords) > 0 {
-			overlapScore = overlapScore / float64(len(capecWords)) * 100
+		// 3. Check for important CVE keywords in CAPEC
+		importantKeywords := []string{"command", "injection", "execute", "arbitrary", "code", "exploit", "vulnerability"}
+		keywordMatches := 0
+		for _, keyword := range importantKeywords {
+			if strings.Contains(descLower, keyword) && strings.Contains(capecText, keyword) {
+				keywordMatches++
+			}
+		}
+		if keywordMatches > 0 {
+			keywordScore := float64(keywordMatches) * 3.0
+			relevanceScore += keywordScore
+			if showDetails {
+				fmt.Printf("    [RANK] CAPEC-%s: +%.1f (keyword matches: %d)\n", capec.CAPECID, keywordScore, keywordMatches)
+			}
 		}
 
-		// Bonus for generic/broad attack patterns (they're usually relevant)
-		genericKeywords := []string{"injection", "command", "code execution", "arbitrary", "exploit"}
-		for _, keyword := range genericKeywords {
-			if strings.Contains(capecNameLower, keyword) {
-				overlapScore += 10.0
+		// 4. Bonus for generic attack patterns (always relevant)
+		genericPatterns := []string{"injection", "command", "code execution", "exploit"}
+		for _, pattern := range genericPatterns {
+			if strings.Contains(capecNameLower, pattern) {
+				relevanceScore += 10.0
+				if showDetails {
+					fmt.Printf("    [RANK] CAPEC-%s: +10 (generic pattern: %s)\n", capec.CAPECID, pattern)
+				}
 				break
 			}
 		}
 
-		// Bonus for high severity alignment
+		// 5. Severity alignment bonus
 		if capec.TypicalSeverity == "High" || capec.TypicalSeverity == "Very High" {
 			if strings.Contains(descLower, "critical") || strings.Contains(descLower, "execute") || strings.Contains(descLower, "arbitrary") {
-				overlapScore += 5.0
+				relevanceScore += 5.0
 			}
 		}
 
-		// Ensure minimum score for all CAPECs that passed filtering
-		if overlapScore < 10.0 {
-			overlapScore = 10.0
-		}
-
 		// Cap at 100%
-		if overlapScore > 100.0 {
-			overlapScore = 100.0
+		if relevanceScore > 100.0 {
+			relevanceScore = 100.0
 		}
 
 		// Determine confidence level
 		confidence := "low"
-		if overlapScore >= 70.0 {
+		if relevanceScore >= 70.0 {
 			confidence = "high"
-		} else if overlapScore >= 40.0 {
+		} else if relevanceScore >= 50.0 {
 			confidence = "medium"
+		}
+
+		if showDetails {
+			fmt.Printf("    [RANK] CAPEC-%s: Final score = %.1f%% (%s confidence)\n", capec.CAPECID, relevanceScore, confidence)
 		}
 
 		results = append(results, CAPECResult{
 			CAPECID:     capec.CAPECID,
 			Name:        capec.Name,
-			Probability: overlapScore / 100.0,
+			Probability: relevanceScore / 100.0,
 			Confidence:  confidence,
 		})
 	}
@@ -495,7 +534,7 @@ func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string) []CAPECRes
 }
 
 // Get CAPECs for a CWE with two-layer filtering and ranking
-func getCAPECsForCWEWithFiltering(cweID string, cveDescription string, topN int) []CAPECResult {
+func getCAPECsForCWEWithFiltering(cweID string, cveDescription string, classifiedVector string, patternTaxonomy map[string][]PatternRule, topN int) []CAPECResult {
 	if relationshipsDB == nil || capecDB == nil {
 		if showDetails {
 			fmt.Printf("  [DEBUG] getCAPECsForCWEWithFiltering(%s): relationshipsDB or capecDB is nil\n", cweID)
@@ -572,7 +611,7 @@ func getCAPECsForCWEWithFiltering(cweID string, cveDescription string, topN int)
 		fmt.Printf("  [LAYER 2] Ranking %d CAPECs by relevance\n", len(filteredCAPECs))
 	}
 
-	rankedResults := rankCAPECsByRelevance(filteredCAPECs, cveDescription)
+	rankedResults := rankCAPECsByRelevance(filteredCAPECs, cveDescription, classifiedVector, patternTaxonomy)
 
 	// Take top N
 	if len(rankedResults) > topN {
