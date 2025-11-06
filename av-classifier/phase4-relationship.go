@@ -80,8 +80,10 @@ type CAPECData struct {
 
 // CWE to CAPEC relationships
 type RelationshipsDB struct {
-	CWEToCapec    map[string][]string `json:"CWEToCapec"`
-	CapecToAttack map[string][]string `json:"CapecToAttack"`
+	CWEToCapec    map[string][]string `json:"cwe_to_capec"`
+	CapecToCWE    map[string][]string `json:"capec_to_cwe"`
+	CapecToAttack map[string][]string `json:"capec_to_attack"`
+	AttackToCapec map[string][]string `json:"attack_to_capec"`
 }
 
 // CAPEC ranking result
@@ -343,13 +345,52 @@ func loadRelationshipsDB(path string) error {
 	if err != nil {
 		return err
 	}
-	relationshipsDB = &RelationshipsDB{}
-	err = json.Unmarshal(data, relationshipsDB)
-	if err != nil {
-		return err
+
+	// Try snake_case format first (feeds-updater.go output)
+	type RelationshipsSnakeCase struct {
+		CWEToCapec    map[string][]string `json:"cwe_to_capec"`
+		CapecToCWE    map[string][]string `json:"capec_to_cwe"`
+		CapecToAttack map[string][]string `json:"capec_to_attack"`
+		AttackToCapec map[string][]string `json:"attack_to_capec"`
 	}
-	fmt.Println(" ✓")
-	return nil
+
+	var snakeDB RelationshipsSnakeCase
+	err = json.Unmarshal(data, &snakeDB)
+	if err == nil && len(snakeDB.CWEToCapec) > 0 {
+		// Successfully loaded snake_case format
+		relationshipsDB = &RelationshipsDB{
+			CWEToCapec:    snakeDB.CWEToCapec,
+			CapecToCWE:    snakeDB.CapecToCWE,
+			CapecToAttack: snakeDB.CapecToAttack,
+			AttackToCapec: snakeDB.AttackToCapec,
+		}
+		fmt.Println(" ✓")
+		return nil
+	}
+
+	// Try PascalCase format (legacy format)
+	type RelationshipsPascalCase struct {
+		CWEToCapec    map[string][]string `json:"CWEToCapec"`
+		CapecToCWE    map[string][]string `json:"CapecToCWE"`
+		CapecToAttack map[string][]string `json:"CapecToAttack"`
+		AttackToCapec map[string][]string `json:"AttackToCapec"`
+	}
+
+	var pascalDB RelationshipsPascalCase
+	err = json.Unmarshal(data, &pascalDB)
+	if err == nil && len(pascalDB.CWEToCapec) > 0 {
+		// Successfully loaded PascalCase format
+		relationshipsDB = &RelationshipsDB{
+			CWEToCapec:    pascalDB.CWEToCapec,
+			CapecToCWE:    pascalDB.CapecToCWE,
+			CapecToAttack: pascalDB.CapecToAttack,
+			AttackToCapec: pascalDB.AttackToCapec,
+		}
+		fmt.Println(" ✓")
+		return nil
+	}
+
+	return fmt.Errorf("failed to parse relationships DB in either snake_case or PascalCase format")
 }
 
 func loadCAPECDB(path string) error {
