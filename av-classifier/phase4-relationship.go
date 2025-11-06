@@ -303,6 +303,22 @@ func main() {
 		// Normalize the vector name to match data format (e.g., "Path Traversal" -> "path_traversal")
 		normalizedVector := normalizeAttackVector(topVector)
 
+		if showDetails {
+			fmt.Printf("\n[DEBUG] Looking up CWEs for classified vector: '%s'\n", topVector)
+			fmt.Printf("[DEBUG] Normalized to: '%s'\n", normalizedVector)
+			fmt.Printf("[DEBUG] Available mappings in hierarchy: %d\n", len(hierarchy.AttackVectorMapping))
+			// Show all available attack vector keys
+			fmt.Printf("[DEBUG] Available attack vector keys (first 10): ")
+			count := 0
+			for av := range hierarchy.AttackVectorMapping {
+				if count < 10 {
+					fmt.Printf("'%s' ", av)
+					count++
+				}
+			}
+			fmt.Println()
+		}
+
 		if vectorCWEs, exists := hierarchy.AttackVectorMapping[normalizedVector]; exists {
 			// Fallback 1: Use data-driven mapping, selecting the first (most relevant) CWE
 			if len(vectorCWEs) > 0 {
@@ -1546,11 +1562,27 @@ func loadCWEHierarchy(filename string) (*CWEHierarchy, error) {
 	if hierarchy.AttackVectorMapping == nil || len(hierarchy.AttackVectorMapping) == 0 {
 		hierarchy.AttackVectorMapping = make(map[string][]string)
 
+		if showDetails {
+			fmt.Println("[DEBUG] Building forward AttackVector->CWE mapping from CWE attack_vectors...")
+		}
+
 		// Build from CWE attack_vectors field
 		for cweID, cweInfo := range hierarchy.CWEs {
 			if cweInfo != nil {
 				for _, av := range cweInfo.AttackVectors {
 					hierarchy.AttackVectorMapping[av] = append(hierarchy.AttackVectorMapping[av], cweID)
+				}
+			}
+		}
+
+		if showDetails {
+			fmt.Printf("[DEBUG] Built %d attack vector mappings\n", len(hierarchy.AttackVectorMapping))
+			// Show a sample of the mappings
+			count := 0
+			for av, cweIDs := range hierarchy.AttackVectorMapping {
+				if count < 5 {
+					fmt.Printf("[DEBUG]   '%s' -> %v\n", av, cweIDs)
+					count++
 				}
 			}
 		}
