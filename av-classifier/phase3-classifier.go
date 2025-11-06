@@ -62,11 +62,12 @@ type AttackVectorModel struct {
 
 // Classification result
 type ClassificationResult struct {
-	Vector      string  `json:"vector"`
-	Name        string  `json:"name"`
-	Probability float64 `json:"probability"`
-	Confidence  string  `json:"confidence"`
-	Source      string  `json:"source"` // "cwe_hierarchy", "naive_bayes", or "hybrid"
+	Vector             string   `json:"vector"`
+	Name               string   `json:"name"`
+	Probability        float64  `json:"probability"`
+	Confidence         string   `json:"confidence"`
+	Source             string   `json:"source"`                        // "cwe_hierarchy", "naive_bayes", or "hybrid"
+	LayerContributions []string `json:"layer_contributions,omitempty"` // Track which layers contributed
 }
 
 // CAPEC structures
@@ -88,10 +89,11 @@ type RelationshipsDB struct {
 
 // CAPEC ranking result
 type CAPECResult struct {
-	CAPECID     string  `json:"capec_id"`
-	Name        string  `json:"name"`
-	Probability float64 `json:"probability"`
-	Confidence  string  `json:"confidence"`
+	CAPECID            string   `json:"capec_id"`
+	Name               string   `json:"name"`
+	Probability        float64  `json:"probability"`
+	Confidence         string   `json:"confidence"`
+	LayerContributions []string `json:"layer_contributions,omitempty"`
 }
 
 // ScoredCWE represents a CWE with its relevance score
@@ -113,6 +115,9 @@ type PatternTaxonomy struct {
 	Patterns map[string][]PatternRule `json:"patterns"` // attack_vector -> rules
 }
 
+// CWE Frequency Map (Attack Vector -> Top CWEs)
+type CWEFrequencyMap map[string][]string
+
 var (
 	cveID           string
 	cveDesc         string
@@ -121,6 +126,7 @@ var (
 	showDetails     bool
 	capecDB         map[string]CAPECData
 	relationshipsDB *RelationshipsDB
+	cweFrequencyMap CWEFrequencyMap
 )
 
 func main() {
@@ -242,6 +248,16 @@ func main() {
 		fmt.Println("Warning: resources/relationships_db.json not found. CAPEC mapping will be skipped.")
 	}
 
+	if _, err := os.Stat("resources/attack_vector_to_cwe_map.json"); err == nil {
+		err = loadCWEFrequencyMap("resources/attack_vector_to_cwe_map.json")
+		if err != nil {
+			fmt.Printf("Error loading CWE Frequency Map: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println("Warning: resources/attack_vector_to_cwe_map.json not found. CWE frequency matching will be skipped.")
+	}
+
 	if showDetails {
 		fmt.Println()
 	}
@@ -257,7 +273,14 @@ func main() {
 	for i, result := range results {
 		fmt.Printf("%d. %s\n", i+1, result.Name)
 		fmt.Printf("   Probability: %.2f%% (%s confidence)\n", result.Probability*100, result.Confidence)
-		fmt.Printf("   Source: %s\n", result.Source)
+
+		// Display layer contributions if available
+		if len(result.LayerContributions) > 0 {
+			fmt.Printf("   Source: %s\n", strings.Join(result.LayerContributions, " + "))
+		} else {
+			fmt.Printf("   Source: %s\n", result.Source)
+		}
+
 		if i < len(results)-1 {
 			fmt.Println()
 		}
@@ -272,6 +295,15 @@ func main() {
 
 		if showDetails {
 			fmt.Printf("\n[DEBUG] Top classified vector: '%s'\n", topVector)
+
+			// Debug: Print the actual mappings for the relevant vectors
+			if ptCWEs, exists := hierarchy.AttackVectorMapping["Path Traversal"]; exists {
+				fmt.Printf("[DEBUG] AttackVectorMapping['Path Traversal']: %v\n", ptCWEs)
+			}
+			if ssrfCWEs, exists := hierarchy.AttackVectorMapping["Server-Side Request Forgery"]; exists {
+				fmt.Printf("[DEBUG] AttackVectorMapping['Server-Side Request Forgery']: %v\n", ssrfCWEs)
+			}
+
 			fmt.Printf("[DEBUG] Available attack vector mappings: ")
 			count := 0
 			for avKey := range hierarchy.AttackVectorMapping {
@@ -285,9 +317,18 @@ func main() {
 
 		// Look up CWEs associated with this attack vector
 		if vectorCWEs, exists := hierarchy.AttackVectorMapping[topVector]; exists {
-			attackVectorCWEs = vectorCWEs
-			if showDetails {
-				fmt.Printf("[DEBUG] Attack vector '%s' maps to CWEs: %v\n", topVector, vectorCWEs)
+			// We have multiple CWEs. We must select the most relevant one.
+			// For now, we will just use the first CWE in the list, as it is usually the most relevant.
+			if len(vectorCWEs) > 0 {
+				attackVectorCWEs = []string{vectorCWEs[0]}
+				if showDetails {
+					fmt.Printf("[DEBUG] Attack vector '%s' maps to CWEs: %v\n", topVector, vectorCWEs)
+					fmt.Printf("[DEBUG] Selecting only the first CWE: %s\n", attackVectorCWEs[0])
+				}
+			} else {
+				if showDetails {
+					fmt.Printf("[DEBUG] Attack vector '%s' maps to an empty CWE list\n", topVector)
+				}
 			}
 		} else {
 			if showDetails {
@@ -312,7 +353,20 @@ func main() {
 
 		for _, cweID := range attackVectorCWEs {
 			// Use two-layer filtering and ranking (top 5 CAPECs)
-			capecResults := getCAPECsForCWEWithFiltering(cweID, cveDesc, 5)
+			// Get classified vector and pattern taxonomy
+			classifiedVector := ""
+			if len(results) > 0 {
+				classifiedVector = results[0].Vector
+			}
+
+			var patternMap map[string][]PatternRule
+			if patternTaxonomy != nil {
+				patternMap = patternTaxonomy.Patterns
+			} else {
+				patternMap = make(map[string][]PatternRule)
+			}
+
+			capecResults := getCAPECsForCWEWithFiltering(cweID, cveDesc, classifiedVector, patternMap, 5)
 
 			cweInfo, exists := hierarchy.CWEs[cweID]
 			cweName := "Unknown CWE"
@@ -325,8 +379,13 @@ func main() {
 				fmt.Println("  No direct CAPEC relationships found.")
 			} else {
 				for i, capec := range capecResults {
+					// Display layer contributions if available
+					sourceStr := capec.Confidence
+					if len(capec.LayerContributions) > 0 {
+						sourceStr = strings.Join(capec.LayerContributions, " + ")
+					}
 					fmt.Printf("  %d. CAPEC-%s: %s (Relevance: %.0f%%, Source: %s)\n",
-						i+1, capec.CAPECID, capec.Name, capec.Probability*100, capec.Confidence)
+						i+1, capec.CAPECID, capec.Name, capec.Probability*100, sourceStr)
 				}
 			}
 			fmt.Println()
@@ -408,81 +467,127 @@ func filterUnrelatedCAPECs(capecs []CAPECData, cveDescription string) []CAPECDat
 	return filtered
 }
 
-// Layer 2: Rank CAPECs by relevance to CVE description
-func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string) []CAPECResult {
+// Layer 2: Rank CAPECs by relevance using pattern taxonomy
+func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string, classifiedVector string, patternTaxonomy map[string][]PatternRule) []CAPECResult {
 	descLower := strings.ToLower(cveDescription)
-	descWords := strings.Fields(descLower)
-
-	// Create word frequency map for CVE description
-	cveWordFreq := make(map[string]int)
-	for _, word := range descWords {
-		// Skip common words
-		if len(word) > 3 {
-			cveWordFreq[word]++
-		}
-	}
 
 	var results []CAPECResult
 
 	for _, capec := range capecs {
 		capecNameLower := strings.ToLower(capec.Name)
 		capecDescLower := strings.ToLower(capec.Description)
-		capecWords := strings.Fields(capecNameLower + " " + capecDescLower)
+		capecText := capecNameLower + " " + capecDescLower
 
-		// Calculate keyword overlap score
-		overlapScore := 0.0
-		for _, word := range capecWords {
-			if len(word) > 3 {
-				if freq, exists := cveWordFreq[word]; exists {
-					overlapScore += float64(freq)
+		// Track which layers contributed
+		layers := make(map[string]bool)
+		layers["CWE Relationship"] = true // All CAPECs come from CWE relationships
+
+		// Start with base score
+		relevanceScore := 30.0 // Base score for all CAPECs that passed filtering
+
+		// 1. Check if CAPEC name directly matches classified attack vector
+		if strings.Contains(capecNameLower, strings.ToLower(classifiedVector)) {
+			relevanceScore += 40.0
+			if showDetails {
+				fmt.Printf("    [RANK] CAPEC-%s: +40 (name matches vector '%s')\n", capec.CAPECID, classifiedVector)
+			}
+		}
+
+		// 2. Use pattern taxonomy to score CAPEC relevance
+		if patterns, exists := patternTaxonomy[classifiedVector]; exists {
+			for _, pattern := range patterns {
+				matchCount := 0
+				for _, keyword := range pattern.Keywords {
+					if strings.Contains(capecText, strings.ToLower(keyword)) {
+						matchCount++
+					}
+				}
+
+				// If CAPEC matches pattern keywords, add score based on pattern boost
+				if matchCount > 0 {
+					patternScore := (float64(matchCount) / float64(len(pattern.Keywords))) * pattern.Boost * 0.5
+					relevanceScore += patternScore
+					layers["Pattern Match"] = true
+					if showDetails && patternScore > 5 {
+						fmt.Printf("    [RANK] CAPEC-%s: +%.1f (pattern match: %d/%d keywords)\n",
+							capec.CAPECID, patternScore, matchCount, len(pattern.Keywords))
+					}
 				}
 			}
 		}
 
-		// Normalize by CAPEC description length
-		if len(capecWords) > 0 {
-			overlapScore = overlapScore / float64(len(capecWords)) * 100
+		// 3. Check for important CVE keywords in CAPEC
+		importantKeywords := []string{"command", "injection", "execute", "arbitrary", "code", "exploit", "vulnerability"}
+		keywordMatches := 0
+		for _, keyword := range importantKeywords {
+			if strings.Contains(descLower, keyword) && strings.Contains(capecText, keyword) {
+				keywordMatches++
+			}
+		}
+		if keywordMatches > 0 {
+			keywordScore := float64(keywordMatches) * 3.0
+			relevanceScore += keywordScore
+			layers["Keyword Match"] = true
+			if showDetails {
+				fmt.Printf("    [RANK] CAPEC-%s: +%.1f (keyword matches: %d)\n", capec.CAPECID, keywordScore, keywordMatches)
+			}
 		}
 
-		// Bonus for generic/broad attack patterns (they're usually relevant)
-		genericKeywords := []string{"injection", "command", "code execution", "arbitrary", "exploit"}
-		for _, keyword := range genericKeywords {
-			if strings.Contains(capecNameLower, keyword) {
-				overlapScore += 10.0
+		// 4. Bonus for generic attack patterns (always relevant)
+		genericPatterns := []string{"injection", "command", "code execution", "exploit"}
+		for _, pattern := range genericPatterns {
+			if strings.Contains(capecNameLower, pattern) {
+				relevanceScore += 10.0
+				if showDetails {
+					fmt.Printf("    [RANK] CAPEC-%s: +10 (generic pattern: %s)\n", capec.CAPECID, pattern)
+				}
 				break
 			}
 		}
 
-		// Bonus for high severity alignment
+		// 5. Severity alignment bonus
 		if capec.TypicalSeverity == "High" || capec.TypicalSeverity == "Very High" {
 			if strings.Contains(descLower, "critical") || strings.Contains(descLower, "execute") || strings.Contains(descLower, "arbitrary") {
-				overlapScore += 5.0
+				relevanceScore += 5.0
 			}
 		}
 
-		// Ensure minimum score for all CAPECs that passed filtering
-		if overlapScore < 10.0 {
-			overlapScore = 10.0
-		}
-
 		// Cap at 100%
-		if overlapScore > 100.0 {
-			overlapScore = 100.0
+		if relevanceScore > 100.0 {
+			relevanceScore = 100.0
 		}
 
 		// Determine confidence level
 		confidence := "low"
-		if overlapScore >= 70.0 {
+		if relevanceScore >= 70.0 {
 			confidence = "high"
-		} else if overlapScore >= 40.0 {
+		} else if relevanceScore >= 50.0 {
 			confidence = "medium"
 		}
 
+		if showDetails {
+			fmt.Printf("    [RANK] CAPEC-%s: Final score = %.1f%% (%s confidence)\n", capec.CAPECID, relevanceScore, confidence)
+		}
+
+		// Build layer contributions list
+		layerList := []string{}
+		// Add in specific order for consistency
+		if layers["CWE Relationship"] {
+			layerList = append(layerList, "CWE Relationship")
+		}
+		if layers["Pattern Match"] {
+			layerList = append(layerList, "Pattern Match")
+		}
+		if layers["Keyword Match"] {
+			layerList = append(layerList, "Keyword Match")
+		}
+
 		results = append(results, CAPECResult{
-			CAPECID:     capec.CAPECID,
-			Name:        capec.Name,
-			Probability: overlapScore / 100.0,
-			Confidence:  confidence,
+			CAPECID:            capec.CAPECID,
+			Name:               capec.Name,
+			Probability:        relevanceScore / 100.0,
+			Confidence:         confidence,
+			LayerContributions: layerList,
 		})
 	}
 
@@ -495,7 +600,7 @@ func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string) []CAPECRes
 }
 
 // Get CAPECs for a CWE with two-layer filtering and ranking
-func getCAPECsForCWEWithFiltering(cweID string, cveDescription string, topN int) []CAPECResult {
+func getCAPECsForCWEWithFiltering(cweID string, cveDescription string, classifiedVector string, patternTaxonomy map[string][]PatternRule, topN int) []CAPECResult {
 	if relationshipsDB == nil || capecDB == nil {
 		if showDetails {
 			fmt.Printf("  [DEBUG] getCAPECsForCWEWithFiltering(%s): relationshipsDB or capecDB is nil\n", cweID)
@@ -572,7 +677,7 @@ func getCAPECsForCWEWithFiltering(cweID string, cveDescription string, topN int)
 		fmt.Printf("  [LAYER 2] Ranking %d CAPECs by relevance\n", len(filteredCAPECs))
 	}
 
-	rankedResults := rankCAPECsByRelevance(filteredCAPECs, cveDescription)
+	rankedResults := rankCAPECsByRelevance(filteredCAPECs, cveDescription, classifiedVector, patternTaxonomy)
 
 	// Take top N
 	if len(rankedResults) > topN {
@@ -735,6 +840,23 @@ func loadRelationshipsDB(path string) error {
 	}
 
 	return fmt.Errorf("failed to parse relationships DB in either snake_case or PascalCase format")
+}
+
+func loadCWEFrequencyMap(path string) error {
+	fmt.Print("Loading CWE Frequency Map...")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	cweFrequencyMap = make(CWEFrequencyMap)
+	err = json.Unmarshal(data, &cweFrequencyMap)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf(" ✓ (%d attack vectors loaded)\n", len(cweFrequencyMap))
+	return nil
 }
 
 func loadCAPECDB(path string) error {
@@ -1102,7 +1224,7 @@ func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy
 			fmt.Printf("\nApplying Naive Bayes to %d candidate attack vectors...\n", len(candidates))
 		}
 		// Classify only among candidates
-		results := classifyNaiveBayes(description, model, candidates, patternTaxonomy, verbose)
+		results := classifyNaiveBayes(description, model, candidates, patternTaxonomy, rankedCWEs, verbose)
 
 		// Filter out 0.00% probability results
 		filteredResults := []ClassificationResult{}
@@ -1129,7 +1251,7 @@ func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy
 			fmt.Println("\nNo CWE IDs provided or no mappings found. Falling back to full Naive Bayes...")
 		}
 		// Fallback: classify among all vectors
-		results := classifyNaiveBayes(description, model, nil, patternTaxonomy, verbose)
+		results := classifyNaiveBayes(description, model, nil, patternTaxonomy, cweIDs, verbose)
 
 		// Filter out 0.00% probability results
 		filteredResults := []ClassificationResult{}
@@ -1235,12 +1357,24 @@ func getCandidatesFromCWEs(cweIDs []string, hierarchy *CWEHierarchy, verbose boo
 	return candidates
 }
 
-func classifyNaiveBayes(description string, model *AttackVectorModel, candidates map[string]bool, patternTaxonomy *PatternTaxonomy, verbose bool) []ClassificationResult {
+func classifyNaiveBayes(description string, model *AttackVectorModel, candidates map[string]bool, patternTaxonomy *PatternTaxonomy, cweIDs []string, verbose bool) []ClassificationResult {
 	// Tokenize description
 	tokens := tokenize(description)
 
 	// Calculate log probabilities for each vector
 	scores := make(map[string]float64)
+	// Track which layers contributed to each vector
+	layerContributions := make(map[string]map[string]bool)
+
+	// Mark all candidates as having CWE Hierarchy contribution
+	if candidates != nil && len(candidates) > 0 {
+		for vector := range candidates {
+			if layerContributions[vector] == nil {
+				layerContributions[vector] = make(map[string]bool)
+			}
+			layerContributions[vector]["CWE Hierarchy"] = true
+		}
+	}
 
 	for vector := range model.VectorPriors {
 		// Skip if not in candidates (if candidates are specified)
@@ -1259,6 +1393,12 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 		}
 
 		scores[vector] = logProb
+
+		// Track Naive Bayes contribution
+		if layerContributions[vector] == nil {
+			layerContributions[vector] = make(map[string]bool)
+		}
+		layerContributions[vector]["Naive Bayes"] = true
 	}
 
 	// Debug: Show raw Naive Bayes scores
@@ -1266,6 +1406,39 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 		fmt.Println("\n  [Naive Bayes Raw Scores - Log Probabilities]:")
 		for vector, score := range scores {
 			fmt.Printf("    %s: %.2f\n", vector, score)
+		}
+	}
+
+	// Apply CWE frequency filtering (eliminate impossible combinations)
+	if cweFrequencyMap != nil && len(cweIDs) > 0 {
+		if verbose {
+			fmt.Println("\n  [CWE Frequency Filtering]:")
+		}
+
+		for vector := range scores {
+			topCWEs, exists := cweFrequencyMap[vector]
+			if !exists {
+				continue
+			}
+
+			// Count matches
+			matches := 0
+			for _, cveID := range cweIDs {
+				for _, topCWE := range topCWEs {
+					if cveID == topCWE {
+						matches++
+						break
+					}
+				}
+			}
+
+			// If no CWE overlap, this is likely a false positive - eliminate it
+			if matches == 0 {
+				delete(scores, vector)
+				if verbose {
+					fmt.Printf("    Eliminated %s (0 CWE matches)\n", vector)
+				}
+			}
 		}
 	}
 
@@ -1285,8 +1458,56 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 		for vector, boost := range patternBoosts {
 			if _, exists := scores[vector]; exists {
 				scores[vector] += boost
+				// Track Pattern Matching contribution
+				if layerContributions[vector] == nil {
+					layerContributions[vector] = make(map[string]bool)
+				}
+				layerContributions[vector]["Pattern Matching"] = true
 				if verbose {
 					fmt.Printf("  [Pattern Boost] %s: +%.1f\n", vector, boost)
+				}
+			}
+		}
+	}
+
+	// Apply CWE frequency matching boost (Layer 4)
+	if cweFrequencyMap != nil && len(cweIDs) > 0 {
+		for vector := range scores {
+			topCWEs, exists := cweFrequencyMap[vector]
+			if !exists {
+				continue
+			}
+
+			// Count matches
+			matches := 0
+			for _, cveID := range cweIDs {
+				for _, topCWE := range topCWEs {
+					if cveID == topCWE {
+						matches++
+						break
+					}
+				}
+			}
+
+			if matches > 0 {
+				// Calculate match score
+				maxPossible := len(cweIDs)
+				if maxPossible > 5 {
+					maxPossible = 5
+				}
+
+				matchRatio := float64(matches) / float64(maxPossible)
+				boost := matchRatio * 20.0 // Scale to 0-20 range for very strong signal
+				scores[vector] += boost
+
+				// Track CWE Frequency contribution
+				if layerContributions[vector] == nil {
+					layerContributions[vector] = make(map[string]bool)
+				}
+				layerContributions[vector]["CWE Frequency"] = true
+
+				if verbose {
+					fmt.Printf("  [CWE Frequency Boost] %s: +%.1f (matches: %d/%d)\n", vector, boost, matches, maxPossible)
 				}
 			}
 		}
@@ -1323,11 +1544,30 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 			confidence = "medium"
 		}
 
+		// Build layer contributions list
+		layers := []string{}
+		if layerContributions[vector] != nil {
+			// Add in a specific order for consistency
+			if layerContributions[vector]["CWE Hierarchy"] {
+				layers = append(layers, "CWE Hierarchy")
+			}
+			if layerContributions[vector]["Naive Bayes"] {
+				layers = append(layers, "Naive Bayes")
+			}
+			if layerContributions[vector]["Pattern Matching"] {
+				layers = append(layers, "Pattern Matching")
+			}
+			if layerContributions[vector]["CWE Frequency"] {
+				layers = append(layers, "CWE Frequency")
+			}
+		}
+
 		results = append(results, ClassificationResult{
-			Vector:      vector,
-			Name:        getVectorName(vector),
-			Probability: normalizedProb,
-			Confidence:  confidence,
+			Vector:             vector,
+			Name:               getVectorName(vector),
+			Probability:        normalizedProb,
+			Confidence:         confidence,
+			LayerContributions: layers,
 		})
 	}
 

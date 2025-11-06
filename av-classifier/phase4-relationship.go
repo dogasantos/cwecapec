@@ -118,15 +118,26 @@ type PatternTaxonomy struct {
 // CWE Frequency Map (Attack Vector -> Top CWEs)
 type CWEFrequencyMap map[string][]string
 
+// ATT&CK Technique structure
+type AttackTechnique struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Tactics     []string `json:"tactics"`
+	Platforms   []string `json:"platforms"`
+	URL         string   `json:"url"`
+}
+
 var (
-	cveID           string
-	cveDesc         string
-	cweIDs          string
-	topN            int
-	showDetails     bool
-	capecDB         map[string]CAPECData
-	relationshipsDB *RelationshipsDB
-	cweFrequencyMap CWEFrequencyMap
+	cveID              string
+	cveDesc            string
+	cweIDs             string
+	topN               int
+	showDetails        bool
+	capecDB            map[string]CAPECData
+	relationshipsDB    *RelationshipsDB
+	cweFrequencyMap    CWEFrequencyMap
+	attackTechniquesDB map[string]AttackTechnique
 )
 
 func main() {
@@ -256,6 +267,16 @@ func main() {
 		}
 	} else {
 		fmt.Println("Warning: resources/attack_vector_to_cwe_map.json not found. CWE frequency matching will be skipped.")
+	}
+
+	if _, err := os.Stat("resources/attack_techniques_db.json"); err == nil {
+		err = loadAttackTechniquesDB("resources/attack_techniques_db.json")
+		if err != nil {
+			fmt.Printf("Error loading ATT&CK Techniques DB: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println("Warning: resources/attack_techniques_db.json not found. ATT&CK mapping will be skipped.")
 	}
 
 	if showDetails {
@@ -388,9 +409,79 @@ func main() {
 						i+1, capec.CAPECID, capec.Name, capec.Probability*100, sourceStr)
 				}
 			}
+
+			// Display ATT&CK techniques for this CWE's CAPECs
+			if len(capecResults) > 0 && attackTechniquesDB != nil && relationshipsDB != nil {
+				attackTechniques := getAttackTechniquesForCAPECs(capecResults)
+				if len(attackTechniques) > 0 {
+					fmt.Println("  Related ATT&CK Techniques:")
+					for i, tech := range attackTechniques {
+						if i >= 5 { // Limit to top 5
+							break
+						}
+						fmt.Printf("    %d. %s: %s\n", i+1, tech.ID, tech.Name)
+						if len(tech.Tactics) > 0 {
+							fmt.Printf("       Tactics: %s\n", strings.Join(tech.Tactics, ", "))
+						}
+					}
+				}
+			}
+
 			fmt.Println()
 		}
 	}
+}
+
+// Get ATT&CK techniques for a list of CAPECs
+func getAttackTechniquesForCAPECs(capecs []CAPECResult) []AttackTechnique {
+	if attackTechniquesDB == nil {
+		return nil
+	}
+
+	// Collect unique technique IDs
+	techniqueIDs := make(map[string]bool)
+
+	// Try direct CAPEC-to-ATT&CK mapping first
+	if relationshipsDB != nil {
+		for _, capec := range capecs {
+			if techniques, exists := relationshipsDB.CapecToAttack[capec.CAPECID]; exists {
+				for _, techID := range techniques {
+					techniqueIDs[techID] = true
+				}
+			}
+		}
+	}
+
+	// Fallback: If no direct mapping found, use common ATT&CK techniques for vulnerability exploitation
+	if len(techniqueIDs) == 0 && len(capecs) > 0 {
+		// Most web/application vulnerabilities map to these techniques
+		commonTechniques := []string{
+			"T1190", // Exploit Public-Facing Application
+			"T1059", // Command and Scripting Interpreter
+			"T1203", // Exploitation for Client Execution
+		}
+		for _, techID := range commonTechniques {
+			if _, exists := attackTechniquesDB[techID]; exists {
+				techniqueIDs[techID] = true
+			}
+		}
+	}
+
+	// Build result list
+	var result []AttackTechnique
+	for techID := range techniqueIDs {
+		if tech, exists := attackTechniquesDB[techID]; exists {
+			tech.ID = techID // Ensure ID is set
+			result = append(result, tech)
+		}
+	}
+
+	// Sort by ID for consistency
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ID < result[j].ID
+	})
+
+	return result
 }
 
 // Layer 1: Filter out strongly unrelated CAPECs
@@ -856,6 +947,23 @@ func loadCWEFrequencyMap(path string) error {
 	}
 
 	fmt.Printf(" ✓ (%d attack vectors loaded)\n", len(cweFrequencyMap))
+	return nil
+}
+
+func loadAttackTechniquesDB(path string) error {
+	fmt.Print("Loading ATT&CK Techniques DB...")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	attackTechniquesDB = make(map[string]AttackTechnique)
+	err = json.Unmarshal(data, &attackTechniquesDB)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf(" ✓ (%d techniques loaded)\n", len(attackTechniquesDB))
 	return nil
 }
 
