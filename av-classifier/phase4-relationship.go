@@ -10,7 +10,6 @@ import (
 	"os"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -46,8 +45,7 @@ type CWEInfo struct {
 
 type CWEHierarchy struct {
 	CWEs                map[string]*CWEInfo `json:"cwes"`
-	AttackVectorMapping map[string][]string `json:"attack_vector_mapping"` // Forward: AttackVector -> CWE IDs
-	CWEToVectorMapping  map[string][]string // Reverse: CWE ID -> AttackVectors (built from data)
+	AttackVectorMapping map[string][]string `json:"attack_vector_mapping"`
 }
 
 // Naive Bayes model structures (matching trainer output)
@@ -94,7 +92,6 @@ type CAPECResult struct {
 	Name        string  `json:"name"`
 	Probability float64 `json:"probability"`
 	Confidence  string  `json:"confidence"`
-	Source      string  `json:"source"` // Describes how/where this CAPEC was selected from
 }
 
 // ScoredCWE represents a CWE with its relevance score
@@ -116,11 +113,8 @@ type PatternTaxonomy struct {
 	Patterns map[string][]PatternRule `json:"patterns"` // attack_vector -> rules
 }
 
-// normalizeAttackVector converts "Path Traversal" to "path_traversal"
-func normalizeAttackVector(av string) string {
-	// Convert to lowercase and replace spaces with underscores
-	return strings.ToLower(strings.ReplaceAll(av, " ", "_"))
-}
+// CWE Frequency Map (Attack Vector -> Top CWEs)
+type CWEFrequencyMap map[string][]string
 
 var (
 	cveID           string
@@ -130,6 +124,7 @@ var (
 	showDetails     bool
 	capecDB         map[string]CAPECData
 	relationshipsDB *RelationshipsDB
+	cweFrequencyMap CWEFrequencyMap
 )
 
 func main() {
@@ -251,6 +246,16 @@ func main() {
 		fmt.Println("Warning: resources/relationships_db.json not found. CAPEC mapping will be skipped.")
 	}
 
+	if _, err := os.Stat("resources/attack_vector_to_cwe_map.json"); err == nil {
+		err = loadCWEFrequencyMap("resources/attack_vector_to_cwe_map.json")
+		if err != nil {
+			fmt.Printf("Error loading CWE Frequency Map: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println("Warning: resources/attack_vector_to_cwe_map.json not found. CWE frequency matching will be skipped.")
+	}
+
 	if showDetails {
 		fmt.Println()
 	}
@@ -302,31 +307,13 @@ func main() {
 		}
 
 		// Look up CWEs associated with this attack vector
-		// Normalize the vector name to match data format (e.g., "Path Traversal" -> "path_traversal")
-		normalizedVector := normalizeAttackVector(topVector)
-
-		if showDetails {
-			fmt.Printf("\n[DEBUG] Looking up CWEs for classified vector: '%s'\n", topVector)
-			fmt.Printf("[DEBUG] Normalized to: '%s'\n", normalizedVector)
-			fmt.Printf("[DEBUG] Available mappings in hierarchy: %d\n", len(hierarchy.AttackVectorMapping))
-			// Show all available attack vector keys
-			fmt.Printf("[DEBUG] Available attack vector keys (first 10): ")
-			count := 0
-			for av := range hierarchy.AttackVectorMapping {
-				if count < 10 {
-					fmt.Printf("'%s' ", av)
-					count++
-				}
-			}
-			fmt.Println()
-		}
-
-		if vectorCWEs, exists := hierarchy.AttackVectorMapping[normalizedVector]; exists {
-			// Fallback 1: Use data-driven mapping, selecting the first (most relevant) CWE
+		if vectorCWEs, exists := hierarchy.AttackVectorMapping[topVector]; exists {
+			// We have multiple CWEs. We must select the most relevant one.
+			// For now, we will just use the first CWE in the list, as it is usually the most relevant.
 			if len(vectorCWEs) > 0 {
 				attackVectorCWEs = []string{vectorCWEs[0]}
 				if showDetails {
-					fmt.Printf("[DEBUG] Data-driven mapping used: '%s' (normalized: '%s') maps to CWEs: %v\n", topVector, normalizedVector, vectorCWEs)
+					fmt.Printf("[DEBUG] Attack vector '%s' maps to CWEs: %v\n", topVector, vectorCWEs)
 					fmt.Printf("[DEBUG] Selecting only the first CWE: %s\n", attackVectorCWEs[0])
 				}
 			} else {
@@ -383,10 +370,8 @@ func main() {
 				fmt.Println("  No direct CAPEC relationships found.")
 			} else {
 				for i, capec := range capecResults {
-					fmt.Printf("  %d. CAPEC-%s: %s\n",
-						i+1, capec.CAPECID, capec.Name)
-					fmt.Printf("     Relevance: %.0f%% (%s confidence)\n", capec.Probability*100, capec.Confidence)
-					fmt.Printf("     Source: %s\n", capec.Source)
+					fmt.Printf("  %d. CAPEC-%s: %s (Relevance: %.0f%%, Source: %s)\n",
+						i+1, capec.CAPECID, capec.Name, capec.Probability*100, capec.Confidence)
 				}
 			}
 			fmt.Println()
@@ -569,7 +554,6 @@ func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string, classified
 			Name:        capec.Name,
 			Probability: relevanceScore / 100.0,
 			Confidence:  confidence,
-			Source:      "CWE relationship + Pattern taxonomy + CVE description match",
 		})
 	}
 
@@ -736,8 +720,7 @@ func getCAPECsForCWE(cweID string) []CAPECResult {
 			CAPECID:     capec.CAPECID,
 			Name:        capec.Name,
 			Probability: 1.0,
-			Confidence:  "high",
-			Source:      "Direct CWE relationship mapping",
+			Confidence:  "Direct CWE Mapping",
 		})
 	}
 
@@ -823,6 +806,23 @@ func loadRelationshipsDB(path string) error {
 	}
 
 	return fmt.Errorf("failed to parse relationships DB in either snake_case or PascalCase format")
+}
+
+func loadCWEFrequencyMap(path string) error {
+	fmt.Print("Loading CWE Frequency Map...")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	cweFrequencyMap = make(CWEFrequencyMap)
+	err = json.Unmarshal(data, &cweFrequencyMap)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf(" ✓ (%d attack vectors loaded)\n", len(cweFrequencyMap))
+	return nil
 }
 
 func loadCAPECDB(path string) error {
@@ -1190,7 +1190,7 @@ func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy
 			fmt.Printf("\nApplying Naive Bayes to %d candidate attack vectors...\n", len(candidates))
 		}
 		// Classify only among candidates
-		results := classifyNaiveBayes(description, model, candidates, patternTaxonomy, verbose)
+		results := classifyNaiveBayes(description, model, candidates, patternTaxonomy, rankedCWEs, verbose)
 
 		// Filter out 0.00% probability results
 		filteredResults := []ClassificationResult{}
@@ -1217,7 +1217,7 @@ func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy
 			fmt.Println("\nNo CWE IDs provided or no mappings found. Falling back to full Naive Bayes...")
 		}
 		// Fallback: classify among all vectors
-		results := classifyNaiveBayes(description, model, nil, patternTaxonomy, verbose)
+		results := classifyNaiveBayes(description, model, nil, patternTaxonomy, cweIDs, verbose)
 
 		// Filter out 0.00% probability results
 		filteredResults := []ClassificationResult{}
@@ -1323,7 +1323,7 @@ func getCandidatesFromCWEs(cweIDs []string, hierarchy *CWEHierarchy, verbose boo
 	return candidates
 }
 
-func classifyNaiveBayes(description string, model *AttackVectorModel, candidates map[string]bool, patternTaxonomy *PatternTaxonomy, verbose bool) []ClassificationResult {
+func classifyNaiveBayes(description string, model *AttackVectorModel, candidates map[string]bool, patternTaxonomy *PatternTaxonomy, cweIDs []string, verbose bool) []ClassificationResult {
 	// Tokenize description
 	tokens := tokenize(description)
 
@@ -1357,6 +1357,39 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 		}
 	}
 
+	// Apply CWE frequency filtering (eliminate impossible combinations)
+	if cweFrequencyMap != nil && len(cweIDs) > 0 {
+		if verbose {
+			fmt.Println("\n  [CWE Frequency Filtering]:")
+		}
+
+		for vector := range scores {
+			topCWEs, exists := cweFrequencyMap[vector]
+			if !exists {
+				continue
+			}
+
+			// Count matches
+			matches := 0
+			for _, cveID := range cweIDs {
+				for _, topCWE := range topCWEs {
+					if cveID == topCWE {
+						matches++
+						break
+					}
+				}
+			}
+
+			// If no CWE overlap, this is likely a false positive - eliminate it
+			if matches == 0 {
+				delete(scores, vector)
+				if verbose {
+					fmt.Printf("    Eliminated %s (0 CWE matches)\n", vector)
+				}
+			}
+		}
+	}
+
 	// Apply data-driven pattern boosting (Layer 3)
 	if patternTaxonomy != nil {
 		descLower := strings.ToLower(description)
@@ -1375,6 +1408,43 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 				scores[vector] += boost
 				if verbose {
 					fmt.Printf("  [Pattern Boost] %s: +%.1f\n", vector, boost)
+				}
+			}
+		}
+	}
+
+	// Apply CWE frequency matching boost (Layer 4)
+	if cweFrequencyMap != nil && len(cweIDs) > 0 {
+		for vector := range scores {
+			topCWEs, exists := cweFrequencyMap[vector]
+			if !exists {
+				continue
+			}
+
+			// Count matches
+			matches := 0
+			for _, cveID := range cweIDs {
+				for _, topCWE := range topCWEs {
+					if cveID == topCWE {
+						matches++
+						break
+					}
+				}
+			}
+
+			if matches > 0 {
+				// Calculate match score
+				maxPossible := len(cweIDs)
+				if maxPossible > 5 {
+					maxPossible = 5
+				}
+
+				matchRatio := float64(matches) / float64(maxPossible)
+				boost := matchRatio * 20.0 // Scale to 0-20 range for very strong signal
+				scores[vector] += boost
+
+				if verbose {
+					fmt.Printf("  [CWE Frequency Boost] %s: +%.1f (matches: %d/%d)\n", vector, boost, matches, maxPossible)
 				}
 			}
 		}
@@ -1559,83 +1629,9 @@ func loadCWEHierarchy(filename string) (*CWEHierarchy, error) {
 		return nil, err
 	}
 
-	// First, unmarshal just the cwes section
-	var rawData map[string]json.RawMessage
-	if err := json.Unmarshal(data, &rawData); err != nil {
-		return nil, err
-	}
-
 	var hierarchy CWEHierarchy
-
-	// Unmarshal the cwes section
-	if cwesData, exists := rawData["cwes"]; exists {
-		if err := json.Unmarshal(cwesData, &hierarchy.CWEs); err != nil {
-			return nil, err
-		}
-	}
-
-	// Build forward mapping (AttackVector -> CWE IDs) from the reverse mapping
-	hierarchy.AttackVectorMapping = make(map[string][]string)
-
-	if showDetails {
-		fmt.Println("[DEBUG] Building forward AttackVector->CWE mapping from reverse mapping...")
-	}
-
-	// Check if there's an attack_vector_mapping section
-	if avmData, exists := rawData["attack_vector_mapping"]; exists {
-		// Unmarshal the CWE -> AttackVectors mapping
-		var cweToVectors map[string][]string
-		if err := json.Unmarshal(avmData, &cweToVectors); err == nil {
-			if showDetails {
-				fmt.Printf("[DEBUG] Found attack_vector_mapping with %d CWE entries\n", len(cweToVectors))
-			}
-
-			// Reverse the mapping: CWE -> Vectors becomes Vector -> CWEs
-			for cweID, attackVectors := range cweToVectors {
-				for _, av := range attackVectors {
-					hierarchy.AttackVectorMapping[av] = append(hierarchy.AttackVectorMapping[av], cweID)
-				}
-			}
-
-			// Sort CWE IDs numerically for consistent ordering
-			for av := range hierarchy.AttackVectorMapping {
-				sort.Slice(hierarchy.AttackVectorMapping[av], func(i, j int) bool {
-					// Convert to integers for numerical sorting
-					a, errA := strconv.Atoi(hierarchy.AttackVectorMapping[av][i])
-					b, errB := strconv.Atoi(hierarchy.AttackVectorMapping[av][j])
-					if errA != nil || errB != nil {
-						// Fallback to string comparison if conversion fails
-						return hierarchy.AttackVectorMapping[av][i] < hierarchy.AttackVectorMapping[av][j]
-					}
-					return a < b
-				})
-			}
-		} else if showDetails {
-			fmt.Printf("[DEBUG] Failed to unmarshal attack_vector_mapping: %v\n", err)
-		}
-	} else if showDetails {
-		fmt.Println("[DEBUG] No attack_vector_mapping section found, will build from CWE attack_vectors field")
-
-		// Fallback: Build from CWE attack_vectors field
-		for cweID, cweInfo := range hierarchy.CWEs {
-			if cweInfo != nil {
-				for _, av := range cweInfo.AttackVectors {
-					hierarchy.AttackVectorMapping[av] = append(hierarchy.AttackVectorMapping[av], cweID)
-				}
-			}
-		}
-	}
-
-	if showDetails {
-		fmt.Printf("[DEBUG] Built %d attack vector mappings\n", len(hierarchy.AttackVectorMapping))
-		// Show a sample of the mappings
-		count := 0
-		for av, cweIDs := range hierarchy.AttackVectorMapping {
-			if count < 5 {
-				fmt.Printf("[DEBUG]   '%s' -> %v\n", av, cweIDs)
-				count++
-			}
-		}
+	if err := json.Unmarshal(data, &hierarchy); err != nil {
+		return nil, err
 	}
 
 	return &hierarchy, nil
@@ -1821,7 +1817,6 @@ func classifyNaiveBayesCAPEC(description string, candidates []CAPECData) []CAPEC
 			Name:        capec.Name,
 			Probability: probability,
 			Confidence:  confidence,
-			Source:      "Naive Bayes classification on CAPEC descriptions",
 		})
 	}
 
