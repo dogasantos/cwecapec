@@ -308,7 +308,7 @@ func main() {
 	}
 
 	// CAPEC Ranking
-	// Get CWEs from the top classified attack vector (not from CVE's CWE list)
+	// Get CWEs from the top classified attack vector
 	var attackVectorCWEs []string
 	if len(results) > 0 {
 		// Get the top classified attack vector
@@ -316,47 +316,37 @@ func main() {
 
 		if showDetails {
 			fmt.Printf("\n[DEBUG] Top classified vector: '%s'\n", topVector)
-
-			// Debug: Print the actual mappings for the relevant vectors
-			if ptCWEs, exists := hierarchy.AttackVectorMapping["Path Traversal"]; exists {
-				fmt.Printf("[DEBUG] AttackVectorMapping['Path Traversal']: %v\n", ptCWEs)
-			}
-			if ssrfCWEs, exists := hierarchy.AttackVectorMapping["Server-Side Request Forgery"]; exists {
-				fmt.Printf("[DEBUG] AttackVectorMapping['Server-Side Request Forgery']: %v\n", ssrfCWEs)
-			}
-
-			fmt.Printf("[DEBUG] Available attack vector mappings: ")
-			count := 0
-			for avKey := range hierarchy.AttackVectorMapping {
-				if count < 5 {
-					fmt.Printf("%s ", avKey)
-					count++
-				}
-			}
-			fmt.Println()
 		}
 
-		// Look up CWEs associated with this attack vector
-		if vectorCWEs, exists := hierarchy.AttackVectorMapping[topVector]; exists {
-			// We have multiple CWEs. We must select the most relevant one.
-			// For now, we will just use the first CWE in the list, as it is usually the most relevant.
-			if len(vectorCWEs) > 0 {
-				attackVectorCWEs = []string{vectorCWEs[0]}
-				if showDetails {
-					fmt.Printf("[DEBUG] Attack vector '%s' maps to CWEs: %v\n", topVector, vectorCWEs)
-					fmt.Printf("[DEBUG] Selecting only the first CWE: %s\n", attackVectorCWEs[0])
+		// Find CWE(s) from the CVE's CWE list that map to the top attack vector
+		// The attack_vector_mapping is CWE ID -> [attack vectors]
+		// So we need to check each CVE CWE to see if it maps to topVector
+		topVectorLower := strings.ToLower(strings.ReplaceAll(topVector, " ", "_"))
+
+		for _, cweID := range cwes {
+			if cweInfo, exists := hierarchy.CWEs[cweID]; exists && cweInfo != nil {
+				for _, av := range cweInfo.AttackVectors {
+					avLower := strings.ToLower(strings.ReplaceAll(av, " ", "_"))
+					if avLower == topVectorLower {
+						attackVectorCWEs = []string{cweID}
+						if showDetails {
+							fmt.Printf("[DEBUG] Found CWE-%s that maps to attack vector '%s'\n", cweID, topVector)
+						}
+						break
+					}
 				}
-			} else {
-				if showDetails {
-					fmt.Printf("[DEBUG] Attack vector '%s' maps to an empty CWE list\n", topVector)
+				if len(attackVectorCWEs) > 0 {
+					break
 				}
 			}
-		} else {
+		}
+
+		// Fallback: if no CWE matches the top vector, use top-ranked CWE
+		if len(attackVectorCWEs) == 0 {
 			if showDetails {
-				fmt.Printf("[DEBUG] No CWE mapping found for attack vector '%s'\n", topVector)
+				fmt.Printf("[DEBUG] No CWE from CVE list matches attack vector '%s'\n", topVector)
 				fmt.Printf("[DEBUG] Falling back to top-ranked CWE from CVE data\n")
 			}
-			// Fallback: use top-ranked CWE from CVE's CWE list (deduplicated)
 			topCWEs := rankCWEsByRelevance(cwes, cveDesc, hierarchy, 1)
 			if len(topCWEs) > 0 {
 				attackVectorCWEs = []string{topCWEs[0]}
