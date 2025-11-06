@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"regexp"
 	"sort"
@@ -12,130 +13,90 @@ import (
 // -------------------- Data Structures --------------------
 
 type CVETrainingExample struct {
-	CVEID        string   `json:"cve_id"`
-	Description  string   `json:"description"`
-	CWEIDs       []string `json:"cwes"`
-	AttackVector string   `json:"attack_vector"`
-}
-
-type CWEHierarchy struct {
-	CWEs                map[string]*CWEHierarchyInfo `json:"cwes"`
-	AttackVectorMapping map[string][]string          `json:"attack_vector_mapping"`
-}
-
-type CWEHierarchyInfo struct {
-	ID            string   `json:"id"`
-	Name          string   `json:"name"`
-	Abstraction   string   `json:"abstraction"`
-	Parents       []string `json:"parents"`
-	Children      []string `json:"children"`
+	CVEID         string   `json:"cve_id"`
+	Description   string   `json:"description"`
+	CWEIDs        []string `json:"cwes"`
 	AttackVectors []string `json:"attack_vectors"`
 }
 
-type CWEInfo struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+type PatternRule struct {
+	Keywords    []string `json:"keywords"`
+	Specificity float64  `json:"specificity"`
+	Boost       float64  `json:"boost"`
+	Support     int      `json:"support"` // Number of CVEs this pattern appears in
 }
 
-type KeywordPair struct {
-	Keyword string
-	Count   int
+type PatternTaxonomy struct {
+	Patterns map[string][]PatternRule `json:"patterns"` // attack_vector -> rules
+	Stats    TaxonomyStats            `json:"stats"`
 }
 
-type KeywordStats struct {
-	TotalKeywords     int                 `json:"total_keywords"`
-	TotalCooccurrence int                 `json:"total_cooccurrence"`
-	TopKeywords       []KeywordPair       `json:"top_keywords"`
-	SampleMappings    map[string][]string `json:"sample_mappings"`
+type TaxonomyStats struct {
+	TotalVectors  int                      `json:"total_vectors"`
+	TotalPatterns int                      `json:"total_patterns"`
+	VectorCounts  map[string]int           `json:"vector_counts"`
+	TopPatterns   map[string][]PatternRule `json:"top_patterns_per_vector"`
+}
+
+type TermScore struct {
+	Term        string
+	TF          float64 // Term frequency in this vector
+	IDF         float64 // Inverse document frequency
+	TFIDF       float64 // TF-IDF score
+	Specificity float64 // How specific to this vector (0-1)
+	Support     int     // Number of CVEs containing this term
 }
 
 // -------------------- Configuration --------------------
 
 const (
-	TrainingDataPath = "resources/training_data.json"
-	CWEHierarchyPath = "resources/cwe_hierarchy.json"
-	CWEDBPath        = "resources/cwe_db.json"
-	KeywordMapPath   = "resources/keyword_expansion_map.json"
-	KeywordStatsPath = "resources/keyword_map_stats.json"
+	TrainingDataPath    = "resources/training_data.json"
+	PatternTaxonomyPath = "resources/pattern_taxonomy.json"
 
-	MinCooccurrence    = 2
-	MaxRelatedKeywords = 10
-	MinKeywordLength   = 3
+	MinTermFrequency     = 3   // Term must appear at least 3 times in a vector
+	MinSpecificity       = 0.6 // Term must be at least 60% specific to the vector
+	MaxPatternsPerVector = 15  // Keep top 15 patterns per vector
+	MinPatternLength     = 3   // Minimum keyword length
 )
 
 // -------------------- Main Function --------------------
 
 func main() {
-	fmt.Println("Generating Data-Driven Keyword Expansion Map")
-	fmt.Println(strings.Repeat("=", 60))
+	fmt.Println("Generating Attack Vector Pattern Taxonomy from Training Data")
+	fmt.Println(strings.Repeat("=", 70))
 
 	// Step 1: Load training data
-	fmt.Println("\n[1/5] Loading CVE training data...")
+	fmt.Println("\n[1/4] Loading CVE training data...")
 	trainingData, err := loadTrainingData(TrainingDataPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading training data: %v\n", err)
-		fmt.Println("Run 'go run av-classifier/phase1-collector.go' to generate training data")
+		fmt.Println("Run phase1-collector first to generate training data")
 		os.Exit(1)
 	}
 	fmt.Printf("  Loaded %d CVE examples\n", len(trainingData))
 
-	// Step 2: Load CWE data
-	fmt.Println("\n[2/5] Loading CWE descriptions...")
-	cweDescriptions, err := loadCWEDescriptions()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading CWE data: %v\n", err)
+	// Step 2: Extract discriminative terms per attack vector
+	fmt.Println("\n[2/4] Extracting discriminative terms per attack vector...")
+	taxonomy := buildPatternTaxonomy(trainingData)
+	fmt.Printf("  Generated patterns for %d attack vectors\n", len(taxonomy.Patterns))
+
+	// Step 3: Calculate specificity and boost scores
+	fmt.Println("\n[3/4] Calculating specificity and boost scores...")
+	calculateBoostScores(taxonomy, trainingData)
+
+	// Step 4: Save taxonomy
+	fmt.Println("\n[4/4] Saving pattern taxonomy...")
+	if err := saveJSON(PatternTaxonomyPath, taxonomy); err != nil {
+		fmt.Fprintf(os.Stderr, "Error saving taxonomy: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("  Loaded %d CWE descriptions\n", len(cweDescriptions))
-
-	// Step 3: Build co-occurrence matrix
-	fmt.Println("\n[3/5] Building keyword co-occurrence matrix...")
-	keywordMap, cooccurrenceCounts := buildCooccurrenceMatrix(trainingData, cweDescriptions)
-	fmt.Printf("  Generated mappings for %d keywords\n", len(keywordMap))
-	fmt.Printf("  Total co-occurrence pairs: %d\n", cooccurrenceCounts)
-
-	// Step 4: Save keyword map
-	fmt.Println("\n[4/5] Saving keyword expansion map...")
-	if err := saveJSON(KeywordMapPath, keywordMap); err != nil {
-		fmt.Fprintf(os.Stderr, "Error saving keyword map: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("  Saved to %s\n", KeywordMapPath)
-
-	// Step 5: Generate statistics
-	fmt.Println("\n[5/5] Generating statistics report...")
-	stats := generateStats(keywordMap, cooccurrenceCounts)
-	if err := saveJSON(KeywordStatsPath, stats); err != nil {
-		fmt.Fprintf(os.Stderr, "Error saving stats: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("  Saved to %s\n", KeywordStatsPath)
+	fmt.Printf("  Saved to %s\n", PatternTaxonomyPath)
 
 	// Display summary
-	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("SUMMARY")
-	fmt.Println(strings.Repeat("=", 60))
-	fmt.Printf("Total Keywords:        %d\n", stats.TotalKeywords)
-	fmt.Printf("Total Co-occurrences:  %d\n", stats.TotalCooccurrence)
-	if stats.TotalKeywords > 0 {
-		fmt.Printf("Avg Mappings/Keyword:  %.1f\n", float64(stats.TotalCooccurrence)/float64(stats.TotalKeywords))
-	} else {
-		fmt.Printf("Avg Mappings/Keyword:  0.0\n")
-	}
+	displaySummary(taxonomy)
 
-	fmt.Println("\nTop 10 Most Connected Keywords:")
-	for i := 0; i < min(10, len(stats.TopKeywords)); i++ {
-		kp := stats.TopKeywords[i]
-		related := keywordMap[kp.Keyword]
-		fmt.Printf("  %2d. %-20s (%d related terms)\n", i+1, kp.Keyword, len(related))
-		if len(related) > 0 {
-			preview := strings.Join(related[:min(5, len(related))], ", ")
-			fmt.Printf("      -> %s\n", preview)
-		}
-	}
-
-	fmt.Println("\nKeyword expansion map generated successfully!")
-	fmt.Println("   Use this file in query-report.go for improved CAPEC ranking")
+	fmt.Println("\nPattern taxonomy generated successfully!")
+	fmt.Println("Use this file in phase3-classifier.go for data-driven pattern boosting")
 }
 
 // -------------------- Data Loading --------------------
@@ -154,122 +115,171 @@ func loadTrainingData(path string) ([]CVETrainingExample, error) {
 	return trainingData, nil
 }
 
-func loadCWEDescriptions() (map[string]string, error) {
-	descriptions := make(map[string]string)
+// -------------------- Pattern Taxonomy Building --------------------
 
-	// Try loading from cwe_hierarchy.json first (has names)
-	hierarchyData, err := os.ReadFile(CWEHierarchyPath)
-	if err == nil {
-		var hierarchy CWEHierarchy
-		if err := json.Unmarshal(hierarchyData, &hierarchy); err == nil {
-			for cweID, cweInfo := range hierarchy.CWEs {
-				descriptions[cweID] = cweInfo.Name
-			}
-		}
-	}
+func buildPatternTaxonomy(trainingData []CVETrainingExample) *PatternTaxonomy {
+	// Group CVEs by attack vector
+	vectorCVEs := make(map[string][]string) // vector -> CVE descriptions
+	vectorCounts := make(map[string]int)
 
-	// Also load from cwe_db.json (has descriptions)
-	dbData, err := os.ReadFile(CWEDBPath)
-	if err == nil {
-		var cweDB map[string]CWEInfo
-		if err := json.Unmarshal(dbData, &cweDB); err == nil {
-			for cweID, cweInfo := range cweDB {
-				// Combine name and description if available
-				desc := cweInfo.Name
-				if cweInfo.Description != "" {
-					desc += " " + cweInfo.Description
-				}
-				descriptions[cweID] = desc
-			}
-		}
-	}
-
-	if len(descriptions) == 0 {
-		return nil, fmt.Errorf("no CWE descriptions found")
-	}
-
-	return descriptions, nil
-}
-
-// -------------------- Co-occurrence Matrix Building --------------------
-
-func buildCooccurrenceMatrix(trainingData []CVETrainingExample, cweDescriptions map[string]string) (map[string][]string, int) {
-	// Track co-occurrences: keyword1 -> keyword2 -> count
-	cooccurrence := make(map[string]map[string]int)
-	totalPairs := 0
-
-	// Process each CVE example
 	for _, example := range trainingData {
-		// Tokenize CVE description
-		cveTokens := tokenizeForRanking(example.Description)
-		cveTokenSet := make(map[string]bool)
-		for _, token := range cveTokens {
-			cveTokenSet[token] = true
-		}
-
-		// Tokenize related CWE descriptions
-		cweTokenSet := make(map[string]bool)
-		for _, cweID := range example.CWEIDs {
-			if desc, exists := cweDescriptions[cweID]; exists {
-				tokens := tokenizeForRanking(desc)
-				for _, token := range tokens {
-					cweTokenSet[token] = true
-				}
-			}
-		}
-
-		// Record co-occurrences between CVE tokens and CWE tokens
-		for cveToken := range cveTokenSet {
-			if cooccurrence[cveToken] == nil {
-				cooccurrence[cveToken] = make(map[string]int)
-			}
-
-			for cweToken := range cweTokenSet {
-				if cveToken != cweToken { // Don't map a word to itself
-					cooccurrence[cveToken][cweToken]++
-					totalPairs++
-				}
-			}
+		for _, vector := range example.AttackVectors {
+			vectorCVEs[vector] = append(vectorCVEs[vector], example.Description)
+			vectorCounts[vector]++
 		}
 	}
 
-	// Convert to keyword map (keep top N related terms)
-	keywordMap := make(map[string][]string)
+	// Extract discriminative terms for each vector
+	taxonomy := &PatternTaxonomy{
+		Patterns: make(map[string][]PatternRule),
+		Stats: TaxonomyStats{
+			TotalVectors: len(vectorCVEs),
+			VectorCounts: vectorCounts,
+			TopPatterns:  make(map[string][]PatternRule),
+		},
+	}
 
-	for keyword, relatedMap := range cooccurrence {
-		// Convert to sorted list
-		pairs := make([]KeywordPair, 0, len(relatedMap))
-		for relatedKeyword, count := range relatedMap {
-			if count >= MinCooccurrence {
-				pairs = append(pairs, KeywordPair{
-					Keyword: relatedKeyword,
-					Count:   count,
+	// Calculate TF-IDF for each vector
+	allTerms := extractAllTerms(trainingData)
+	docFreq := calculateDocumentFrequency(trainingData)
+	totalDocs := float64(len(trainingData))
+
+	for vector, descriptions := range vectorCVEs {
+		// Calculate term frequency for this vector
+		termFreq := make(map[string]int)
+		for _, desc := range descriptions {
+			terms := tokenize(desc)
+			for _, term := range terms {
+				termFreq[term]++
+			}
+		}
+
+		// Calculate TF-IDF scores
+		termScores := make([]TermScore, 0)
+		for term, tf := range termFreq {
+			if tf < MinTermFrequency {
+				continue
+			}
+
+			// TF (normalized by vector size)
+			tfNorm := float64(tf) / float64(len(descriptions))
+
+			// IDF
+			df := float64(docFreq[term])
+			idf := math.Log(totalDocs / (1.0 + df))
+
+			// TF-IDF
+			tfidf := tfNorm * idf
+
+			// Specificity: how often this term appears in this vector vs others
+			termInVector := float64(tf)
+			termTotal := float64(docFreq[term])
+			specificity := termInVector / termTotal
+
+			if specificity >= MinSpecificity {
+				termScores = append(termScores, TermScore{
+					Term:        term,
+					TF:          tfNorm,
+					IDF:         idf,
+					TFIDF:       tfidf,
+					Specificity: specificity,
+					Support:     tf,
 				})
 			}
 		}
 
-		// Sort by count (descending)
-		sort.Slice(pairs, func(i, j int) bool {
-			return pairs[i].Count > pairs[j].Count
+		// Sort by TF-IDF score (descending)
+		sort.Slice(termScores, func(i, j int) bool {
+			return termScores[i].TFIDF > termScores[j].TFIDF
 		})
 
-		// Keep top N
-		topN := min(MaxRelatedKeywords, len(pairs))
-		if topN > 0 {
-			related := make([]string, topN)
-			for i := 0; i < topN; i++ {
-				related[i] = pairs[i].Keyword
+		// Create pattern rules from top terms
+		patterns := make([]PatternRule, 0)
+		topN := min(MaxPatternsPerVector, len(termScores))
+
+		for i := 0; i < topN; i++ {
+			ts := termScores[i]
+
+			// Single-keyword pattern
+			pattern := PatternRule{
+				Keywords:    []string{ts.Term},
+				Specificity: ts.Specificity,
+				Boost:       0.0, // Will be calculated later
+				Support:     ts.Support,
 			}
-			keywordMap[keyword] = related
+			patterns = append(patterns, pattern)
+		}
+
+		taxonomy.Patterns[vector] = patterns
+		taxonomy.Stats.TopPatterns[vector] = patterns[:min(5, len(patterns))]
+	}
+
+	taxonomy.Stats.TotalPatterns = countTotalPatterns(taxonomy)
+
+	return taxonomy
+}
+
+// -------------------- Boost Score Calculation --------------------
+
+func calculateBoostScores(taxonomy *PatternTaxonomy, trainingData []CVETrainingExample) {
+	// Calculate boost based on specificity and support
+	// Boost = base_boost * specificity * log(support)
+
+	const baseBoost = 50.0
+
+	for vector, patterns := range taxonomy.Patterns {
+		for i := range patterns {
+			pattern := &patterns[i]
+
+			// Boost increases with specificity and support
+			supportFactor := math.Log(float64(pattern.Support) + 1.0)
+			pattern.Boost = baseBoost * pattern.Specificity * supportFactor
+
+			// Clamp boost to reasonable range
+			if pattern.Boost < 10.0 {
+				pattern.Boost = 10.0
+			} else if pattern.Boost > 100.0 {
+				pattern.Boost = 100.0
+			}
+		}
+		taxonomy.Patterns[vector] = patterns
+	}
+}
+
+// -------------------- Term Extraction --------------------
+
+func extractAllTerms(trainingData []CVETrainingExample) map[string]bool {
+	allTerms := make(map[string]bool)
+	for _, example := range trainingData {
+		terms := tokenize(example.Description)
+		for _, term := range terms {
+			allTerms[term] = true
+		}
+	}
+	return allTerms
+}
+
+func calculateDocumentFrequency(trainingData []CVETrainingExample) map[string]int {
+	docFreq := make(map[string]int)
+
+	for _, example := range trainingData {
+		terms := tokenize(example.Description)
+		seen := make(map[string]bool)
+
+		for _, term := range terms {
+			if !seen[term] {
+				docFreq[term]++
+				seen[term] = true
+			}
 		}
 	}
 
-	return keywordMap, totalPairs
+	return docFreq
 }
 
 // -------------------- Tokenization --------------------
 
-func tokenizeForRanking(text string) []string {
+func tokenize(text string) []string {
 	// Convert to lowercase
 	text = strings.ToLower(text)
 
@@ -283,18 +293,25 @@ func tokenizeForRanking(text string) []string {
 	wordRegex := regexp.MustCompile(`[a-z]{3,}`)
 	words := wordRegex.FindAllString(text, -1)
 
-	// Filter stopwords
+	// Enhanced stopword list (security-specific)
 	stopwords := map[string]bool{
+		// Common English
 		"the": true, "and": true, "for": true, "with": true, "from": true,
 		"that": true, "this": true, "are": true, "was": true, "were": true,
 		"been": true, "being": true, "have": true, "has": true, "had": true,
 		"but": true, "not": true, "can": true, "will": true, "would": true,
 		"could": true, "should": true, "may": true, "might": true, "must": true,
+		"into": true, "through": true, "during": true, "before": true, "after": true,
+
+		// Generic security terms (too common to be discriminative)
+		"vulnerability": true, "allows": true, "attacker": true, "remote": true,
+		"via": true, "user": true, "application": true, "system": true,
+		"version": true, "versions": true, "prior": true, "component": true,
 	}
 
 	filtered := make([]string, 0, len(words))
 	for _, word := range words {
-		if !stopwords[word] && len(word) >= MinKeywordLength {
+		if !stopwords[word] && len(word) >= MinPatternLength {
 			filtered = append(filtered, word)
 		}
 	}
@@ -302,46 +319,69 @@ func tokenizeForRanking(text string) []string {
 	return filtered
 }
 
-// -------------------- Statistics --------------------
+// -------------------- Display --------------------
 
-func generateStats(keywordMap map[string][]string, totalCooccurrence int) KeywordStats {
-	// Count total mappings
-	totalMappings := 0
-	for _, related := range keywordMap {
-		totalMappings += len(related)
+func displaySummary(taxonomy *PatternTaxonomy) {
+	fmt.Println("\n" + strings.Repeat("=", 70))
+	fmt.Println("PATTERN TAXONOMY SUMMARY")
+	fmt.Println(strings.Repeat("=", 70))
+	fmt.Printf("Total Attack Vectors:  %d\n", taxonomy.Stats.TotalVectors)
+	fmt.Printf("Total Patterns:        %d\n", taxonomy.Stats.TotalPatterns)
+	fmt.Printf("Avg Patterns/Vector:   %.1f\n",
+		float64(taxonomy.Stats.TotalPatterns)/float64(taxonomy.Stats.TotalVectors))
+
+	// Show top 5 vectors by pattern count
+	fmt.Println("\nTop 5 Vectors by Training Data Size:")
+	vectorCounts := make([]struct {
+		Vector string
+		Count  int
+	}, 0, len(taxonomy.Stats.VectorCounts))
+
+	for vector, count := range taxonomy.Stats.VectorCounts {
+		vectorCounts = append(vectorCounts, struct {
+			Vector string
+			Count  int
+		}{vector, count})
 	}
 
-	// Find top keywords by number of related terms
-	counts := make([]KeywordPair, 0, len(keywordMap))
-	for keyword, related := range keywordMap {
-		counts = append(counts, KeywordPair{keyword, len(related)})
-	}
-
-	sort.Slice(counts, func(i, j int) bool {
-		return counts[i].Count > counts[j].Count
+	sort.Slice(vectorCounts, func(i, j int) bool {
+		return vectorCounts[i].Count > vectorCounts[j].Count
 	})
 
-	topKeywords := counts
-	if len(counts) > 20 {
-		topKeywords = counts[:20]
+	for i := 0; i < min(5, len(vectorCounts)); i++ {
+		vc := vectorCounts[i]
+		patterns := taxonomy.Patterns[vc.Vector]
+		fmt.Printf("  %d. %-30s %5d CVEs, %2d patterns\n",
+			i+1, vc.Vector, vc.Count, len(patterns))
+
+		// Show top 3 patterns
+		for j := 0; j < min(3, len(patterns)); j++ {
+			p := patterns[j]
+			fmt.Printf("     - %-20s (spec: %.2f, boost: %.1f, support: %d)\n",
+				strings.Join(p.Keywords, ", "), p.Specificity, p.Boost, p.Support)
+		}
 	}
 
-	// Sample mappings
-	sampleMappings := make(map[string][]string)
-	for i := 0; i < min(5, len(topKeywords)); i++ {
-		kw := topKeywords[i].Keyword
-		sampleMappings[kw] = keywordMap[kw]
-	}
-
-	return KeywordStats{
-		TotalKeywords:     len(keywordMap),
-		TotalCooccurrence: totalCooccurrence,
-		TopKeywords:       topKeywords,
-		SampleMappings:    sampleMappings,
+	// Show example patterns for deserialization
+	if patterns, exists := taxonomy.Patterns["deserialization"]; exists {
+		fmt.Println("\nExample: Deserialization Patterns (Top 10):")
+		for i := 0; i < min(10, len(patterns)); i++ {
+			p := patterns[i]
+			fmt.Printf("  %2d. %-20s spec=%.2f boost=%.1f support=%d\n",
+				i+1, strings.Join(p.Keywords, ", "), p.Specificity, p.Boost, p.Support)
+		}
 	}
 }
 
 // -------------------- Utilities --------------------
+
+func countTotalPatterns(taxonomy *PatternTaxonomy) int {
+	total := 0
+	for _, patterns := range taxonomy.Patterns {
+		total += len(patterns)
+	}
+	return total
+}
 
 func saveJSON(path string, data interface{}) error {
 	jsonData, err := json.MarshalIndent(data, "", "  ")
