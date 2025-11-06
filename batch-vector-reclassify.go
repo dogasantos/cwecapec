@@ -80,9 +80,10 @@ var (
 	cweHierarchy    *CWEHierarchy
 	nbModel         *AttackVectorModel
 	patternTaxonomy *PatternTaxonomy
-	resourcesPath   = "resources"
-	debugMode       = true // Enable debug output for first 5 CVEs
+	resourcesPath   = "/home/ubuntu/cwecapec/resources"
+	debugMode       = true // Enable debug output for first 10 CVEs
 	debugCount      = 0
+	debugMutex      sync.Mutex
 )
 
 func main() {
@@ -473,9 +474,14 @@ func containsAnyPattern(text string, patterns []string) bool {
 // --- HYBRID CLASSIFICATION LOGIC (Modified to use only the provided CWEs) ---
 
 func classifyHybrid(description string, cweIDs []string, cveID string) []string {
-	showDebug := debugMode && debugCount < 5
+	debugMutex.Lock()
+	showDebug := debugMode && debugCount < 10
 	if showDebug {
 		debugCount++
+	}
+	debugMutex.Unlock()
+
+	if showDebug {
 		fmt.Printf("\n=== DEBUG: %s ===\n", cveID)
 		fmt.Printf("Description: %s\n", description)
 		fmt.Printf("CWEs: %v\n", cweIDs)
@@ -534,6 +540,10 @@ func classifyHybrid(description string, cweIDs []string, cveID string) []string 
 	}
 
 	sort.Slice(scored, func(i, j int) bool {
+		if scored[i].score == scored[j].score {
+			// Tie-breaking: sort alphabetically for consistency
+			return scored[i].vector < scored[j].vector
+		}
 		return scored[i].score > scored[j].score
 	})
 
@@ -590,6 +600,9 @@ func classifyByCWEHierarchy(cweIDs []string) []string {
 		result = append(result, v)
 	}
 
+	// Sort alphabetically for deterministic order
+	sort.Strings(result)
+
 	return result
 }
 
@@ -639,6 +652,10 @@ func classifyByNaiveBayes(description string) []ClassificationResult {
 	}
 
 	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].prob == sorted[j].prob {
+			// Tie-breaking: sort alphabetically for consistency
+			return sorted[i].vector < sorted[j].vector
+		}
 		return sorted[i].prob > sorted[j].prob
 	})
 
@@ -700,6 +717,10 @@ func classifyByPatterns(description string) []ClassificationResult {
 	}
 
 	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].score == sorted[j].score {
+			// Tie-breaking: sort alphabetically for consistency
+			return sorted[i].vector < sorted[j].vector
+		}
 		return sorted[i].score > sorted[j].score
 	})
 
