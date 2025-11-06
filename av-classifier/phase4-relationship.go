@@ -1553,20 +1553,50 @@ func loadCWEHierarchy(filename string) (*CWEHierarchy, error) {
 		return nil, err
 	}
 
-	var hierarchy CWEHierarchy
-	if err := json.Unmarshal(data, &hierarchy); err != nil {
+	// First, unmarshal just the cwes section
+	var rawData map[string]json.RawMessage
+	if err := json.Unmarshal(data, &rawData); err != nil {
 		return nil, err
 	}
 
-	// Build forward mapping (AttackVector -> CWE IDs) if not present
-	if hierarchy.AttackVectorMapping == nil || len(hierarchy.AttackVectorMapping) == 0 {
-		hierarchy.AttackVectorMapping = make(map[string][]string)
+	var hierarchy CWEHierarchy
 
-		if showDetails {
-			fmt.Println("[DEBUG] Building forward AttackVector->CWE mapping from CWE attack_vectors...")
+	// Unmarshal the cwes section
+	if cwesData, exists := rawData["cwes"]; exists {
+		if err := json.Unmarshal(cwesData, &hierarchy.CWEs); err != nil {
+			return nil, err
 		}
+	}
 
-		// Build from CWE attack_vectors field
+	// Build forward mapping (AttackVector -> CWE IDs) from the reverse mapping
+	hierarchy.AttackVectorMapping = make(map[string][]string)
+
+	if showDetails {
+		fmt.Println("[DEBUG] Building forward AttackVector->CWE mapping from reverse mapping...")
+	}
+
+	// Check if there's an attack_vector_mapping section
+	if avmData, exists := rawData["attack_vector_mapping"]; exists {
+		// Unmarshal the CWE -> AttackVectors mapping
+		var cweToVectors map[string][]string
+		if err := json.Unmarshal(avmData, &cweToVectors); err == nil {
+			if showDetails {
+				fmt.Printf("[DEBUG] Found attack_vector_mapping with %d CWE entries\n", len(cweToVectors))
+			}
+
+			// Reverse the mapping: CWE -> Vectors becomes Vector -> CWEs
+			for cweID, attackVectors := range cweToVectors {
+				for _, av := range attackVectors {
+					hierarchy.AttackVectorMapping[av] = append(hierarchy.AttackVectorMapping[av], cweID)
+				}
+			}
+		} else if showDetails {
+			fmt.Printf("[DEBUG] Failed to unmarshal attack_vector_mapping: %v\n", err)
+		}
+	} else if showDetails {
+		fmt.Println("[DEBUG] No attack_vector_mapping section found, will build from CWE attack_vectors field")
+
+		// Fallback: Build from CWE attack_vectors field
 		for cweID, cweInfo := range hierarchy.CWEs {
 			if cweInfo != nil {
 				for _, av := range cweInfo.AttackVectors {
@@ -1574,16 +1604,16 @@ func loadCWEHierarchy(filename string) (*CWEHierarchy, error) {
 				}
 			}
 		}
+	}
 
-		if showDetails {
-			fmt.Printf("[DEBUG] Built %d attack vector mappings\n", len(hierarchy.AttackVectorMapping))
-			// Show a sample of the mappings
-			count := 0
-			for av, cweIDs := range hierarchy.AttackVectorMapping {
-				if count < 5 {
-					fmt.Printf("[DEBUG]   '%s' -> %v\n", av, cweIDs)
-					count++
-				}
+	if showDetails {
+		fmt.Printf("[DEBUG] Built %d attack vector mappings\n", len(hierarchy.AttackVectorMapping))
+		// Show a sample of the mappings
+		count := 0
+		for av, cweIDs := range hierarchy.AttackVectorMapping {
+			if count < 5 {
+				fmt.Printf("[DEBUG]   '%s' -> %v\n", av, cweIDs)
+				count++
 			}
 		}
 	}
