@@ -295,10 +295,6 @@ func main() {
 		// Look up CWEs associated with this attack vector
 		if vectorCWEs, exists := hierarchy.AttackVectorMapping[topVector]; exists {
 			// We have multiple CWEs. We must select the most relevant one.
-			// For now, we will select the CWE that is the most specific to the attack vector.
-			// The CWEs are usually ordered by relevance in the mapping.
-			// If "Path Traversal" maps to ["22", "918"], we want "22".
-
 			// For now, we will just use the first CWE in the list, as it is usually the most relevant.
 			if len(vectorCWEs) > 0 {
 				attackVectorCWEs = []string{vectorCWEs[0]}
