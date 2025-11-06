@@ -73,7 +73,7 @@ var (
 	cweHierarchy    *CWEHierarchy
 	nbModel         *AttackVectorModel
 	patternTaxonomy *PatternTaxonomy
-	resourcesPath   = "resources"
+	resourcesPath   = "/home/ubuntu/cwecapec/resources"
 )
 
 func main() {
@@ -124,7 +124,7 @@ func main() {
 	fmt.Printf("Average: %.2f CVEs/second\n\n", float64(len(trainingData))/elapsed.Seconds())
 
 	// Save results
-	outputPath := resourcesPath + "/training_data_reclassified.json"
+	outputPath := resourcesPath + "/training_data.json"
 	fmt.Printf("Saving results to %s... ", outputPath)
 	if err := saveTrainingData(reclassified, outputPath); err != nil {
 		fmt.Printf("✗\nError: %v\n", err)
