@@ -1583,6 +1583,8 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 			fmt.Println("\n  [CWE Frequency Filtering]:")
 		}
 
+		// First, identify vectors to eliminate
+		toEliminate := make(map[string]bool)
 		for vector := range scores {
 			topCWEs, exists := cweFrequencyMap[vector]
 			if !exists {
@@ -1600,12 +1602,25 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 				}
 			}
 
-			// If no CWE overlap, this is likely a false positive - eliminate it
+			// If no CWE overlap, mark for elimination
 			if matches == 0 {
+				toEliminate[vector] = true
+			}
+		}
+
+		// Check if we would eliminate all candidates
+		if len(toEliminate) < len(scores) {
+			// Safe to eliminate - we'll still have results
+			for vector := range toEliminate {
 				delete(scores, vector)
 				if verbose {
 					fmt.Printf("    Eliminated %s (0 CWE matches)\n", vector)
 				}
+			}
+		} else {
+			// Would eliminate all - keep the top one
+			if verbose {
+				fmt.Printf("    All candidates have 0 CWE matches - keeping top candidate\n")
 			}
 		}
 	}
