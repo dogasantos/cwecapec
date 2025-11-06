@@ -98,6 +98,19 @@ type ScoredCWE struct {
 	Score float64
 }
 
+// PatternRule represents a pattern matching rule for attack vector detection
+type PatternRule struct {
+	Keywords    []string `json:"keywords"`
+	Specificity float64  `json:"specificity"`
+	Boost       float64  `json:"boost"`
+	Support     int      `json:"support"`
+}
+
+// PatternTaxonomy contains pattern rules for all attack vectors
+type PatternTaxonomy struct {
+	Patterns map[string][]PatternRule `json:"patterns"` // attack_vector -> rules
+}
+
 var (
 	cveID       string
 	cveDesc     string
@@ -190,11 +203,25 @@ func main() {
 		os.Exit(1)
 	}
 	if showDetails {
-		fmt.Printf("Loaded model with %d attack vectors\n\n", len(model.VectorPriors))
+		fmt.Printf("Loaded model with %d attack vectors\n", len(model.VectorPriors))
+	}
+
+	// Load pattern taxonomy
+	var patternTaxonomy *PatternTaxonomy
+	if _, err := os.Stat("resources/pattern_taxonomy.json"); err == nil {
+		patternTaxonomy, err = loadPatternTaxonomy("resources/pattern_taxonomy.json")
+		if err != nil && showDetails {
+			fmt.Printf("Warning: Failed to load pattern taxonomy: %v\n", err)
+		} else if showDetails {
+			fmt.Printf("Pattern taxonomy loaded: %d attack vectors\n", len(patternTaxonomy.Patterns))
+		}
+	}
+	if showDetails {
+		fmt.Println()
 	}
 
 	// Classify
-	results := classifyHybrid(cveDesc, cwes, hierarchy, model, topN, showDetails)
+	results := classifyHybrid(cveDesc, cwes, hierarchy, model, patternTaxonomy, topN, showDetails)
 
 	// Display results
 	fmt.Println("\n=================================================================")
@@ -495,7 +522,7 @@ func containsAnyPattern(text string, patterns []string) bool {
 	return false
 }
 
-func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy, model *AttackVectorModel, topN int, verbose bool) []ClassificationResult {
+func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy, model *AttackVectorModel, patternTaxonomy *PatternTaxonomy, topN int, verbose bool) []ClassificationResult {
 	// Step 1: Rank CWEs by relevance and select top 2
 	rankedCWEs := rankCWEsByRelevance(cweIDs, description, hierarchy, 2)
 
@@ -518,7 +545,7 @@ func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy
 			fmt.Printf("\nApplying Naive Bayes to %d candidate attack vectors...\n", len(candidates))
 		}
 		// Classify only among candidates
-		results := classifyNaiveBayes(description, model, candidates)
+		results := classifyNaiveBayes(description, model, candidates, patternTaxonomy, verbose)
 
 		// Filter out 0.00% probability results
 		filteredResults := []ClassificationResult{}
@@ -545,7 +572,7 @@ func classifyHybrid(description string, cweIDs []string, hierarchy *CWEHierarchy
 			fmt.Println("\nNo CWE IDs provided or no mappings found. Falling back to full Naive Bayes...")
 		}
 		// Fallback: classify among all vectors
-		results := classifyNaiveBayes(description, model, nil)
+		results := classifyNaiveBayes(description, model, nil, patternTaxonomy, verbose)
 
 		// Filter out 0.00% probability results
 		filteredResults := []ClassificationResult{}
@@ -651,7 +678,7 @@ func getCandidatesFromCWEs(cweIDs []string, hierarchy *CWEHierarchy, verbose boo
 	return candidates
 }
 
-func classifyNaiveBayes(description string, model *AttackVectorModel, candidates map[string]bool) []ClassificationResult {
+func classifyNaiveBayes(description string, model *AttackVectorModel, candidates map[string]bool, patternTaxonomy *PatternTaxonomy, verbose bool) []ClassificationResult {
 	// Tokenize description
 	tokens := tokenize(description)
 
@@ -677,25 +704,26 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 		scores[vector] = logProb
 	}
 
-	// Apply pattern-based boosting before normalization
-	descLower := strings.ToLower(description)
+	// Apply data-driven pattern boosting (Layer 3)
+	if patternTaxonomy != nil {
+		descLower := strings.ToLower(description)
 
-	// Boost deserialization if JNDI/LDAP/lookup patterns detected
-	if containsAnyPattern(descLower, []string{"jndi", "ldap", "lookup", "unmarsh", "pickle", "deserializ"}) {
-		if _, exists := scores["deserialization"]; exists {
-			scores["deserialization"] += 50.0 // Strong boost for log probabilities
+		// Get candidate vectors as slice
+		candidateVectors := make([]string, 0, len(candidates))
+		for vector := range candidates {
+			candidateVectors = append(candidateVectors, vector)
 		}
-		if _, exists := scores["jndi_injection"]; exists {
-			scores["jndi_injection"] += 40.0
-		}
-	}
 
-	// Prefer specific attack vectors over generic ones
-	// If both deserialization and rce are candidates, boost deserialization
-	if _, hasDeser := scores["deserialization"]; hasDeser {
-		if _, hasRCE := scores["rce"]; hasRCE {
-			// Deserialization is more specific than RCE
-			scores["deserialization"] += 30.0
+		patternBoosts := scorePatternMatches(descLower, candidateVectors, patternTaxonomy)
+
+		// Apply boosts to scores
+		for vector, boost := range patternBoosts {
+			if _, exists := scores[vector]; exists {
+				scores[vector] += boost
+				if verbose {
+					fmt.Printf("  [Pattern Boost] %s: +%.1f\n", vector, boost)
+				}
+			}
 		}
 	}
 
@@ -904,6 +932,60 @@ func loadNaiveBayesModel(filename string) (*AttackVectorModel, error) {
 	}
 
 	return &model, nil
+}
+
+// Load pattern taxonomy from JSON file
+func loadPatternTaxonomy(filename string) (*PatternTaxonomy, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var taxonomy PatternTaxonomy
+	if err := json.Unmarshal(data, &taxonomy); err != nil {
+		return nil, err
+	}
+
+	return &taxonomy, nil
+}
+
+// Score pattern matches for each candidate vector
+func scorePatternMatches(description string, candidates []string, taxonomy *PatternTaxonomy) map[string]float64 {
+	boosts := make(map[string]float64)
+
+	// For each candidate vector
+	for _, vector := range candidates {
+		patterns, exists := taxonomy.Patterns[vector]
+		if !exists {
+			continue
+		}
+
+		totalBoost := 0.0
+
+		// Check each pattern rule for this vector
+		for _, pattern := range patterns {
+			// Check if all keywords in the pattern are present
+			allMatch := true
+			for _, keyword := range pattern.Keywords {
+				if !strings.Contains(description, keyword) {
+					allMatch = false
+					break
+				}
+			}
+
+			if allMatch {
+				// Pattern matched! Apply boost
+				totalBoost += pattern.Boost
+			}
+		}
+
+		// Store total boost for this vector
+		if totalBoost > 0 {
+			boosts[vector] = totalBoost
+		}
+	}
+
+	return boosts
 }
 
 // Load CAPEC data from JSON file
