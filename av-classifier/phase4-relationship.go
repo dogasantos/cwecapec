@@ -89,10 +89,11 @@ type RelationshipsDB struct {
 
 // CAPEC ranking result
 type CAPECResult struct {
-	CAPECID     string  `json:"capec_id"`
-	Name        string  `json:"name"`
-	Probability float64 `json:"probability"`
-	Confidence  string  `json:"confidence"`
+	CAPECID            string   `json:"capec_id"`
+	Name               string   `json:"name"`
+	Probability        float64  `json:"probability"`
+	Confidence         string   `json:"confidence"`
+	LayerContributions []string `json:"layer_contributions,omitempty"`
 }
 
 // ScoredCWE represents a CWE with its relevance score
@@ -378,8 +379,13 @@ func main() {
 				fmt.Println("  No direct CAPEC relationships found.")
 			} else {
 				for i, capec := range capecResults {
+					// Display layer contributions if available
+					sourceStr := capec.Confidence
+					if len(capec.LayerContributions) > 0 {
+						sourceStr = strings.Join(capec.LayerContributions, " + ")
+					}
 					fmt.Printf("  %d. CAPEC-%s: %s (Relevance: %.0f%%, Source: %s)\n",
-						i+1, capec.CAPECID, capec.Name, capec.Probability*100, capec.Confidence)
+						i+1, capec.CAPECID, capec.Name, capec.Probability*100, sourceStr)
 				}
 			}
 			fmt.Println()
@@ -472,6 +478,10 @@ func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string, classified
 		capecDescLower := strings.ToLower(capec.Description)
 		capecText := capecNameLower + " " + capecDescLower
 
+		// Track which layers contributed
+		layers := make(map[string]bool)
+		layers["CWE Relationship"] = true // All CAPECs come from CWE relationships
+
 		// Start with base score
 		relevanceScore := 30.0 // Base score for all CAPECs that passed filtering
 
@@ -497,6 +507,7 @@ func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string, classified
 				if matchCount > 0 {
 					patternScore := (float64(matchCount) / float64(len(pattern.Keywords))) * pattern.Boost * 0.5
 					relevanceScore += patternScore
+					layers["Pattern Match"] = true
 					if showDetails && patternScore > 5 {
 						fmt.Printf("    [RANK] CAPEC-%s: +%.1f (pattern match: %d/%d keywords)\n",
 							capec.CAPECID, patternScore, matchCount, len(pattern.Keywords))
@@ -516,6 +527,7 @@ func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string, classified
 		if keywordMatches > 0 {
 			keywordScore := float64(keywordMatches) * 3.0
 			relevanceScore += keywordScore
+			layers["Keyword Match"] = true
 			if showDetails {
 				fmt.Printf("    [RANK] CAPEC-%s: +%.1f (keyword matches: %d)\n", capec.CAPECID, keywordScore, keywordMatches)
 			}
@@ -557,11 +569,25 @@ func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string, classified
 			fmt.Printf("    [RANK] CAPEC-%s: Final score = %.1f%% (%s confidence)\n", capec.CAPECID, relevanceScore, confidence)
 		}
 
+		// Build layer contributions list
+		layerList := []string{}
+		// Add in specific order for consistency
+		if layers["CWE Relationship"] {
+			layerList = append(layerList, "CWE Relationship")
+		}
+		if layers["Pattern Match"] {
+			layerList = append(layerList, "Pattern Match")
+		}
+		if layers["Keyword Match"] {
+			layerList = append(layerList, "Keyword Match")
+		}
+
 		results = append(results, CAPECResult{
-			CAPECID:     capec.CAPECID,
-			Name:        capec.Name,
-			Probability: relevanceScore / 100.0,
-			Confidence:  confidence,
+			CAPECID:            capec.CAPECID,
+			Name:               capec.Name,
+			Probability:        relevanceScore / 100.0,
+			Confidence:         confidence,
+			LayerContributions: layerList,
 		})
 	}
 
