@@ -73,7 +73,7 @@ var (
 	cweHierarchy    *CWEHierarchy
 	nbModel         *AttackVectorModel
 	patternTaxonomy *PatternTaxonomy
-	resourcesPath   = "cwecapec/resources"
+	resourcesPath   = "resources"
 )
 
 func main() {
