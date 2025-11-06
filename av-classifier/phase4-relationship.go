@@ -140,6 +140,47 @@ var (
 	attackTechniquesDB map[string]AttackTechnique
 )
 
+// filterByConfidenceGap intelligently filters classification results based on confidence distribution
+func filterByConfidenceGap(results []ClassificationResult) []ClassificationResult {
+	if len(results) == 0 {
+		return results
+	}
+
+	if len(results) == 1 {
+		return results
+	}
+
+	topProb := results[0].Probability
+
+	// Case 1: Distributed confidence (top <60%) - show all
+	if topProb < 0.60 {
+		return results
+	}
+
+	// Case 2: Clear winner (top >90%) - filter by gap
+	if topProb > 0.90 {
+		filtered := []ClassificationResult{results[0]}
+		for i := 1; i < len(results); i++ {
+			gap := topProb - results[i].Probability
+			// Only include if gap is small (<20%)
+			if gap < 0.20 {
+				filtered = append(filtered, results[i])
+			}
+		}
+		return filtered
+	}
+
+	// Case 3: Medium confidence (60-90%) - show top 3 or until gap >30%
+	filtered := []ClassificationResult{results[0]}
+	for i := 1; i < len(results) && i < 3; i++ {
+		gap := topProb - results[i].Probability
+		if gap < 0.30 {
+			filtered = append(filtered, results[i])
+		}
+	}
+	return filtered
+}
+
 func main() {
 	flag.StringVar(&cveID, "cve", "", "CVE ID (e.g., 'CVE-2021-44228')")
 	flag.StringVar(&cveDesc, "description", "", "CVE description text (alternative to -cve)")
@@ -286,12 +327,15 @@ func main() {
 	// Classify
 	results := classifyHybrid(cveDesc, cwes, hierarchy, model, patternTaxonomy, topN, showDetails)
 
+	// Filter results based on confidence gap
+	filteredResults := filterByConfidenceGap(results)
+
 	// Display results
 	fmt.Println("\n=================================================================")
 	fmt.Println("Classification Results:")
 	fmt.Println("=================================================================\n")
 
-	for i, result := range results {
+	for i, result := range filteredResults {
 		fmt.Printf("%d. %s\n", i+1, result.Name)
 		fmt.Printf("   Probability: %.2f%% (%s confidence)\n", result.Probability*100, result.Confidence)
 
@@ -302,7 +346,7 @@ func main() {
 			fmt.Printf("   Source: %s\n", result.Source)
 		}
 
-		if i < len(results)-1 {
+		if i < len(filteredResults)-1 {
 			fmt.Println()
 		}
 	}
