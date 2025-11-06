@@ -45,7 +45,8 @@ type CWEInfo struct {
 
 type CWEHierarchy struct {
 	CWEs                map[string]*CWEInfo `json:"cwes"`
-	AttackVectorMapping map[string][]string `json:"attack_vector_mapping"`
+	AttackVectorMapping map[string][]string `json:"attack_vector_mapping"` // Forward: AttackVector -> CWE IDs
+	CWEToVectorMapping  map[string][]string // Reverse: CWE ID -> AttackVectors (built from data)
 }
 
 // Naive Bayes model structures (matching trainer output)
@@ -111,6 +112,12 @@ type PatternRule struct {
 // PatternTaxonomy contains pattern rules for all attack vectors
 type PatternTaxonomy struct {
 	Patterns map[string][]PatternRule `json:"patterns"` // attack_vector -> rules
+}
+
+// normalizeAttackVector converts "Path Traversal" to "path_traversal"
+func normalizeAttackVector(av string) string {
+	// Convert to lowercase and replace spaces with underscores
+	return strings.ToLower(strings.ReplaceAll(av, " ", "_"))
 }
 
 var (
@@ -293,13 +300,15 @@ func main() {
 		}
 
 		// Look up CWEs associated with this attack vector
-		if vectorCWEs, exists := hierarchy.AttackVectorMapping[topVector]; exists {
-			// We have multiple CWEs. We must select the most relevant one.
-			// For now, we will just use the first CWE in the list, as it is usually the most relevant.
+		// Normalize the vector name to match data format (e.g., "Path Traversal" -> "path_traversal")
+		normalizedVector := normalizeAttackVector(topVector)
+
+		if vectorCWEs, exists := hierarchy.AttackVectorMapping[normalizedVector]; exists {
+			// Fallback 1: Use data-driven mapping, selecting the first (most relevant) CWE
 			if len(vectorCWEs) > 0 {
 				attackVectorCWEs = []string{vectorCWEs[0]}
 				if showDetails {
-					fmt.Printf("[DEBUG] Attack vector '%s' maps to CWEs: %v\n", topVector, vectorCWEs)
+					fmt.Printf("[DEBUG] Data-driven mapping used: '%s' (normalized: '%s') maps to CWEs: %v\n", topVector, normalizedVector, vectorCWEs)
 					fmt.Printf("[DEBUG] Selecting only the first CWE: %s\n", attackVectorCWEs[0])
 				}
 			} else {
@@ -1531,6 +1540,20 @@ func loadCWEHierarchy(filename string) (*CWEHierarchy, error) {
 	var hierarchy CWEHierarchy
 	if err := json.Unmarshal(data, &hierarchy); err != nil {
 		return nil, err
+	}
+
+	// Build forward mapping (AttackVector -> CWE IDs) if not present
+	if hierarchy.AttackVectorMapping == nil || len(hierarchy.AttackVectorMapping) == 0 {
+		hierarchy.AttackVectorMapping = make(map[string][]string)
+
+		// Build from CWE attack_vectors field
+		for cweID, cweInfo := range hierarchy.CWEs {
+			if cweInfo != nil {
+				for _, av := range cweInfo.AttackVectors {
+					hierarchy.AttackVectorMapping[av] = append(hierarchy.AttackVectorMapping[av], cweID)
+				}
+			}
+		}
 	}
 
 	return &hierarchy, nil
