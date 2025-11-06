@@ -94,6 +94,7 @@ type CAPECResult struct {
 	Name        string  `json:"name"`
 	Probability float64 `json:"probability"`
 	Confidence  string  `json:"confidence"`
+	Source      string  `json:"source"` // Describes how/where this CAPEC was selected from
 }
 
 // ScoredCWE represents a CWE with its relevance score
@@ -382,8 +383,10 @@ func main() {
 				fmt.Println("  No direct CAPEC relationships found.")
 			} else {
 				for i, capec := range capecResults {
-					fmt.Printf("  %d. CAPEC-%s: %s (Relevance: %.0f%%, Source: %s)\n",
-						i+1, capec.CAPECID, capec.Name, capec.Probability*100, capec.Confidence)
+					fmt.Printf("  %d. CAPEC-%s: %s\n",
+						i+1, capec.CAPECID, capec.Name)
+					fmt.Printf("     Relevance: %.0f%% (%s confidence)\n", capec.Probability*100, capec.Confidence)
+					fmt.Printf("     Source: %s\n", capec.Source)
 				}
 			}
 			fmt.Println()
@@ -566,6 +569,7 @@ func rankCAPECsByRelevance(capecs []CAPECData, cveDescription string, classified
 			Name:        capec.Name,
 			Probability: relevanceScore / 100.0,
 			Confidence:  confidence,
+			Source:      "CWE relationship + Pattern taxonomy + CVE description match",
 		})
 	}
 
@@ -732,7 +736,8 @@ func getCAPECsForCWE(cweID string) []CAPECResult {
 			CAPECID:     capec.CAPECID,
 			Name:        capec.Name,
 			Probability: 1.0,
-			Confidence:  "Direct CWE Mapping",
+			Confidence:  "high",
+			Source:      "Direct CWE relationship mapping",
 		})
 	}
 
@@ -1816,6 +1821,7 @@ func classifyNaiveBayesCAPEC(description string, candidates []CAPECData) []CAPEC
 			Name:        capec.Name,
 			Probability: probability,
 			Confidence:  confidence,
+			Source:      "Naive Bayes classification on CAPEC descriptions",
 		})
 	}
 
