@@ -333,9 +333,17 @@ func getCAPECsForCWE(cweID string) []CAPECResult {
 		return nil
 	}
 
+	if showDetails {
+		fmt.Printf("  [DEBUG] Found %d CAPEC IDs for CWE %s: %v\n", len(capecIDs), cweID, capecIDs)
+		fmt.Printf("  [DEBUG] capecDB has %d entries\n", len(capecDB))
+	}
+
 	var results []CAPECResult
 	for _, capecID := range capecIDs {
 		capec, capecExists := capecDB[capecID]
+		if showDetails {
+			fmt.Printf("  [DEBUG] Looking up CAPEC '%s' in capecDB: found=%v\n", capecID, capecExists)
+		}
 		if capecExists {
 			// Simple scoring: 1.0 for direct relationship
 			results = append(results, CAPECResult{
@@ -344,6 +352,8 @@ func getCAPECsForCWE(cweID string) []CAPECResult {
 				Probability: 1.0,
 				Confidence:  "Direct CWE Mapping",
 			})
+		} else if showDetails {
+			fmt.Printf("  [DEBUG] CAPEC '%s' not found in capecDB\n", capecID)
 		}
 	}
 
@@ -441,24 +451,92 @@ func loadCAPECDB(path string) error {
 	// Try to unmarshal as array first
 	var capecs []CAPECData
 	err = json.Unmarshal(data, &capecs)
-	if err != nil {
-		// If that fails, try to unmarshal as object with "capecs" key
-		var capecObj struct {
-			CAPECs []CAPECData `json:"capecs"`
+	if err == nil && len(capecs) > 0 {
+		// Successfully loaded array format
+		capecDB = make(map[string]CAPECData)
+		for _, capec := range capecs {
+			capecDB[capec.CAPECID] = capec
 		}
-		err = json.Unmarshal(data, &capecObj)
-		if err != nil {
-			return fmt.Errorf("failed to parse CAPEC DB (tried both array and object formats): %v", err)
+		fmt.Printf(" ✓ (%d CAPECs loaded, array format)\n", len(capecDB))
+		if showDetails {
+			fmt.Printf("  Sample CAPEC IDs in database: ")
+			count := 0
+			for capecID := range capecDB {
+				if count < 5 {
+					fmt.Printf("%s ", capecID)
+					count++
+				}
+			}
+			fmt.Println()
 		}
-		capecs = capecObj.CAPECs
+		return nil
 	}
 
-	capecDB = make(map[string]CAPECData)
-	for _, capec := range capecs {
-		capecDB[capec.CAPECID] = capec
+	// Try to unmarshal as object with "capecs" key
+	var capecObj struct {
+		CAPECs []CAPECData `json:"capecs"`
 	}
-	fmt.Println(" ✓")
-	return nil
+	err = json.Unmarshal(data, &capecObj)
+	if err == nil && len(capecObj.CAPECs) > 0 {
+		// Successfully loaded object with array format
+		capecDB = make(map[string]CAPECData)
+		for _, capec := range capecObj.CAPECs {
+			capecDB[capec.CAPECID] = capec
+		}
+		fmt.Printf(" ✓ (%d CAPECs loaded, object+array format)\n", len(capecDB))
+		if showDetails {
+			fmt.Printf("  Sample CAPEC IDs in database: ")
+			count := 0
+			for capecID := range capecDB {
+				if count < 5 {
+					fmt.Printf("%s ", capecID)
+					count++
+				}
+			}
+			fmt.Println()
+		}
+		return nil
+	}
+
+	// Try to unmarshal as map with CAPEC IDs as keys (feeds-updater.go format)
+	type CAPECEntry struct {
+		Name               string   `json:"name"`
+		Description        string   `json:"description"`
+		RelatedWeaknesses  []string `json:"relatedWeaknesses"`
+		TypicalSeverity    string   `json:"typicalSeverity"`
+		LikelihoodOfAttack string   `json:"likelihoodOfAttack"`
+	}
+
+	var capecMap map[string]CAPECEntry
+	err = json.Unmarshal(data, &capecMap)
+	if err == nil && len(capecMap) > 0 {
+		// Successfully loaded map format (CAPEC IDs as keys)
+		capecDB = make(map[string]CAPECData)
+		for capecID, entry := range capecMap {
+			capecDB[capecID] = CAPECData{
+				CAPECID:         capecID,
+				Name:            entry.Name,
+				Description:     entry.Description,
+				RelatedCWEs:     entry.RelatedWeaknesses,
+				TypicalSeverity: entry.TypicalSeverity,
+			}
+		}
+		fmt.Printf(" ✓ (%d CAPECs loaded, map format)\n", len(capecDB))
+		if showDetails {
+			fmt.Printf("  Sample CAPEC IDs in database: ")
+			count := 0
+			for capecID := range capecDB {
+				if count < 5 {
+					fmt.Printf("%s ", capecID)
+					count++
+				}
+			}
+			fmt.Println()
+		}
+		return nil
+	}
+
+	return fmt.Errorf("failed to parse CAPEC DB (tried array, object+array, and map formats)")
 }
 
 func fetchCVEFromNVD(cveID string) (string, []string, error) {
