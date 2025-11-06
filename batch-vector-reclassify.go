@@ -80,7 +80,7 @@ var (
 	cweHierarchy    *CWEHierarchy
 	nbModel         *AttackVectorModel
 	patternTaxonomy *PatternTaxonomy
-	resourcesPath   = "/home/ubuntu/cwecapec/resources"
+	resourcesPath   = "resources"
 	debugMode       = true // Enable debug output for first 5 CVEs
 	debugCount      = 0
 )
