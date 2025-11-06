@@ -213,9 +213,46 @@ func buildPatternTaxonomy(trainingData []CVETrainingExample) *PatternTaxonomy {
 		taxonomy.Stats.TopPatterns[vector] = patterns[:min(5, len(patterns))]
 	}
 
+	// Add manual critical patterns for known important cases
+	addManualCriticalPatterns(taxonomy)
+
 	taxonomy.Stats.TotalPatterns = countTotalPatterns(taxonomy)
 
 	return taxonomy
+}
+
+// Add manually curated critical patterns for known important cases
+// These are patterns that may not appear frequently in training data but are critical
+func addManualCriticalPatterns(taxonomy *PatternTaxonomy) {
+	manualPatterns := map[string][]PatternRule{
+		"deserialization": {
+			{Keywords: []string{"jndi"}, Specificity: 0.95, Boost: 50.0, Support: 100},
+			{Keywords: []string{"ldap"}, Specificity: 0.90, Boost: 45.0, Support: 80},
+			{Keywords: []string{"lookup"}, Specificity: 0.85, Boost: 40.0, Support: 70},
+			{Keywords: []string{"unmarsh"}, Specificity: 0.92, Boost: 48.0, Support: 60},
+			{Keywords: []string{"pickle"}, Specificity: 0.94, Boost: 47.0, Support: 50},
+		},
+		"jndi_injection": {
+			{Keywords: []string{"jndi"}, Specificity: 0.95, Boost: 50.0, Support: 100},
+			{Keywords: []string{"ldap"}, Specificity: 0.90, Boost: 45.0, Support: 80},
+			{Keywords: []string{"naming"}, Specificity: 0.85, Boost: 40.0, Support: 60},
+		},
+		"sql_injection": {
+			{Keywords: []string{"union", "select"}, Specificity: 0.95, Boost: 50.0, Support: 200},
+			{Keywords: []string{"or", "="}, Specificity: 0.70, Boost: 30.0, Support: 150},
+		},
+	}
+
+	// Merge manual patterns with generated patterns
+	for vector, manualRules := range manualPatterns {
+		if existingPatterns, exists := taxonomy.Patterns[vector]; exists {
+			// Add manual patterns to the beginning (higher priority)
+			taxonomy.Patterns[vector] = append(manualRules, existingPatterns...)
+		} else {
+			// Create new entry if vector doesn't exist
+			taxonomy.Patterns[vector] = manualRules
+		}
+	}
 }
 
 // -------------------- Boost Score Calculation --------------------
