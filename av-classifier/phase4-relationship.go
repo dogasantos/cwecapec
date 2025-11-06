@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -1589,6 +1590,20 @@ func loadCWEHierarchy(filename string) (*CWEHierarchy, error) {
 				for _, av := range attackVectors {
 					hierarchy.AttackVectorMapping[av] = append(hierarchy.AttackVectorMapping[av], cweID)
 				}
+			}
+
+			// Sort CWE IDs numerically for consistent ordering
+			for av := range hierarchy.AttackVectorMapping {
+				sort.Slice(hierarchy.AttackVectorMapping[av], func(i, j int) bool {
+					// Convert to integers for numerical sorting
+					a, errA := strconv.Atoi(hierarchy.AttackVectorMapping[av][i])
+					b, errB := strconv.Atoi(hierarchy.AttackVectorMapping[av][j])
+					if errA != nil || errB != nil {
+						// Fallback to string comparison if conversion fails
+						return hierarchy.AttackVectorMapping[av][i] < hierarchy.AttackVectorMapping[av][j]
+					}
+					return a < b
+				})
 			}
 		} else if showDetails {
 			fmt.Printf("[DEBUG] Failed to unmarshal attack_vector_mapping: %v\n", err)
