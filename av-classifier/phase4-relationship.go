@@ -62,11 +62,12 @@ type AttackVectorModel struct {
 
 // Classification result
 type ClassificationResult struct {
-	Vector      string  `json:"vector"`
-	Name        string  `json:"name"`
-	Probability float64 `json:"probability"`
-	Confidence  string  `json:"confidence"`
-	Source      string  `json:"source"` // "cwe_hierarchy", "naive_bayes", or "hybrid"
+	Vector             string   `json:"vector"`
+	Name               string   `json:"name"`
+	Probability        float64  `json:"probability"`
+	Confidence         string   `json:"confidence"`
+	Source             string   `json:"source"`                        // "cwe_hierarchy", "naive_bayes", or "hybrid"
+	LayerContributions []string `json:"layer_contributions,omitempty"` // Track which layers contributed
 }
 
 // CAPEC structures
@@ -271,7 +272,14 @@ func main() {
 	for i, result := range results {
 		fmt.Printf("%d. %s\n", i+1, result.Name)
 		fmt.Printf("   Probability: %.2f%% (%s confidence)\n", result.Probability*100, result.Confidence)
-		fmt.Printf("   Source: %s\n", result.Source)
+
+		// Display layer contributions if available
+		if len(result.LayerContributions) > 0 {
+			fmt.Printf("   Source: %s\n", strings.Join(result.LayerContributions, " + "))
+		} else {
+			fmt.Printf("   Source: %s\n", result.Source)
+		}
+
 		if i < len(results)-1 {
 			fmt.Println()
 		}
@@ -1329,6 +1337,18 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 
 	// Calculate log probabilities for each vector
 	scores := make(map[string]float64)
+	// Track which layers contributed to each vector
+	layerContributions := make(map[string]map[string]bool)
+
+	// Mark all candidates as having CWE Hierarchy contribution
+	if candidates != nil && len(candidates) > 0 {
+		for vector := range candidates {
+			if layerContributions[vector] == nil {
+				layerContributions[vector] = make(map[string]bool)
+			}
+			layerContributions[vector]["CWE Hierarchy"] = true
+		}
+	}
 
 	for vector := range model.VectorPriors {
 		// Skip if not in candidates (if candidates are specified)
@@ -1347,6 +1367,12 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 		}
 
 		scores[vector] = logProb
+
+		// Track Naive Bayes contribution
+		if layerContributions[vector] == nil {
+			layerContributions[vector] = make(map[string]bool)
+		}
+		layerContributions[vector]["Naive Bayes"] = true
 	}
 
 	// Debug: Show raw Naive Bayes scores
@@ -1406,6 +1432,11 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 		for vector, boost := range patternBoosts {
 			if _, exists := scores[vector]; exists {
 				scores[vector] += boost
+				// Track Pattern Matching contribution
+				if layerContributions[vector] == nil {
+					layerContributions[vector] = make(map[string]bool)
+				}
+				layerContributions[vector]["Pattern Matching"] = true
 				if verbose {
 					fmt.Printf("  [Pattern Boost] %s: +%.1f\n", vector, boost)
 				}
@@ -1442,6 +1473,12 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 				matchRatio := float64(matches) / float64(maxPossible)
 				boost := matchRatio * 20.0 // Scale to 0-20 range for very strong signal
 				scores[vector] += boost
+
+				// Track CWE Frequency contribution
+				if layerContributions[vector] == nil {
+					layerContributions[vector] = make(map[string]bool)
+				}
+				layerContributions[vector]["CWE Frequency"] = true
 
 				if verbose {
 					fmt.Printf("  [CWE Frequency Boost] %s: +%.1f (matches: %d/%d)\n", vector, boost, matches, maxPossible)
@@ -1481,11 +1518,30 @@ func classifyNaiveBayes(description string, model *AttackVectorModel, candidates
 			confidence = "medium"
 		}
 
+		// Build layer contributions list
+		layers := []string{}
+		if layerContributions[vector] != nil {
+			// Add in a specific order for consistency
+			if layerContributions[vector]["CWE Hierarchy"] {
+				layers = append(layers, "CWE Hierarchy")
+			}
+			if layerContributions[vector]["Naive Bayes"] {
+				layers = append(layers, "Naive Bayes")
+			}
+			if layerContributions[vector]["Pattern Matching"] {
+				layers = append(layers, "Pattern Matching")
+			}
+			if layerContributions[vector]["CWE Frequency"] {
+				layers = append(layers, "CWE Frequency")
+			}
+		}
+
 		results = append(results, ClassificationResult{
-			Vector:      vector,
-			Name:        getVectorName(vector),
-			Probability: normalizedProb,
-			Confidence:  confidence,
+			Vector:             vector,
+			Name:               getVectorName(vector),
+			Probability:        normalizedProb,
+			Confidence:         confidence,
+			LayerContributions: layers,
 		})
 	}
 
