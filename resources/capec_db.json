@@ -658,6 +658,7 @@
   },
   "105": {
     "name": "HTTP Request Splitting",
+    "description": "An adversary abuses the flexibility and discrepancies in the parsing and interpretation of HTTP Request messages by different intermediary HTTP agents (e.g., load balancer, reverse proxy, web caching proxies, application firewalls, etc.) to split a single HTTP request into multiple unauthorized and malicious HTTP requests to a back-end HTTP agent (e.g., web server). See CanPrecede relationships for possible consequences.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -1629,6 +1630,7 @@
   },
   "121": {
     "name": "Exploit Non-Production Interfaces",
+    "description": "An adversary exploits a sample, demonstration, test, or debug interface that is unintentionally enabled on a production system, with the goal of gleaning information or leveraging functionality that would otherwise be unavailable.",
     "likelihoodOfAttack": "Low",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -2651,7 +2653,7 @@
   },
   "137": {
     "name": "Parameter Injection",
-    "description": "An adversary manipulates the content of request parameters for the purpose of undermining the security of the target. Some parameter encodings use text characters as separators. For example, parameters in a HTTP GET message are encoded as name-value pairs separated by an ampersand (\u0026). If an attacker can supply text strings that are used to fill in these parameters, then they can inject special characters used in the encoding scheme to add or modify parameters. For example, if user input is fed directly into an HTTP GET request and the user provides the value \"myInput\u0026new_param=myValue\", then the input parameter is set to myInput, but a new parameter (new_param) is also added with a value of myValue. This can significantly change the meaning of the query that is processed by the server. Any encoding scheme where parameters are identified and separated by text characters is potentially vulnerable to this attack - the HTTP GET encoding used above is just one example.",
+    "description": "An adversary manipulates the content of request parameters for the purpose of undermining the security of the target. Some parameter encodings use text characters as separators. For example, parameters in a HTTP GET message are encoded as name-value pairs separated by an ampersand (\u0026amp;). If an attacker can supply text strings that are used to fill in these parameters, then they can inject special characters used in the encoding scheme to add or modify parameters. For example, if user input is fed directly into an HTTP GET request and the user provides the value \"myInput\u0026amp;new_param=myValue\", then the input parameter is set to myInput, but a new parameter (new_param) is also added with a value of myValue. This can significantly change the meaning of the query that is processed by the server. Any encoding scheme where parameters are identified and separated by text characters is potentially vulnerable to this attack - the HTTP GET encoding used above is just one example.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "Medium",
     "prerequisites": [
@@ -3744,6 +3746,7 @@
   },
   "16": {
     "name": "Dictionary-based Password Attack",
+    "description": "An attacker tries each of the words in a dictionary as passwords to gain access to the system via some user's account. If the password chosen by the user was a word within the dictionary, this attack will be successful (in the absence of other mitigations). This is a specific instance of the password brute forcing attack pattern. Dictionary Attacks differ from similar attacks such as Password Spraying (CAPEC-565) and Credential Stuffing (CAPEC-600), since they leverage unknown username/password combinations and don't care about inducing account lockouts.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -3863,7 +3866,7 @@
   },
   "160": {
     "name": "Exploit Script-Based APIs",
-    "description": "Some APIs support scripting instructions as arguments. Methods that take scripted instructions (or references to scripted instructions) can be very flexible and powerful. However, if an attacker can specify the script that serves as input to these methods they can gain access to a great deal of functionality. For example, HTML pages support \u003cscript\u003e tags that allow scripting languages to be embedded in the page and then interpreted by the receiving web browser. If the content provider is malicious, these scripts can compromise the client application. Some applications may even execute the scripts under their own identity (rather than the identity of the user providing the script) which can allow attackers to perform activities that would otherwise be denied to them.",
+    "description": "Some APIs support scripting instructions as arguments. Methods that take scripted instructions (or references to scripted instructions) can be very flexible and powerful. However, if an attacker can specify the script that serves as input to these methods they can gain access to a great deal of functionality. For example, HTML pages support \u0026lt;script\u0026gt; tags that allow scripting languages to be embedded in the page and then interpreted by the receiving web browser. If the content provider is malicious, these scripts can compromise the client application. Some applications may even execute the scripts under their own identity (rather than the identity of the user providing the script) which can allow attackers to perform activities that would otherwise be denied to them.",
     "typicalSeverity": "Medium",
     "relatedAttackPatterns": [
       {
@@ -4754,7 +4757,7 @@
   },
   "18": {
     "name": "XSS Targeting Non-Script Elements",
-    "description": "This attack is a form of Cross-Site Scripting (XSS) where malicious scripts are embedded in elements that are not expected to host scripts such as image tags (\u003cimg\u003e), comments in XML documents (\u003c !-CDATA-\u003e), etc. These tags may not be subject to the same input validation, output validation, and other content filtering and checking routines, so this can create an opportunity for an adversary to tunnel through the application's elements and launch a XSS attack through other elements. As with all remote attacks, it is important to differentiate the ability to launch an attack (such as probing an internal network for unpatched servers) and the ability of the remote adversary to collect and interpret the output of said attack.",
+    "description": "This attack is a form of Cross-Site Scripting (XSS) where malicious scripts are embedded in elements that are not expected to host scripts such as image tags (\u0026lt;img\u0026gt;), comments in XML documents (\u0026lt; !-CDATA-\u0026gt;), etc. These tags may not be subject to the same input validation, output validation, and other content filtering and checking routines, so this can create an opportunity for an adversary to tunnel through the application's elements and launch a XSS attack through other elements. As with all remote attacks, it is important to differentiate the ability to launch an attack (such as probing an internal network for unpatched servers) and the ability of the remote adversary to collect and interpret the output of said attack.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "Very High",
     "relatedAttackPatterns": [
@@ -5436,6 +5439,7 @@
   },
   "191": {
     "name": "Read Sensitive Constants Within an Executable",
+    "description": "An adversary engages in activities to discover any sensitive constants present within the compiled code of an executable. These constants may include literal ASCII strings within the file itself, or possibly strings hard-coded into particular routines that can be revealed by code refactoring methods including static and dynamic analysis.",
     "typicalSeverity": "Low",
     "relatedAttackPatterns": [
       {
@@ -6535,6 +6539,7 @@
   },
   "21": {
     "name": "Exploitation of Trusted Identifiers",
+    "description": "An adversary guesses, obtains, or \"rides\" a trusted identifier (e.g. session ID, resource ID, cookie, etc.) to perform authorized actions under the guise of an authenticated user or service.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "High",
     "executionFlow": [
@@ -8070,7 +8075,7 @@
   },
   "245": {
     "name": "XSS Using Doubled Characters",
-    "description": "The adversary bypasses input validation by using doubled characters in order to perform a cross-site scripting attack. Some filters fail to recognize dangerous sequences if they are preceded by repeated characters. For example, by doubling the \u003c before a script command, (\u003c\u003cscript or %3C%3script using URI encoding) the filters of some web applications may fail to recognize the presence of a script tag. If the targeted server is vulnerable to this type of bypass, the adversary can create a crafted URL or other trap to cause a victim to view a page on the targeted server where the malicious content is executed, as per a normal XSS attack.",
+    "description": "The adversary bypasses input validation by using doubled characters in order to perform a cross-site scripting attack. Some filters fail to recognize dangerous sequences if they are preceded by repeated characters. For example, by doubling the \u0026lt; before a script command, (\u0026lt;\u0026lt;script or %3C%3script using URI encoding) the filters of some web applications may fail to recognize the presence of a script tag. If the targeted server is vulnerable to this type of bypass, the adversary can create a crafted URL or other trap to cause a victim to view a page on the targeted server where the malicious content is executed, as per a normal XSS attack.",
     "typicalSeverity": "Medium",
     "relatedAttackPatterns": [
       {
@@ -9079,6 +9084,7 @@
   },
   "273": {
     "name": "HTTP Response Smuggling",
+    "description": "An adversary manipulates and injects malicious content in the form of secret unauthorized HTTP responses, into a single HTTP response from a vulnerable or compromised back-end HTTP agent (e.g., server). See CanPrecede relationships for possible consequences.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -11603,6 +11609,7 @@
   },
   "33": {
     "name": "HTTP Request Smuggling",
+    "description": "An adversary abuses the flexibility and discrepancies in the parsing and interpretation of HTTP Request messages using various HTTP headers, request-line and body parameters as well as message sizes (denoted by the end of message signaled by a given HTTP header) by different intermediary HTTP agents (e.g., load balancer, reverse proxy, web caching proxies, application firewalls, etc.) to secretly send unauthorized and malicious HTTP requests to a back-end HTTP agent (e.g., web server). See CanPrecede relationships for possible consequences.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -11845,6 +11852,7 @@
   },
   "34": {
     "name": "HTTP Response Splitting",
+    "description": "An adversary manipulates and injects malicious content, in the form of secret unauthorized HTTP responses, into a single HTTP response from a vulnerable or compromised back-end HTTP agent (e.g., web server) or into an already spoofed HTTP response from an adversary controlled domain/site. See CanPrecede relationships for possible consequences.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -13504,7 +13512,7 @@
   },
   "43": {
     "name": "Exploiting Multiple Input Interpretation Layers",
-    "description": "An attacker supplies the target software with input data that contains sequences of special characters designed to bypass input validation logic. This exploit relies on the target making multiples passes over the input data and processing a \"layer\" of special characters with each pass. In this manner, the attacker can disguise input that would otherwise be rejected as invalid by concealing it with layers of special/escape characters that are stripped off by subsequent processing steps. The goal is to first discover cases where the input validation layer executes before one or more parsing layers. That is, user input may go through the following logic in an application: \u003cparser1\u003e --\u003e \u003cinput validator\u003e --\u003e \u003cparser2\u003e. In such cases, the attacker will need to provide input that will pass through the input validator, but after passing through parser2, will be converted into something that the input validator was supposed to stop.",
+    "description": "An attacker supplies the target software with input data that contains sequences of special characters designed to bypass input validation logic. This exploit relies on the target making multiples passes over the input data and processing a \"layer\" of special characters with each pass. In this manner, the attacker can disguise input that would otherwise be rejected as invalid by concealing it with layers of special/escape characters that are stripped off by subsequent processing steps. The goal is to first discover cases where the input validation layer executes before one or more parsing layers. That is, user input may go through the following logic in an application: \u0026lt;parser1\u0026gt; --\u0026gt; \u0026lt;input validator\u0026gt; --\u0026gt; \u0026lt;parser2\u0026gt;. In such cases, the attacker will need to provide input that will pass through the input validator, but after passing through parser2, will be converted into something that the input validator was supposed to stop.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -13892,6 +13900,7 @@
   },
   "445": {
     "name": "Malicious Logic Insertion into Product Software via Configuration Management Manipulation",
+    "description": "An adversary exploits a configuration management system so that malicious logic is inserted into a software products build, update or deployed environment. If an adversary can control the elements included in a product's configuration management for build they can potentially replace, modify or insert code files containing malicious logic. If an adversary can control elements of a product's ongoing operational configuration management baseline they can potentially force clients receiving updates from the system to install insecure software when receiving updates from the server.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -13919,6 +13928,7 @@
   },
   "446": {
     "name": "Malicious Logic Insertion into Product via Inclusion of Third-Party Component",
+    "description": "An adversary conducts supply chain attacks by the inclusion of insecure third-party components into a technology, product, or code-base, possibly packaging a malicious driver or component along with the product before shipping it to the consumer or acquirer.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -15968,6 +15978,7 @@
   },
   "5": {
     "name": "Blue Boxing",
+    "description": "This type of attack against older telephone switches and trunks has been around for decades. A tone is sent by an adversary to impersonate a supervisor signal which has the effect of rerouting or usurping command of the line. While the US infrastructure proper may not contain widespread vulnerabilities to this type of attack, many companies are connected globally through call centers and business process outsourcing. These international systems may be operated in countries which have not upgraded Telco infrastructure and so are vulnerable to Blue boxing. Blue boxing is a result of failure on the part of the system to enforce strong authorization for administrative functions. While the infrastructure is different than standard current applications like web applications, there are historical lessons to be learned to upgrade the access control for administrative functions. This attack pattern is included in CAPEC for historical purposes.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "Very High",
     "relatedAttackPatterns": [
@@ -18089,6 +18100,7 @@
   },
   "560": {
     "name": "Use of Known Domain Credentials",
+    "description": "An adversary guesses or obtains (i.e. steals or purchases) legitimate credentials (e.g. userID/password) to achieve authentication and to perform authorized actions under the guise of an authenticated user or service.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -18359,6 +18371,7 @@
   },
   "565": {
     "name": "Password Spraying",
+    "description": "In a Password Spraying attack, an adversary tries a small list (e.g. 3-5) of common or expected passwords, often matching the target's complexity policy, against a known list of user accounts to gain valid credentials. The adversary tries a particular password for each user account, before moving onto the next password in the list. This approach assists the adversary in remaining undetected by avoiding rapid or frequent account lockouts. The adversary may then reattempt the process with additional passwords, once enough time has passed to prevent inducing a lockout.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -18635,6 +18648,7 @@
   },
   "571": {
     "name": "Block Logging to Central Repository",
+    "description": "An adversary prevents host-generated logs being delivered to a central location in an attempt to hide indicators of compromise.",
     "typicalSeverity": "Low",
     "relatedAttackPatterns": [
       {
@@ -18651,6 +18665,7 @@
   },
   "572": {
     "name": "Artificially Inflate File Sizes",
+    "description": "An adversary modifies file contents by adding data to files for several reasons. Many different attacks could “follow” this pattern resulting in numerous outcomes. Adding data to a file could also result in a Denial of Service condition for devices with limited storage capacity.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "Medium",
     "relatedAttackPatterns": [
@@ -20086,6 +20101,7 @@
   },
   "600": {
     "name": "Credential Stuffing",
+    "description": "An adversary tries known username/password combinations against different systems, applications, or services to gain additional authenticated access. Credential Stuffing attacks rely upon the fact that many users leverage the same username/password combination for multiple systems, applications, and services.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -22886,6 +22902,7 @@
   },
   "655": {
     "name": "Avoid Security Tool Identification by Adding Data",
+    "description": "An adversary adds data to a file to increase the file size beyond what security tools are capable of handling in an attempt to mask their actions. In addition to this, adding data to a file also changes the file's hash, frustrating security tools that look for known bad files by their hash.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -23330,6 +23347,7 @@
   },
   "662": {
     "name": "Adversary in the Browser (AiTB)",
+    "description": "An adversary exploits security vulnerabilities or inherent functionalities of a web browser, in order to manipulate traffic between two endpoints.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "Very High",
     "relatedAttackPatterns": [
@@ -23527,6 +23545,7 @@
   },
   "664": {
     "name": "Server Side Request Forgery",
+    "description": "An adversary exploits improper input validation by submitting maliciously crafted input to a target application running on a server, with the goal of forcing the server to make a request either to itself, to web services running in the server’s internal network, or to external third parties. If successful, the adversary’s request will be made with the server’s privilege level, bypassing its authentication controls. This ultimately allows the adversary to access sensitive data, execute commands on the server’s network, and make external requests with the stolen identity of the server. Server Side Request Forgery attacks differ from Cross Site Request Forgery attacks in that they target the server itself, whereas CSRF attacks exploit an insecure user authentication mechanism to perform unauthorized actions on the user's behalf.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -23605,6 +23624,7 @@
   },
   "665": {
     "name": "Exploitation of Thunderbolt Protection Flaws",
+    "description": "An adversary leverages a firmware weakness within the Thunderbolt protocol, on a computing device to manipulate Thunderbolt controller firmware in order to exploit vulnerabilities in the implementation of authorization and verification schemes within Thunderbolt protection mechanisms. Upon gaining physical access to a target device, the adversary conducts high-level firmware manipulation of the victim Thunderbolt controller SPI (Serial Peripheral Interface) flash, through the use of a SPI Programing device and an external Thunderbolt device, typically as the target device is booting up. If successful, this allows the adversary to modify memory, subvert authentication mechanisms, spoof identities and content, and extract data and memory from the target device. Currently 7 major vulnerabilities exist within Thunderbolt protocol with 9 attack vectors as noted in the Execution Flow.",
     "likelihoodOfAttack": "Low",
     "typicalSeverity": "Very High",
     "relatedAttackPatterns": [
@@ -23963,6 +23983,7 @@
   },
   "669": {
     "name": "Alteration of a Software Update",
+    "description": "An adversary with access to an organization’s software update infrastructure inserts malware into the content of an outgoing update to fielded systems where a wide range of malicious effects are possible. With the same level of access, the adversary can alter a software update to perform specific malicious acts including granting the adversary control over the software’s normal functionality.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -24225,6 +24246,7 @@
   },
   "672": {
     "name": "Malicious Code Implanted During Chip Programming",
+    "description": "During the programming step of chip manufacture, an adversary with access and necessary technical skills maliciously alters a chip’s intended program logic to produce an effect intended by the adversary when the fully manufactured chip is deployed and in operational use. Intended effects can include the ability of the adversary to remotely control a host system to carry out malicious acts.",
     "likelihoodOfAttack": "Low",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -24258,6 +24280,7 @@
   },
   "673": {
     "name": "Developer Signing Maliciously Altered Software",
+    "description": "Software produced by a reputable developer is clandestinely infected with malicious code and then digitally signed by the unsuspecting developer, where the software has been altered via a compromised software development or build process prior to being signed. The receiver or user of the software has no reason to believe that it is anything but legitimate and proceeds to deploy it to organizational systems. This attack differs from CAPEC-206, since the developer is inadvertently signing malicious code they believe to be legitimate and which they are unware of any malicious modifications.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -24303,6 +24326,7 @@
   },
   "674": {
     "name": "Design for FPGA Maliciously Altered",
+    "description": "An adversary alters the functionality of a field-programmable gate array (FPGA) by causing an FPGA configuration memory chip reload in order to introduce a malicious function that could result in the FPGA performing or enabling malicious functions on a host system. Prior to the memory chip reload, the adversary alters the program for the FPGA by adding a function to impact system operation.",
     "likelihoodOfAttack": "Low",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -24336,6 +24360,7 @@
   },
   "675": {
     "name": "Retrieve Data from Decommissioned Devices",
+    "description": "An adversary obtains decommissioned, recycled, or discarded systems and devices that can include an organization’s intellectual property, employee data, and other types of controlled information. Systems and devices that have reached the end of their lifecycles may be subject to recycle or disposal where they can be exposed to adversarial attempts to retrieve information from internal memory chips and storage devices that are part of the system.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "Medium",
     "relatedAttackPatterns": [
@@ -24380,6 +24405,7 @@
   },
   "676": {
     "name": "NoSQL Injection",
+    "description": "An adversary targets software that constructs NoSQL statements based on user input or with parameters vulnerable to operator replacement in order to achieve a variety of technical impacts such as escalating privileges, bypassing authentication, and/or executing code.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -24489,6 +24515,7 @@
   },
   "677": {
     "name": "Server Motherboard Compromise",
+    "description": "Malware is inserted in a server motherboard (e.g., in the flash memory) in order to alter server functionality from that intended. The development environment or hardware/software support activity environment is susceptible to an adversary inserting malicious software into hardware components during development or update.",
     "likelihoodOfAttack": "Low",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -24516,6 +24543,7 @@
   },
   "678": {
     "name": "System Build Data Maliciously Altered",
+    "description": "During the system build process, the system is deliberately misconfigured by the alteration of the build data. Access to system configuration data files and build processes is susceptible to deliberate misconfiguration of the system.",
     "likelihoodOfAttack": "Low",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -24560,6 +24588,7 @@
   },
   "679": {
     "name": "Exploitation of Improperly Configured or Implemented Memory Protections",
+    "description": "An adversary takes advantage of missing or incorrectly configured access control within memory to read/write data or inject malicious code into said memory.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "Very High",
     "relatedAttackPatterns": [
@@ -24680,6 +24709,7 @@
   },
   "680": {
     "name": "Exploitation of Improperly Controlled Registers",
+    "description": "An adversary exploits missing or incorrectly configured access control within registers to read/write data that is not meant to be obtained or modified by a user.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -24730,6 +24760,7 @@
   },
   "681": {
     "name": "Exploitation of Improperly Controlled Hardware Security Identifiers",
+    "description": "An adversary takes advantage of missing or incorrectly configured security identifiers (e.g., tokens), which are used for access control within a System-on-Chip (SoC), to read/write data or execute a given action.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "Very High",
     "relatedAttackPatterns": [
@@ -24980,6 +25011,7 @@
   },
   "690": {
     "name": "Metadata Spoofing",
+    "description": "An adversary alters the metadata of a resource (e.g., file, directory, repository, etc.) to present a malicious resource as legitimate/credible.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "prerequisites": [
@@ -25021,6 +25053,7 @@
   },
   "691": {
     "name": "Spoof Open-Source Software Metadata",
+    "description": "An adversary spoofs open-source software metadata in an attempt to masquerade malicious software as popular, maintained, and trusted.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -25089,6 +25122,7 @@
   },
   "692": {
     "name": "Spoof Version Control System Commit Metadata",
+    "description": "An adversary spoofs metadata pertaining to a Version Control System (VCS) (e.g., Git) repository's commits to deceive users into believing that the maliciously provided software is frequently maintained and originates from a trusted source.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -25171,6 +25205,7 @@
   },
   "693": {
     "name": "StarJacking",
+    "description": "An adversary spoofs software popularity metadata to deceive users into believing that a maliciously provided package is widely used and originates from a trusted source.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -25244,6 +25279,7 @@
   },
   "694": {
     "name": "System Location Discovery",
+    "description": "An adversary collects information about the target system in an attempt to identify the system's geographical location. Information gathered could include keyboard layout, system language, and timezone. This information may benefit an adversary in confirming the desired target and/or tailoring further attacks.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "Very Low",
     "relatedAttackPatterns": [
@@ -25292,6 +25328,7 @@
   },
   "695": {
     "name": "Repo Jacking",
+    "description": "An adversary takes advantage of the redirect property of directly linked Version Control System (VCS) repositories to trick users into incorporating malicious code into their applications.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -25463,6 +25500,7 @@
   },
   "697": {
     "name": "DHCP Spoofing",
+    "description": "An adversary masquerades as a legitimate Dynamic Host Configuration Protocol (DHCP) server by spoofing DHCP traffic, with the goal of redirecting network traffic or denying service to DHCP.",
     "likelihoodOfAttack": "Low",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -25552,6 +25590,7 @@
   },
   "698": {
     "name": "Install Malicious Extension",
+    "description": "An adversary directly installs or tricks a user into installing a malicious extension into existing trusted software, with the goal of achieving a variety of negative technical impacts.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "relatedAttackPatterns": [
@@ -26053,6 +26092,7 @@
   },
   "702": {
     "name": "Exploiting Incorrect Chaining or Granularity of Hardware Debug Components",
+    "description": "An adversary exploits incorrect chaining or granularity of hardware debug components in order to gain unauthorized access to debug functionality on a chip. This happens when authorization is not checked on a per function basis and is assumed for a chain or group of debug functionality.",
     "likelihoodOfAttack": "Low",
     "typicalSeverity": "Medium",
     "relatedAttackPatterns": [
@@ -26404,6 +26444,7 @@
   },
   "74": {
     "name": "Manipulating State",
+    "description": "The adversary modifies state information maintained by the target software or causes a state transition in hardware. If successful, the target will use this tainted state and execute in an unintended manner. State management is an important function within a software application. User state maintained by the application can include usernames, payment information, browsing history as well as application-specific contents such as items in a shopping cart. Manipulating user state can be employed by an adversary to elevate privilege, conduct fraudulent transactions or otherwise modify the flow of the application to derive certain benefits. If there is a hardware logic error in a finite state machine, the adversary can use this to put the system in an undefined state which could cause a denial of service or exposure of secure data.",
     "likelihoodOfAttack": "Medium",
     "typicalSeverity": "High",
     "executionFlow": [
@@ -28130,6 +28171,7 @@
   },
   "94": {
     "name": "Adversary in the Middle (AiTM)",
+    "description": "An adversary targets the communication between two components (typically client and server), in order to alter or obtain data from transactions. A general approach entails the adversary placing themself within the communication channel between the two components.",
     "likelihoodOfAttack": "High",
     "typicalSeverity": "Very High",
     "relatedAttackPatterns": [
