@@ -26,11 +26,11 @@ jobs:
 
       - name: Build updater
         run: |
-          go build -o update-data main.go
+          go build -o feeds-updater feeds-updater.go
 
       - name: Run data update
         run: |
-          ./update-data
+          ./feeds-updater
 
       - name: Check for changes
         id: git-check
