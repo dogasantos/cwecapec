@@ -21,8 +21,8 @@
     "name": "Struts: Duplicate Validation Forms",
     "description": "The product uses multiple validation forms with the same name, which might cause the Struts Validator to validate a form that the programmer does not expect. If two validation forms have the same name, the Struts Validator arbitrarily chooses one of the forms to use for input validation and discards the other. This decision might not correspond to the programmer's expectations, possibly leading to resultant weaknesses. Moreover, it indicates that the validation logic is not up-to-date, and can indicate that other, more subtle validation errors are present.",
     "childOf": [
-      "1173",
-      "694"
+      "694",
+      "1173"
     ],
     "relatedAttackPatterns": null
   },
@@ -34,13 +34,13 @@
       "451"
     ],
     "relatedAttackPatterns": [
+      "103",
       "181",
       "222",
       "504",
       "506",
       "587",
-      "654",
-      "103"
+      "654"
     ]
   },
   "1022": {
@@ -106,8 +106,8 @@
     "name": "Inadequate Detection or Handling of Adversarial Input Perturbations in Automated Recognition Mechanism",
     "description": "The product uses an automated mechanism such as machine learning to recognize complex data inputs (e.g. image or audio) as a particular concept or category, but it does not properly detect or handle inputs that have been modified or constructed in a way that causes the mechanism to detect a different, incorrect concept. When techniques such as machine learning are used to automatically classify input streams, and those classifications are used for security-critical decisions, then any mistake in classification can introduce a vulnerability that allows attackers to cause the product to make the wrong security decision or disrupt service of the automated mechanism. If the mechanism is not developed or \"trained\" with enough input data or has not adequately undergone test and evaluation, then attackers may be able to craft malicious inputs that intentionally trigger the incorrect classification. Targeted technologies include, but are not necessarily limited to: automated speech recognition automated image recognition automated cyber defense Chatbot, LLMs, generative AI For example, an attacker might modify road signs or road surface markings to trick autonomous vehicles into misreading the sign/marking and performing a dangerous action. Another example includes an attacker that crafts highly specific and complex prompts to \"jailbreak\" a chatbot to bypass safety or privacy mechanisms, better known as prompt injection attacks.",
     "childOf": [
-      "697",
-      "693"
+      "693",
+      "697"
     ],
     "relatedAttackPatterns": null
   },
@@ -555,8 +555,8 @@
     "name": "Use of Object without Invoking Destructor Method",
     "description": "The product contains a method that accesses an object but does not later invoke the element's associated finalize/destructor method. This issue can make the product perform more slowly by retaining memory and/or other resources longer than necessary. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability.",
     "childOf": [
-      "772",
-      "1076"
+      "1076",
+      "772"
     ],
     "relatedAttackPatterns": null
   },
@@ -684,8 +684,8 @@
     "name": "Insufficient Encapsulation of Machine-Dependent Functionality",
     "description": "The product or code uses machine-dependent functionality, but it does not sufficiently encapsulate or isolate this functionality from the rest of the code. This issue makes it more difficult to port or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
     "childOf": [
-      "758",
-      "1061"
+      "1061",
+      "758"
     ],
     "relatedAttackPatterns": null
   },
@@ -892,10 +892,10 @@
       "436"
     ],
     "relatedAttackPatterns": [
+      "85",
       "105",
       "31",
-      "34",
-      "85"
+      "34"
     ]
   },
   "114": {
@@ -924,10 +924,10 @@
       "707"
     ],
     "relatedAttackPatterns": [
+      "104",
       "73",
       "81",
-      "85",
-      "104"
+      "85"
     ]
   },
   "1164": {
@@ -989,14 +989,14 @@
       "664"
     ],
     "relatedAttackPatterns": [
+      "10",
+      "14",
       "24",
       "45",
       "46",
       "47",
       "8",
-      "9",
-      "10",
-      "14"
+      "9"
     ]
   },
   "1187": {
@@ -1034,17 +1034,17 @@
     ],
     "relatedAttackPatterns": [
       "47",
-      "8",
+      "9",
       "100",
-      "24",
-      "42",
-      "44",
-      "46",
-      "10",
       "123",
-      "14",
+      "44",
       "45",
-      "9"
+      "46",
+      "8",
+      "10",
+      "14",
+      "24",
+      "42"
     ]
   },
   "1190": {
@@ -1064,8 +1064,8 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "180",
-      "1"
+      "1",
+      "180"
     ]
   },
   "1192": {
@@ -1104,19 +1104,19 @@
       "787"
     ],
     "relatedAttackPatterns": [
-      "10",
-      "100",
       "42",
-      "44",
-      "47",
-      "67",
-      "92",
-      "14",
-      "24",
-      "45",
       "46",
       "8",
-      "9"
+      "47",
+      "67",
+      "10",
+      "100",
+      "14",
+      "24",
+      "44",
+      "45",
+      "9",
+      "92"
     ]
   },
   "1204": {
@@ -1300,10 +1300,10 @@
       "226"
     ],
     "relatedAttackPatterns": [
-      "150",
-      "204",
       "37",
-      "545"
+      "545",
+      "150",
+      "204"
     ]
   },
   "124": {
@@ -1405,8 +1405,8 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "625",
-      "624"
+      "624",
+      "625"
     ]
   },
   "1249": {
@@ -1491,8 +1491,8 @@
       "285"
     ],
     "relatedAttackPatterns": [
-      "624",
-      "625"
+      "625",
+      "624"
     ]
   },
   "1257": {
@@ -1502,8 +1502,8 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "456",
-      "679"
+      "679",
+      "456"
     ]
   },
   "1258": {
@@ -1547,8 +1547,8 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "679",
-      "456"
+      "456",
+      "679"
     ]
   },
   "1261": {
@@ -1607,11 +1607,11 @@
       "404"
     ],
     "relatedAttackPatterns": [
-      "150",
       "37",
       "545",
       "546",
-      "675"
+      "675",
+      "150"
     ]
   },
   "1267": {
@@ -1649,8 +1649,8 @@
     "name": "Buffer Under-read",
     "description": "The product reads from a buffer using buffer access mechanisms such as indexes or pointers that reference memory locations prior to the targeted buffer. This typically occurs when the pointer or its index is decremented to a position before the buffer, when pointer arithmetic results in a position before the beginning of the valid memory location, or when a negative index is used. This may result in exposure of sensitive information or possibly a crash.",
     "childOf": [
-      "786",
-      "125"
+      "125",
+      "786"
     ],
     "relatedAttackPatterns": null
   },
@@ -1683,10 +1683,10 @@
       "226"
     ],
     "relatedAttackPatterns": [
+      "150",
       "37",
       "545",
-      "546",
-      "150"
+      "546"
     ]
   },
   "1273": {
@@ -1967,8 +1967,8 @@
       "288"
     ],
     "relatedAttackPatterns": [
-      "457",
-      "554"
+      "554",
+      "457"
     ]
   },
   "13": {
@@ -2070,9 +2070,9 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "1",
       "180",
-      "233"
+      "233",
+      "1"
     ]
   },
   "1312": {
@@ -2184,9 +2184,9 @@
       "915"
     ],
     "relatedAttackPatterns": [
-      "1",
       "180",
-      "77"
+      "77",
+      "1"
     ]
   },
   "1322": {
@@ -2206,9 +2206,9 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "545",
       "150",
-      "167"
+      "167",
+      "545"
     ]
   },
   "1324": {
@@ -2401,8 +2401,8 @@
       "1384"
     ],
     "relatedAttackPatterns": [
-      "624",
-      "625"
+      "625",
+      "624"
     ]
   },
   "1357": {
@@ -2699,16 +2699,16 @@
       "610"
     ],
     "relatedAttackPatterns": [
-      "203",
       "270",
-      "271",
-      "69",
       "76",
       "77",
-      "13",
+      "146",
       "176",
-      "579",
-      "146"
+      "203",
+      "69",
+      "13",
+      "271",
+      "579"
     ]
   },
   "150": {
@@ -2857,8 +2857,8 @@
     "name": "Improper Handling of Missing Special Element",
     "description": "The product receives input from an upstream component, but it does not handle or incorrectly handles when an expected special element is missing.",
     "childOf": [
-      "228",
-      "159"
+      "159",
+      "228"
     ],
     "relatedAttackPatterns": null
   },
@@ -2866,8 +2866,8 @@
     "name": "Improper Handling of Additional Special Element",
     "description": "The product receives input from an upstream component, but it does not handle or incorrectly handles when an additional unexpected special element is provided.",
     "childOf": [
-      "228",
-      "159"
+      "159",
+      "228"
     ],
     "relatedAttackPatterns": null
   },
@@ -2895,16 +2895,16 @@
       "707"
     ],
     "relatedAttackPatterns": [
-      "53",
-      "64",
       "72",
-      "120",
-      "267",
-      "71",
-      "78",
       "80",
+      "120",
+      "52",
+      "71",
+      "64",
+      "78",
+      "267",
       "3",
-      "52"
+      "53"
     ]
   },
   "173": {
@@ -2914,18 +2914,18 @@
       "172"
     ],
     "relatedAttackPatterns": [
-      "79",
-      "80",
-      "267",
       "3",
       "53",
-      "71",
+      "72",
       "78",
+      "79",
+      "80",
       "120",
       "4",
       "52",
       "64",
-      "72"
+      "71",
+      "267"
     ]
   },
   "174": {
@@ -2962,10 +2962,10 @@
       "172"
     ],
     "relatedAttackPatterns": [
-      "120",
-      "468",
       "64",
-      "72"
+      "72",
+      "120",
+      "468"
     ]
   },
   "178": {
@@ -3011,13 +3011,13 @@
       "179"
     ],
     "relatedAttackPatterns": [
-      "80",
-      "120",
-      "267",
       "3",
       "43",
       "78",
-      "79"
+      "79",
+      "80",
+      "120",
+      "267"
     ]
   },
   "182": {
@@ -3035,29 +3035,29 @@
       "697"
     ],
     "relatedAttackPatterns": [
-      "71",
       "120",
       "3",
-      "43"
+      "43",
+      "71"
     ]
   },
   "184": {
     "name": "Incomplete List of Disallowed Inputs",
     "description": "The product implements a protection mechanism that relies on a list of inputs (or properties of inputs) that are not allowed by policy or otherwise require other action to neutralize before additional processing takes place, but the list is incomplete.",
     "childOf": [
-      "1023",
-      "693"
+      "693",
+      "1023"
     ],
     "relatedAttackPatterns": [
       "120",
-      "43",
+      "3",
       "6",
       "71",
+      "85",
       "15",
       "182",
-      "3",
-      "73",
-      "85"
+      "43",
+      "73"
     ]
   },
   "185": {
@@ -3180,57 +3180,57 @@
       "707"
     ],
     "relatedAttackPatterns": [
-      "109",
-      "13",
-      "136",
-      "182",
-      "71",
-      "88",
-      "135",
-      "53",
-      "267",
-      "3",
-      "45",
+      "85",
+      "261",
+      "47",
+      "588",
       "64",
-      "67",
-      "72",
-      "153",
-      "31",
-      "46",
-      "63",
-      "73",
       "78",
-      "83",
-      "110",
-      "209",
-      "23",
-      "24",
-      "9",
       "79",
-      "104",
-      "22",
-      "231",
-      "250",
-      "43",
-      "52",
-      "664",
       "8",
       "81",
-      "80",
+      "104",
+      "110",
+      "182",
+      "46",
+      "71",
+      "73",
+      "664",
+      "67",
       "108",
-      "120",
       "230",
       "42",
-      "473",
-      "588",
-      "7",
-      "10",
+      "45",
+      "52",
+      "53",
+      "80",
+      "9",
       "101",
-      "14",
-      "261",
+      "209",
+      "63",
+      "7",
+      "88",
+      "109",
+      "136",
+      "231",
+      "24",
+      "31",
+      "13",
+      "23",
       "28",
-      "47",
-      "85"
+      "43",
+      "72",
+      "83",
+      "10",
+      "14",
+      "153",
+      "22",
+      "250",
+      "267",
+      "120",
+      "135",
+      "3",
+      "473"
     ]
   },
   "200": {
@@ -3240,65 +3240,65 @@
       "668"
     ],
     "relatedAttackPatterns": [
-      "573",
-      "574",
-      "300",
-      "320",
-      "575",
-      "616",
-      "319",
-      "312",
-      "292",
-      "306",
-      "323",
-      "508",
-      "285",
-      "298",
-      "321",
-      "169",
-      "22",
-      "307",
-      "576",
-      "116",
-      "294",
-      "301",
-      "317",
-      "322",
-      "59",
-      "13",
-      "308",
-      "318",
-      "325",
-      "327",
-      "79",
-      "299",
-      "297",
-      "646",
-      "287",
-      "302",
-      "309",
-      "330",
       "497",
-      "577",
-      "295",
-      "310",
-      "60",
-      "296",
-      "305",
+      "574",
+      "575",
+      "646",
+      "293",
+      "294",
+      "312",
       "313",
+      "318",
+      "322",
+      "472",
+      "577",
       "651",
-      "303",
-      "290",
       "326",
       "329",
-      "643",
-      "224",
-      "293",
+      "79",
+      "22",
       "304",
+      "296",
+      "306",
+      "319",
       "324",
+      "327",
+      "643",
+      "290",
+      "317",
+      "325",
+      "169",
+      "287",
+      "309",
+      "320",
+      "576",
+      "13",
+      "224",
+      "291",
+      "307",
+      "330",
+      "573",
+      "285",
+      "292",
+      "302",
+      "59",
+      "310",
+      "116",
+      "299",
+      "303",
+      "295",
+      "298",
+      "300",
       "328",
-      "472",
-      "291"
+      "301",
+      "305",
+      "308",
+      "323",
+      "297",
+      "508",
+      "60",
+      "616",
+      "321"
     ]
   },
   "201": {
@@ -3308,15 +3308,15 @@
       "200"
     ],
     "relatedAttackPatterns": [
+      "619",
+      "12",
+      "217",
       "612",
       "613",
-      "619",
-      "621",
-      "12",
       "618",
+      "621",
       "622",
-      "623",
-      "217"
+      "623"
     ]
   },
   "202": {
@@ -3556,8 +3556,8 @@
     "name": "Improper Handling of Syntactically Invalid Structure",
     "description": "The product does not handle or incorrectly handles input that is not syntactically well-formed with respect to the associated specification.",
     "childOf": [
-      "707",
-      "703"
+      "703",
+      "707"
     ],
     "relatedAttackPatterns": null
   },
@@ -3742,8 +3742,8 @@
     "name": "Uncaught Exception",
     "description": "An exception is thrown from a function, but it is not caught. When an exception is not caught, it may cause the program to crash or expose sensitive information.",
     "childOf": [
-      "755",
-      "705"
+      "705",
+      "755"
     ],
     "relatedAttackPatterns": null
   },
@@ -3765,13 +3765,13 @@
     "name": "Execution with Unnecessary Privileges",
     "description": "The product performs an operation at a privilege level that is higher than the minimum level required, which creates new weaknesses or amplifies the consequences of other weaknesses.",
     "childOf": [
-      "269",
-      "657"
+      "657",
+      "269"
     ],
     "relatedAttackPatterns": [
+      "69",
       "104",
-      "470",
-      "69"
+      "470"
     ]
   },
   "252": {
@@ -3859,18 +3859,18 @@
       "1390"
     ],
     "relatedAttackPatterns": [
-      "509",
-      "560",
-      "600",
-      "653",
-      "70",
       "16",
+      "49",
+      "509",
       "55",
-      "555",
       "561",
-      "565",
       "652",
-      "49"
+      "653",
+      "555",
+      "560",
+      "565",
+      "600",
+      "70"
     ]
   },
   "263": {
@@ -3880,18 +3880,18 @@
       "1390"
     ],
     "relatedAttackPatterns": [
-      "16",
+      "653",
+      "555",
       "49",
       "509",
       "55",
       "560",
       "561",
-      "652",
-      "653",
-      "70",
-      "555",
       "565",
-      "600"
+      "600",
+      "16",
+      "70",
+      "652"
     ]
   },
   "266": {
@@ -3971,17 +3971,17 @@
       "271"
     ],
     "relatedAttackPatterns": [
+      "35",
       "76",
-      "17",
-      "35"
+      "17"
     ]
   },
   "273": {
     "name": "Improper Check for Dropped Privileges",
     "description": "The product attempts to drop privileges but does not check or incorrectly checks to see if the drop succeeded. If the drop fails, the product will continue to run with the raised privileges, which might provide additional access to unprivileged users.",
     "childOf": [
-      "271",
-      "754"
+      "754",
+      "271"
     ],
     "relatedAttackPatterns": null
   },
@@ -4080,23 +4080,23 @@
     "description": "The product does not restrict or incorrectly restricts access to a resource from an unauthorized actor. Access control involves the use of several protection mechanisms such as: Authentication (proving the identity of an actor) Authorization (ensuring that a given actor can access a resource), and Accountability (tracking of activities that were performed) When any mechanism is not applied or otherwise fails, attackers can compromise the security of the product by gaining privileges, reading sensitive information, executing commands, evading detection, etc. There are two distinct behaviors that can introduce access control weaknesses: Specification: incorrect privileges, permissions, ownership, etc. are explicitly specified for either the user or the resource (for example, setting a password file to be world-writable, or giving administrator capabilities to a guest user). This action could be performed by the program or the administrator. Enforcement: the mechanism contains errors that prevent it from properly enforcing the specified access control requirements (e.g., allowing the user to specify their own privileges, or allowing a syntactically-incorrect ACL to produce insecure settings). This problem occurs within the program itself, in that it does not actually enforce the intended security policy that the administrator specifies.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "563",
-      "502",
-      "503",
-      "546",
-      "552",
-      "558",
-      "536",
-      "551",
-      "564",
-      "578",
-      "550",
-      "556",
       "562",
       "19",
-      "441",
+      "479",
+      "550",
+      "563",
+      "564",
+      "558",
       "478",
-      "479"
+      "502",
+      "503",
+      "552",
+      "556",
+      "441",
+      "536",
+      "546",
+      "551",
+      "578"
     ]
   },
   "285": {
@@ -4106,23 +4106,23 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "1",
-      "51",
-      "60",
-      "45",
-      "59",
-      "647",
-      "104",
-      "127",
-      "13",
-      "39",
-      "402",
-      "87",
-      "5",
       "668",
-      "77",
+      "76",
+      "127",
       "17",
-      "76"
+      "402",
+      "647",
+      "39",
+      "59",
+      "87",
+      "104",
+      "60",
+      "51",
+      "77",
+      "1",
+      "13",
+      "45",
+      "5"
     ]
   },
   "286": {
@@ -4140,16 +4140,16 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "57",
-      "650",
+      "22",
+      "593",
       "94",
       "114",
-      "194",
-      "22",
-      "633",
       "115",
       "151",
-      "593"
+      "194",
+      "57",
+      "633",
+      "650"
     ]
   },
   "288": {
@@ -4186,16 +4186,16 @@
       "1390"
     ],
     "relatedAttackPatterns": [
+      "21",
+      "461",
+      "473",
+      "476",
+      "59",
       "667",
       "22",
-      "461",
-      "59",
-      "476",
-      "60",
-      "94",
-      "21",
       "459",
-      "473"
+      "60",
+      "94"
     ]
   },
   "291": {
@@ -4231,15 +4231,15 @@
     ],
     "relatedAttackPatterns": [
       "102",
-      "509",
       "555",
       "561",
       "60",
-      "644",
       "645",
+      "509",
+      "644",
       "652",
-      "94",
-      "701"
+      "701",
+      "94"
     ]
   },
   "295": {
@@ -4266,8 +4266,8 @@
     "name": "Improper Validation of Certificate with Host Mismatch",
     "description": "The product communicates with a host that provides a certificate, but the product does not properly ensure that the certificate is actually associated with that host. Even if a certificate is well-formed, signed, and follows the chain of trust, it may simply be a valid certificate for a different site than the site that the product is interacting with. If the certificate's host-specific data is not properly checked - such as the Common Name (CN) in the Subject or the Subject Alternative Name (SAN) extension of an X.509 certificate - it may be possible for a redirection or spoofing attack to allow a malicious host with a valid certificate to provide data, impersonating a trusted host. In order to ensure data integrity, the certificate must be valid and it must pertain to the site that is being accessed. Even if the product attempts to check the hostname, it is still possible to incorrectly check the hostname. For example, attackers could create a certificate with a name that begins with a trusted name followed by a NUL byte, which could cause some string-based comparisons to only examine the portion that contains the trusted name. This weakness can occur even when the product uses Certificate Pinning, if the product does not verify the hostname at the time a certificate is pinned.",
     "childOf": [
-      "295",
-      "923"
+      "923",
+      "295"
     ],
     "relatedAttackPatterns": null
   },
@@ -4304,15 +4304,15 @@
       "923"
     ],
     "relatedAttackPatterns": [
+      "613",
+      "662",
+      "94",
       "589",
       "590",
       "612",
       "615",
       "466",
-      "57",
-      "613",
-      "662",
-      "94"
+      "57"
     ]
   },
   "301": {
@@ -4333,14 +4333,14 @@
       "807"
     ],
     "relatedAttackPatterns": [
-      "13",
       "21",
       "274",
       "31",
       "39",
       "45",
       "77",
-      "10"
+      "10",
+      "13"
     ]
   },
   "303": {
@@ -4377,28 +4377,28 @@
       "287"
     ],
     "relatedAttackPatterns": [
-      "12",
       "166",
       "216",
       "36",
-      "62"
+      "62",
+      "12"
     ]
   },
   "307": {
     "name": "Improper Restriction of Excessive Authentication Attempts",
     "description": "The product does not implement sufficient measures to prevent multiple failed authentication attempts within a short time frame.",
     "childOf": [
-      "1390",
-      "799"
+      "799",
+      "1390"
     ],
     "relatedAttackPatterns": [
+      "600",
+      "652",
+      "653",
       "16",
       "49",
       "560",
-      "565",
-      "600",
-      "652",
-      "653"
+      "565"
     ]
   },
   "308": {
@@ -4410,18 +4410,18 @@
     ],
     "relatedAttackPatterns": [
       "55",
-      "561",
-      "652",
-      "70",
-      "49",
-      "509",
       "555",
-      "565",
       "600",
-      "644",
       "645",
-      "16",
+      "652",
       "560",
+      "565",
+      "70",
+      "16",
+      "509",
+      "49",
+      "561",
+      "644",
       "653"
     ]
   },
@@ -4434,16 +4434,16 @@
     ],
     "relatedAttackPatterns": [
       "49",
+      "509",
+      "555",
+      "600",
+      "652",
+      "16",
       "55",
       "560",
       "561",
       "565",
-      "652",
       "653",
-      "16",
-      "509",
-      "555",
-      "600",
       "70"
     ]
   },
@@ -4462,19 +4462,19 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "158",
+      "388",
+      "609",
       "65",
-      "204",
-      "37",
-      "383",
-      "387",
-      "477",
+      "157",
       "31",
       "384",
       "385",
-      "388",
-      "609",
-      "157",
+      "477",
+      "158",
+      "37",
+      "383",
+      "387",
+      "204",
       "386"
     ]
   },
@@ -4543,8 +4543,8 @@
       "312"
     ],
     "relatedAttackPatterns": [
-      "65",
-      "37"
+      "37",
+      "65"
     ]
   },
   "319": {
@@ -4554,11 +4554,11 @@
       "311"
     ],
     "relatedAttackPatterns": [
-      "65",
       "102",
       "117",
       "383",
-      "477"
+      "477",
+      "65"
     ]
   },
   "32": {
@@ -4618,9 +4618,9 @@
       "693"
     ],
     "relatedAttackPatterns": [
+      "192",
       "20",
-      "112",
-      "192"
+      "112"
     ]
   },
   "327": {
@@ -4647,8 +4647,8 @@
       "327"
     ],
     "relatedAttackPatterns": [
-      "461",
-      "68"
+      "68",
+      "461"
     ]
   },
   "329": {
@@ -4810,44 +4810,44 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "387",
-      "111",
       "141",
+      "218",
+      "385",
+      "387",
+      "665",
+      "701",
+      "111",
       "142",
       "148",
       "384",
-      "385",
       "386",
-      "388",
-      "665",
-      "218",
-      "701"
+      "388"
     ]
   },
   "346": {
     "name": "Origin Validation Error",
     "description": "The product does not properly verify that the source of data or communication is valid.",
     "childOf": [
-      "345",
-      "284"
+      "284",
+      "345"
     ],
     "relatedAttackPatterns": [
-      "385",
-      "89",
-      "111",
       "141",
-      "160",
-      "510",
-      "76",
-      "387",
-      "60",
-      "75",
-      "386",
       "388",
-      "59",
-      "142",
+      "75",
+      "76",
+      "111",
+      "89",
+      "160",
       "21",
-      "384"
+      "384",
+      "385",
+      "387",
+      "510",
+      "60",
+      "142",
+      "386",
+      "59"
     ]
   },
   "347": {
@@ -4868,11 +4868,11 @@
       "345"
     ],
     "relatedAttackPatterns": [
+      "142",
       "73",
       "76",
       "85",
-      "141",
-      "142"
+      "141"
     ]
   },
   "349": {
@@ -4882,9 +4882,9 @@
       "345"
     ],
     "relatedAttackPatterns": [
-      "142",
       "75",
-      "141"
+      "141",
+      "142"
     ]
   },
   "35": {
@@ -4924,10 +4924,10 @@
       "345"
     ],
     "relatedAttackPatterns": [
+      "111",
       "462",
       "467",
-      "62",
-      "111"
+      "62"
     ]
   },
   "353": {
@@ -4937,13 +4937,13 @@
       "345"
     ],
     "relatedAttackPatterns": [
-      "74",
-      "75",
       "13",
       "14",
       "389",
       "39",
-      "665"
+      "665",
+      "74",
+      "75"
     ]
   },
   "354": {
@@ -5068,8 +5068,8 @@
       "362"
     ],
     "relatedAttackPatterns": [
-      "27",
-      "29"
+      "29",
+      "27"
     ]
   },
   "368": {
@@ -5107,8 +5107,8 @@
       "299"
     ],
     "relatedAttackPatterns": [
-      "26",
-      "29"
+      "29",
+      "26"
     ]
   },
   "372": {
@@ -5118,8 +5118,8 @@
       "664"
     ],
     "relatedAttackPatterns": [
-      "140",
-      "74"
+      "74",
+      "140"
     ]
   },
   "373": {
@@ -5151,8 +5151,8 @@
       "668"
     ],
     "relatedAttackPatterns": [
-      "149",
-      "155"
+      "155",
+      "149"
     ]
   },
   "378": {
@@ -5202,13 +5202,13 @@
       "610"
     ],
     "relatedAttackPatterns": [
-      "59",
       "60",
       "61",
       "196",
       "21",
       "31",
-      "39"
+      "39",
+      "59"
     ]
   },
   "385": {
@@ -5283,8 +5283,8 @@
     "name": "Use of NullPointerException Catch to Detect NULL Pointer Dereference",
     "description": "Catching NullPointerException should not be used as an alternative to programmatic checks to prevent dereferencing a null pointer. Programmers typically catch NullPointerException under three circumstances: The program contains a null pointer dereference. Catching the resulting exception was easier than fixing the underlying problem. The program explicitly throws a NullPointerException to signal an error condition. The code is part of a test harness that supplies unexpected input to the classes under test. Of these three circumstances, only the last is acceptable.",
     "childOf": [
-      "705",
-      "755"
+      "755",
+      "705"
     ],
     "relatedAttackPatterns": null
   },
@@ -5292,9 +5292,9 @@
     "name": "Declaration of Catch for Generic Exception",
     "description": "Catching overly broad exceptions promotes complex error handling code that is more likely to contain security vulnerabilities. Multiple catch blocks can get ugly and repetitive, but \"condensing\" catch blocks by catching a high-level class like Exception can obscure exceptions that deserve special treatment or that should not be caught at this point in the program. Catching an overly broad exception essentially defeats the purpose of a language's typed exceptions, and can become particularly dangerous if the program grows and begins to throw new types of exceptions. The new exception types will not receive any attention.",
     "childOf": [
-      "221",
       "705",
-      "755"
+      "755",
+      "221"
     ],
     "relatedAttackPatterns": null
   },
@@ -5302,9 +5302,9 @@
     "name": "Declaration of Throws for Generic Exception",
     "description": "The product throws or raises an overly broad exceptions that can hide important details and produce inappropriate responses to certain conditions. Declaring a method to throw Exception or Throwable promotes generic error handling procedures that make it difficult for callers to perform proper error handling and error recovery. For example, Java's exception mechanism makes it easy for callers to anticipate what can go wrong and write code to handle each specific exceptional circumstance. Declaring that a method throws a generic form of exception defeats this system.",
     "childOf": [
-      "705",
       "221",
-      "703"
+      "703",
+      "705"
     ],
     "relatedAttackPatterns": null
   },
@@ -5323,9 +5323,9 @@
       "664"
     ],
     "relatedAttackPatterns": [
-      "227",
       "492",
-      "147"
+      "147",
+      "227"
     ]
   },
   "401": {
@@ -5359,13 +5359,13 @@
       "664"
     ],
     "relatedAttackPatterns": [
-      "495",
-      "496",
-      "666",
       "125",
       "130",
       "131",
-      "494"
+      "494",
+      "495",
+      "496",
+      "666"
     ]
   },
   "405": {
@@ -5457,9 +5457,9 @@
     "name": "Double Free",
     "description": "The product calls free() twice on the same memory address.",
     "childOf": [
-      "666",
       "825",
-      "1341"
+      "1341",
+      "666"
     ],
     "relatedAttackPatterns": null
   },
@@ -5485,8 +5485,8 @@
     "name": "Path Equivalence: 'filename.' (Trailing Dot)",
     "description": "The product accepts path input in the form of trailing dot ('filedir.') without appropriate validation, which can lead to ambiguous path resolution and allow an attacker to traverse the file system to unintended locations or access arbitrary files.",
     "childOf": [
-      "41",
-      "162"
+      "162",
+      "41"
     ],
     "relatedAttackPatterns": null
   },
@@ -5538,9 +5538,9 @@
     "name": "Direct Request ('Forced Browsing')",
     "description": "The web application does not adequately enforce appropriate authorization on all restricted URLs, scripts, or files. Web applications susceptible to direct request attacks often make the false assumption that such resources can only be reached through a given navigation path and so only apply authorization at certain points in the path.",
     "childOf": [
-      "862",
       "288",
-      "424"
+      "424",
+      "862"
     ],
     "relatedAttackPatterns": [
       "127",
@@ -5584,8 +5584,8 @@
     "name": "Path Equivalence: 'filename....' (Multiple Trailing Dot)",
     "description": "The product accepts path input in the form of multiple trailing dot ('filedir....') without appropriate validation, which can lead to ambiguous path resolution and allow an attacker to traverse the file system to unintended locations or access arbitrary files.",
     "childOf": [
-      "42",
-      "163"
+      "163",
+      "42"
     ],
     "relatedAttackPatterns": null
   },
@@ -5646,9 +5646,9 @@
       "435"
     ],
     "relatedAttackPatterns": [
+      "105",
       "273",
-      "34",
-      "105"
+      "34"
     ]
   },
   "437": {
@@ -5690,8 +5690,8 @@
       "610"
     ],
     "relatedAttackPatterns": [
-      "219",
-      "465"
+      "465",
+      "219"
     ]
   },
   "443": {
@@ -5769,11 +5769,11 @@
       "221"
     ],
     "relatedAttackPatterns": [
-      "98",
       "154",
       "163",
       "164",
-      "173"
+      "173",
+      "98"
     ]
   },
   "453": {
@@ -5934,11 +5934,11 @@
       "664"
     ],
     "relatedAttackPatterns": [
+      "384",
+      "385",
       "386",
       "387",
-      "388",
-      "384",
-      "385"
+      "388"
     ]
   },
   "472": {
@@ -5949,10 +5949,10 @@
       "471"
     ],
     "relatedAttackPatterns": [
-      "146",
       "226",
       "31",
-      "39"
+      "39",
+      "146"
     ]
   },
   "473": {
@@ -6087,8 +6087,8 @@
       "668"
     ],
     "relatedAttackPatterns": [
-      "60",
-      "59"
+      "59",
+      "60"
     ]
   },
   "489": {
@@ -6143,18 +6143,18 @@
       "669"
     ],
     "relatedAttackPatterns": [
-      "185",
-      "186",
-      "533",
-      "657",
-      "662",
       "692",
       "693",
-      "184",
+      "695",
+      "185",
+      "186",
+      "187",
       "538",
       "691",
-      "695",
-      "187"
+      "184",
+      "533",
+      "657",
+      "662"
     ]
   },
   "495": {
@@ -6180,8 +6180,8 @@
       "200"
     ],
     "relatedAttackPatterns": [
-      "694",
-      "170"
+      "170",
+      "694"
     ]
   },
   "498": {
@@ -6212,8 +6212,8 @@
     "name": "Path Equivalence: '//multiple/leading/slash'",
     "description": "The product accepts path input in the form of multiple leading slash ('//multiple/leading/slash') without appropriate validation, which can lead to ambiguous path resolution and allow an attacker to traverse the file system to unintended locations or access arbitrary files.",
     "childOf": [
-      "41",
-      "161"
+      "161",
+      "41"
     ],
     "relatedAttackPatterns": null
   },
@@ -6361,14 +6361,14 @@
       "1391"
     ],
     "relatedAttackPatterns": [
-      "112",
-      "16",
-      "509",
       "55",
-      "555",
-      "561",
       "565",
       "70",
+      "112",
+      "509",
+      "555",
+      "561",
+      "16",
       "49"
     ]
   },
@@ -6381,18 +6381,18 @@
     ],
     "relatedAttackPatterns": [
       "102",
-      "551",
-      "555",
-      "600",
-      "645",
-      "652",
-      "653",
       "474",
       "50",
+      "551",
+      "555",
+      "652",
       "509",
       "560",
       "561",
-      "644"
+      "600",
+      "644",
+      "645",
+      "653"
     ]
   },
   "523": {
@@ -6545,11 +6545,11 @@
       "552"
     ],
     "relatedAttackPatterns": [
-      "39",
-      "59",
       "60",
       "21",
-      "31"
+      "31",
+      "39",
+      "59"
     ]
   },
   "54": {
@@ -6908,8 +6908,8 @@
     "name": "clone() Method Without super.clone()",
     "description": "The product contains a clone() method that does not call super.clone() to obtain the new object. All implementations of clone() should obtain the new object by calling super.clone(). If a class does not follow this convention, a subclass's clone() method will return an object of the wrong type.",
     "childOf": [
-      "573",
-      "664"
+      "664",
+      "573"
     ],
     "relatedAttackPatterns": null
   },
@@ -6917,8 +6917,8 @@
     "name": "Object Model Violation: Just One of Equals and Hashcode Defined",
     "description": "The product does not maintain equal hashcodes for equal objects. Java objects are expected to obey a number of invariants related to equality. One of these invariants is that equal objects must have equal hashcodes. In other words, if a.equals(b) == true then a.hashCode() == b.hashCode().",
     "childOf": [
-      "697",
-      "573"
+      "573",
+      "697"
     ],
     "relatedAttackPatterns": null
   },
@@ -6975,8 +6975,8 @@
     "name": "Attempt to Access Child of a Non-structure Pointer",
     "description": "Casting a non-structure type to a structure type and accessing a field can lead to memory access errors or data corruption.",
     "childOf": [
-      "704",
-      "758"
+      "758",
+      "704"
     ],
     "relatedAttackPatterns": null
   },
@@ -6997,10 +6997,10 @@
       "706"
     ],
     "relatedAttackPatterns": [
+      "132",
       "17",
       "35",
-      "76",
-      "132"
+      "76"
     ]
   },
   "590": {
@@ -7119,26 +7119,26 @@
       "693"
     ],
     "relatedAttackPatterns": [
+      "383",
+      "387",
+      "388",
       "202",
       "207",
       "208",
       "31",
-      "383",
-      "388",
+      "386",
       "162",
       "21",
       "384",
-      "385",
-      "386",
-      "387"
+      "385"
     ]
   },
   "603": {
     "name": "Use of Client-Side Authentication",
     "description": "A client/server product performs authentication within client code but not in server code, allowing server-side authentication to be bypassed via a modified client that omits the authentication check. Client-side authentication is extremely weak and may be breached easily. Any attacker may read the source code and reverse-engineer the authentication mechanism to access parts of the application which would otherwise be protected.",
     "childOf": [
-      "602",
-      "1390"
+      "1390",
+      "602"
     ],
     "relatedAttackPatterns": null
   },
@@ -7339,8 +7339,8 @@
     "name": "Null Byte Interaction Error (Poison Null Byte)",
     "description": "The product does not properly handle null bytes or NUL characters when passing data between different representations or components. A null byte (NUL character) can have different meanings across representations or languages. For example, it is a string terminator in standard C libraries, but Perl and PHP strings do not treat it as a terminator. When two representations are crossed - such as when Perl or PHP invokes underlying C functionality - this can produce an interaction error with unexpected results. Similar issues have been reported for ASP. Other interpreters written in C might also be affected. The poison null byte is frequently useful in path traversal attacks by terminating hard-coded extensions that are added to a filename. It can play a role in regular expression processing in PHP.",
     "childOf": [
-      "147",
-      "436"
+      "436",
+      "147"
     ],
     "relatedAttackPatterns": null
   },
@@ -7364,8 +7364,8 @@
     "name": "Not Failing Securely ('Failing Open')",
     "description": "When the product encounters an error condition or failure, its design requires it to fall back to a state that is less secure than other options that are available, such as selecting the weakest encryption algorithm or using the most permissive access control restrictions. By entering a less secure state, the product inherits the weaknesses associated with that state, making it easier to compromise. At the least, it causes administrators to have a false sense of security. This weakness typically occurs as a result of wanting to \"fail functional\" to minimize administration and support costs, instead of \"failing safe.\"",
     "childOf": [
-      "755",
-      "657"
+      "657",
+      "755"
     ],
     "relatedAttackPatterns": null
   },
@@ -7381,8 +7381,8 @@
     "name": "Not Using Complete Mediation",
     "description": "The product does not perform access checks on a resource every time the resource is accessed by an entity, which can create resultant weaknesses if that entity's rights or privileges change over time.",
     "childOf": [
-      "862",
-      "657"
+      "657",
+      "862"
     ],
     "relatedAttackPatterns": [
       "104"
@@ -7527,8 +7527,8 @@
     "name": "Improper Neutralization of Data within XQuery Expressions ('XQuery Injection')",
     "description": "The product uses external input to dynamically construct an XQuery expression used to retrieve data from an XML database, but it does not neutralize or incorrectly neutralizes that input. This allows an attacker to control the structure of the query. The net effect is that the attacker will have control over the information selected from the XML database and may use that ability to control application flow, modify logic, retrieve unauthorized data, or bypass important checks (e.g. authentication).",
     "childOf": [
-      "943",
-      "91"
+      "91",
+      "943"
     ],
     "relatedAttackPatterns": null
   },
@@ -7550,23 +7550,23 @@
     ],
     "relatedAttackPatterns": [
       "274",
-      "55",
-      "652",
+      "565",
       "600",
-      "653",
       "70",
       "16",
       "49",
+      "55",
       "560",
-      "565"
+      "652",
+      "653"
     ]
   },
   "655": {
     "name": "Insufficient Psychological Acceptability",
     "description": "The product has a protection mechanism that is too difficult or inconvenient to use, encouraging non-malicious users to disable or bypass the mechanism, whether by accident or on purpose.",
     "childOf": [
-      "657",
-      "693"
+      "693",
+      "657"
     ],
     "relatedAttackPatterns": null
   },
@@ -7603,10 +7603,10 @@
       "691"
     ],
     "relatedAttackPatterns": [
-      "27",
-      "29",
       "25",
-      "26"
+      "26",
+      "27",
+      "29"
     ]
   },
   "663": {
@@ -7624,11 +7624,11 @@
     "description": "The product does not maintain or incorrectly maintains control over a resource throughout its lifetime of creation, use, and release. Resources often have explicit instructions on how to be created, used and destroyed. When code does not follow these instructions, it can lead to unexpected behaviors and potentially exploitable states. Even without explicit instructions, various principles are expected to be adhered to, such as \"Do not use an object until after its creation is complete,\" or \"do not use an object after it has been slated for destruction.\"",
     "childOf": null,
     "relatedAttackPatterns": [
+      "62",
+      "196",
       "21",
       "60",
-      "61",
-      "62",
-      "196"
+      "61"
     ]
   },
   "665": {
@@ -7657,9 +7657,9 @@
       "662"
     ],
     "relatedAttackPatterns": [
+      "25",
       "26",
-      "27",
-      "25"
+      "27"
     ]
   },
   "668": {
@@ -7752,17 +7752,17 @@
       "190"
     ],
     "relatedAttackPatterns": [
-      "9",
-      "100",
       "14",
-      "24",
-      "45",
-      "47",
-      "67",
-      "10",
       "46",
       "8",
-      "92"
+      "9",
+      "92",
+      "67",
+      "10",
+      "100",
+      "24",
+      "45",
+      "47"
     ]
   },
   "681": {
@@ -7874,11 +7874,11 @@
       "184"
     ],
     "relatedAttackPatterns": [
-      "85",
       "120",
       "267",
       "71",
-      "80"
+      "80",
+      "85"
     ]
   },
   "693": {
@@ -7886,23 +7886,23 @@
     "description": "The product does not use or incorrectly uses a protection mechanism that provides sufficient defense against directed attacks against the product. This weakness covers three distinct situations. A \"missing\" protection mechanism occurs when the application does not define any mechanism against a certain class of attack. An \"insufficient\" protection mechanism might provide some defenses - for example, against the most common attacks - but it does not protect against everything that is intended. Finally, an \"ignored\" mechanism occurs when a mechanism is available and in active use within the product, but the developer has not applied it in some code path.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "107",
-      "127",
-      "51",
-      "57",
-      "65",
+      "22",
       "480",
-      "1",
+      "87",
+      "107",
+      "65",
+      "57",
+      "668",
+      "74",
+      "477",
+      "127",
       "17",
       "20",
       "237",
-      "477",
-      "59",
-      "668",
-      "74",
-      "22",
       "36",
-      "87"
+      "51",
+      "59",
+      "1"
     ]
   },
   "694": {
@@ -7939,43 +7939,43 @@
     "description": "The product compares two entities in a security-relevant context, but the comparison is incorrect, which may lead to resultant weaknesses. This Pillar covers several possibilities: the comparison checks one factor incorrectly; the comparison should consider multiple factors, but it does not check at least one of those factors at all; the comparison checks the wrong factor.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "44",
-      "64",
-      "3",
-      "43",
-      "71",
-      "73",
-      "79",
-      "14",
-      "46",
-      "6",
-      "80",
-      "182",
-      "47",
-      "45",
-      "52",
-      "53",
-      "24",
-      "267",
-      "78",
       "120",
-      "41",
+      "3",
+      "6",
+      "78",
       "88",
+      "43",
+      "14",
+      "267",
       "10",
+      "182",
+      "46",
       "15",
-      "8",
-      "9",
+      "53",
       "92",
+      "41",
+      "45",
+      "64",
+      "73",
+      "8",
+      "80",
+      "24",
+      "47",
+      "52",
       "67",
-      "7"
+      "7",
+      "44",
+      "71",
+      "79",
+      "9"
     ]
   },
   "698": {
     "name": "Execution After Redirect (EAR)",
     "description": "The web application sends a redirect to another location, but instead of exiting, it executes additional code.",
     "childOf": [
-      "670",
-      "705"
+      "705",
+      "670"
     ],
     "relatedAttackPatterns": null
   },
@@ -8016,10 +8016,10 @@
       "664"
     ],
     "relatedAttackPatterns": [
-      "177",
-      "48",
       "641",
-      "159"
+      "159",
+      "177",
+      "48"
     ]
   },
   "707": {
@@ -8027,22 +8027,22 @@
     "description": "The product does not ensure or incorrectly ensures that structured messages or data are well-formed and that certain security properties are met before being read from an upstream component or sent to a downstream component. If a message is malformed, it may cause the message to be incorrectly interpreted. Neutralization is an abstract term for any technique that ensures that input (and output) conforms with expectations and is \"safe.\" This can be done by: checking that the input/output is already \"safe\" (e.g. validation) transformation of the input/output to be \"safe\" using techniques such as filtering, encoding/decoding, escaping/unescaping, quoting/unquoting, or canonicalization preventing the input/output from being directly provided by an attacker (e.g. \"indirect selection\" that maps externally-provided values to internally-controlled values) preventing the input/output from being processed at all This weakness typically applies in cases where the product prepares a control message that another process must act on, such as a command or query, and malicious input that was intended as data, can enter the control plane instead. However, this weakness also applies to more general cases where there are not always control implications.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "3",
-      "78",
-      "83",
-      "276",
       "277",
-      "278",
       "52",
-      "64",
-      "84",
+      "7",
       "250",
       "279",
-      "43",
+      "468",
       "53",
-      "7",
+      "64",
+      "83",
+      "276",
+      "278",
+      "3",
+      "43",
+      "78",
       "79",
-      "468"
+      "84"
     ]
   },
   "708": {
@@ -8081,14 +8081,14 @@
       "610"
     ],
     "relatedAttackPatterns": [
+      "72",
       "76",
       "78",
       "79",
       "80",
       "13",
       "267",
-      "64",
-      "72"
+      "64"
     ]
   },
   "732": {
@@ -8099,17 +8099,17 @@
       "668"
     ],
     "relatedAttackPatterns": [
-      "127",
-      "17",
-      "60",
-      "62",
-      "642",
       "122",
-      "180",
       "206",
       "234",
+      "642",
+      "1",
+      "17",
+      "180",
+      "60",
       "61",
-      "1"
+      "62",
+      "127"
     ]
   },
   "733": {
@@ -8119,11 +8119,11 @@
       "1038"
     ],
     "relatedAttackPatterns": [
+      "9",
       "10",
       "24",
       "46",
-      "8",
-      "9"
+      "8"
     ]
   },
   "74": {
@@ -8133,43 +8133,43 @@
       "707"
     ],
     "relatedAttackPatterns": [
-      "108",
-      "42",
-      "135",
-      "45",
-      "64",
-      "72",
-      "84",
-      "9",
-      "10",
-      "101",
-      "120",
-      "34",
-      "83",
-      "79",
-      "13",
-      "250",
-      "267",
-      "46",
-      "76",
-      "3",
-      "67",
-      "52",
-      "53",
-      "14",
       "273",
-      "28",
-      "47",
-      "51",
-      "8",
-      "105",
       "43",
+      "14",
+      "34",
+      "46",
+      "64",
+      "8",
+      "10",
+      "105",
+      "42",
+      "47",
+      "250",
+      "51",
+      "76",
+      "80",
+      "72",
+      "79",
+      "101",
+      "24",
+      "45",
       "6",
+      "3",
+      "52",
+      "83",
+      "84",
+      "120",
+      "13",
+      "267",
+      "28",
+      "7",
       "71",
       "78",
-      "24",
-      "7",
-      "80"
+      "9",
+      "108",
+      "135",
+      "53",
+      "67"
     ]
   },
   "749": {
@@ -8341,14 +8341,14 @@
       "74"
     ],
     "relatedAttackPatterns": [
+      "43",
       "75",
       "76",
       "136",
       "15",
       "183",
       "248",
-      "40",
-      "43"
+      "40"
     ]
   },
   "770": {
@@ -8360,25 +8360,25 @@
     ],
     "relatedAttackPatterns": [
       "125",
-      "490",
-      "496",
-      "130",
-      "486",
-      "491",
-      "495",
-      "230",
+      "231",
       "469",
       "482",
-      "489",
+      "488",
+      "491",
+      "230",
       "493",
-      "528",
+      "496",
+      "494",
+      "495",
+      "130",
       "147",
       "197",
       "229",
-      "231",
+      "486",
       "487",
-      "488",
-      "494"
+      "528",
+      "489",
+      "490"
     ]
   },
   "771": {
@@ -8465,11 +8465,11 @@
       "77"
     ],
     "relatedAttackPatterns": [
+      "88",
       "108",
       "15",
       "43",
-      "6",
-      "88"
+      "6"
     ]
   },
   "780": {
@@ -8561,12 +8561,12 @@
       "74"
     ],
     "relatedAttackPatterns": [
+      "209",
+      "588",
       "591",
       "592",
       "63",
-      "85",
-      "209",
-      "588"
+      "85"
     ]
   },
   "790": {
@@ -8669,10 +8669,10 @@
       "79"
     ],
     "relatedAttackPatterns": [
-      "86",
-      "18",
       "193",
-      "32"
+      "32",
+      "86",
+      "18"
     ]
   },
   "804": {
@@ -8814,19 +8814,19 @@
       "669"
     ],
     "relatedAttackPatterns": [
-      "660",
-      "698",
-      "228",
-      "253",
       "549",
       "640",
+      "660",
+      "175",
+      "228",
+      "251",
+      "252",
+      "253",
       "263",
       "538",
       "695",
-      "175",
       "201",
-      "251",
-      "252"
+      "698"
     ]
   },
   "83": {
@@ -9032,12 +9032,12 @@
       "943"
     ],
     "relatedAttackPatterns": [
+      "108",
       "109",
       "110",
       "470",
       "66",
-      "7",
-      "108"
+      "7"
     ]
   },
   "9": {
@@ -9081,8 +9081,8 @@
       "74"
     ],
     "relatedAttackPatterns": [
-      "250",
-      "83"
+      "83",
+      "250"
     ]
   },
   "910": {
@@ -9108,8 +9108,8 @@
       "684"
     ],
     "relatedAttackPatterns": [
-      "190",
-      "133"
+      "133",
+      "190"
     ]
   },
   "913": {
@@ -9202,10 +9202,10 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "481",
       "501",
       "697",
-      "161"
+      "161",
+      "481"
     ]
   },
   "924": {
@@ -9250,8 +9250,8 @@
       "74"
     ],
     "relatedAttackPatterns": [
-      "81",
-      "15"
+      "15",
+      "81"
     ]
   },
   "939": {
@@ -9348,16 +9348,16 @@
       "96"
     ],
     "relatedAttackPatterns": [
-      "101",
-      "35"
+      "35",
+      "101"
     ]
   },
   "98": {
     "name": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion')",
     "description": "The PHP application receives input from an upstream component, but it does not restrict or incorrectly restricts the input before its usage in \"require,\" \"include,\" or similar functions. In certain versions and configurations of PHP, this can allow an attacker to specify a URL to a remote location from which the product will obtain the code to execute. In other cases in association with path traversal, the attacker can specify a local file that may contain executable statements that can be parsed by PHP.",
     "childOf": [
-      "829",
-      "706"
+      "706",
+      "829"
     ],
     "relatedAttackPatterns": [
       "193"
