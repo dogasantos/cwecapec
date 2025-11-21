@@ -21,8 +21,8 @@
     "name": "Struts: Duplicate Validation Forms",
     "description": "The product uses multiple validation forms with the same name, which might cause the Struts Validator to validate a form that the programmer does not expect. If two validation forms have the same name, the Struts Validator arbitrarily chooses one of the forms to use for input validation and discards the other. This decision might not correspond to the programmer's expectations, possibly leading to resultant weaknesses. Moreover, it indicates that the validation logic is not up-to-date, and can indicate that other, more subtle validation errors are present.",
     "childOf": [
-      "694",
-      "1173"
+      "1173",
+      "694"
     ],
     "relatedAttackPatterns": null
   },
@@ -30,17 +30,17 @@
     "name": "Improper Restriction of Rendered UI Layers or Frames",
     "description": "The web application does not restrict or incorrectly restricts frame objects or UI layers that belong to another application or domain, which can lead to user confusion about which interface the user is interacting with. A web application is expected to place restrictions on whether it is allowed to be rendered within frames, iframes, objects, embed or applet elements. Without the restrictions, users can be tricked into interacting with the application when they were not intending to.",
     "childOf": [
-      "441",
-      "451"
+      "451",
+      "441"
     ],
     "relatedAttackPatterns": [
-      "506",
-      "587",
-      "654",
       "103",
       "181",
       "222",
-      "504"
+      "504",
+      "506",
+      "587",
+      "654"
     ]
   },
   "1022": {
@@ -97,8 +97,8 @@
     "name": "Insecure Automated Optimizations",
     "description": "The product uses a mechanism that automatically optimizes code, e.g. to improve a characteristic such as performance, but the optimizations can have an unintended side effect that might violate an intended security assumption.",
     "childOf": [
-      "758",
-      "435"
+      "435",
+      "758"
     ],
     "relatedAttackPatterns": null
   },
@@ -684,8 +684,8 @@
     "name": "Insufficient Encapsulation of Machine-Dependent Functionality",
     "description": "The product or code uses machine-dependent functionality, but it does not sufficiently encapsulate or isolate this functionality from the rest of the code. This issue makes it more difficult to port or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
     "childOf": [
-      "758",
-      "1061"
+      "1061",
+      "758"
     ],
     "relatedAttackPatterns": null
   },
@@ -924,10 +924,10 @@
       "707"
     ],
     "relatedAttackPatterns": [
-      "104",
-      "73",
       "81",
-      "85"
+      "85",
+      "104",
+      "73"
     ]
   },
   "1164": {
@@ -989,14 +989,14 @@
       "664"
     ],
     "relatedAttackPatterns": [
+      "24",
       "45",
       "46",
       "47",
       "8",
       "9",
       "10",
-      "14",
-      "24"
+      "14"
     ]
   },
   "1187": {
@@ -1033,18 +1033,18 @@
       "118"
     ],
     "relatedAttackPatterns": [
-      "10",
-      "14",
-      "42",
-      "44",
-      "47",
-      "8",
       "100",
-      "123",
+      "14",
       "24",
       "45",
       "46",
-      "9"
+      "9",
+      "10",
+      "123",
+      "42",
+      "44",
+      "47",
+      "8"
     ]
   },
   "1190": {
@@ -1104,19 +1104,19 @@
       "787"
     ],
     "relatedAttackPatterns": [
-      "14",
-      "42",
-      "9",
-      "10",
+      "8",
       "100",
       "45",
-      "46",
       "47",
+      "42",
+      "44",
+      "46",
       "67",
-      "8",
-      "92",
+      "9",
+      "10",
+      "14",
       "24",
-      "44"
+      "92"
     ]
   },
   "1204": {
@@ -1300,10 +1300,10 @@
       "226"
     ],
     "relatedAttackPatterns": [
-      "150",
-      "204",
       "37",
-      "545"
+      "545",
+      "150",
+      "204"
     ]
   },
   "124": {
@@ -1394,8 +1394,8 @@
       "1384"
     ],
     "relatedAttackPatterns": [
-      "624",
-      "625"
+      "625",
+      "624"
     ]
   },
   "1248": {
@@ -1514,10 +1514,10 @@
       "200"
     ],
     "relatedAttackPatterns": [
-      "150",
-      "204",
       "37",
-      "545"
+      "545",
+      "150",
+      "204"
     ]
   },
   "1259": {
@@ -1527,8 +1527,8 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "681",
-      "121"
+      "121",
+      "681"
     ]
   },
   "126": {
@@ -1607,11 +1607,11 @@
       "404"
     ],
     "relatedAttackPatterns": [
-      "150",
-      "37",
       "545",
       "546",
-      "675"
+      "675",
+      "150",
+      "37"
     ]
   },
   "1267": {
@@ -1661,9 +1661,9 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "681",
       "121",
-      "633"
+      "633",
+      "681"
     ]
   },
   "1271": {
@@ -1683,10 +1683,10 @@
       "226"
     ],
     "relatedAttackPatterns": [
+      "546",
       "150",
       "37",
-      "545",
-      "546"
+      "545"
     ]
   },
   "1273": {
@@ -1745,9 +1745,9 @@
       "693"
     ],
     "relatedAttackPatterns": [
+      "188",
       "37",
-      "545",
-      "188"
+      "545"
     ]
   },
   "1279": {
@@ -2173,8 +2173,8 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "1",
-      "180"
+      "180",
+      "1"
     ]
   },
   "1321": {
@@ -2234,8 +2234,8 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "68",
-      "679"
+      "679",
+      "68"
     ]
   },
   "1327": {
@@ -2283,8 +2283,8 @@
     "name": "Improper Isolation of Shared Resources in Network On Chip (NoC)",
     "description": "The Network On Chip (NoC) does not isolate or incorrectly isolates its on-chip-fabric and internal resources such that they are shared between trusted and untrusted agents, creating timing channels. Typically, network on chips (NoC) have many internal resources that are shared between packets from different trust domains. These resources include internal buffers, crossbars and switches, individual ports, and channels. The sharing of resources causes contention and introduces interference between differently trusted domains, which poses a security threat via a timing channel, allowing attackers to infer data that belongs to a trusted agent. This may also result in introducing network interference, resulting in degraded throughput and latency.",
     "childOf": [
-      "653",
-      "668"
+      "668",
+      "653"
     ],
     "relatedAttackPatterns": [
       "124"
@@ -2345,8 +2345,8 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "624",
-      "625"
+      "625",
+      "624"
     ]
   },
   "1339": {
@@ -2420,9 +2420,9 @@
       "707"
     ],
     "relatedAttackPatterns": [
-      "105",
       "15",
-      "34"
+      "34",
+      "105"
     ]
   },
   "1384": {
@@ -2699,16 +2699,16 @@
       "610"
     ],
     "relatedAttackPatterns": [
-      "13",
+      "176",
       "271",
-      "203",
-      "270",
       "579",
       "69",
+      "146",
+      "203",
+      "270",
       "76",
       "77",
-      "146",
-      "176"
+      "13"
     ]
   },
   "150": {
@@ -2718,10 +2718,10 @@
       "138"
     ],
     "relatedAttackPatterns": [
-      "81",
       "93",
       "134",
-      "41"
+      "41",
+      "81"
     ]
   },
   "151": {
@@ -2875,8 +2875,8 @@
     "name": "Improper Handling of Inconsistent Special Elements",
     "description": "The product does not properly handle input in which an inconsistency exists between two or more special characters or reserved words. An example of this problem would be if paired characters appear in the wrong order, or if the special characters are not properly nested.",
     "childOf": [
-      "159",
-      "228"
+      "228",
+      "159"
     ],
     "relatedAttackPatterns": null
   },
@@ -2896,15 +2896,15 @@
     ],
     "relatedAttackPatterns": [
       "3",
+      "52",
       "53",
-      "72",
+      "78",
       "80",
       "120",
       "267",
-      "52",
       "64",
       "71",
-      "78"
+      "72"
     ]
   },
   "173": {
@@ -2914,26 +2914,26 @@
       "172"
     ],
     "relatedAttackPatterns": [
-      "52",
-      "72",
-      "79",
-      "80",
-      "4",
       "267",
       "3",
+      "4",
       "53",
       "64",
       "71",
       "78",
-      "120"
+      "120",
+      "72",
+      "79",
+      "80",
+      "52"
     ]
   },
   "174": {
     "name": "Double Decoding of the Same Data",
     "description": "The product decodes the same input twice, which can limit the effectiveness of any protection mechanism that occurs in between the decoding operations.",
     "childOf": [
-      "172",
-      "675"
+      "675",
+      "172"
     ],
     "relatedAttackPatterns": null
   },
@@ -2962,10 +2962,10 @@
       "172"
     ],
     "relatedAttackPatterns": [
+      "468",
       "64",
       "72",
-      "120",
-      "468"
+      "120"
     ]
   },
   "178": {
@@ -2980,8 +2980,8 @@
     "name": "Incorrect Behavior Order: Early Validation",
     "description": "The product validates input before applying protection mechanisms that modify the input, which could allow an attacker to bypass the validation via dangerous inputs that only arise after the modification. Product needs to validate data at the proper time, after data has been canonicalized and cleansed. Early validation is susceptible to various manipulations that result in dangerous inputs that are produced by canonicalization and cleansing.",
     "childOf": [
-      "20",
-      "696"
+      "696",
+      "20"
     ],
     "relatedAttackPatterns": [
       "3",
@@ -2996,12 +2996,12 @@
       "179"
     ],
     "relatedAttackPatterns": [
-      "79",
-      "80",
       "267",
       "3",
       "71",
-      "78"
+      "78",
+      "79",
+      "80"
     ]
   },
   "181": {
@@ -3011,13 +3011,13 @@
       "179"
     ],
     "relatedAttackPatterns": [
-      "120",
       "267",
       "3",
       "43",
       "78",
       "79",
-      "80"
+      "80",
+      "120"
     ]
   },
   "182": {
@@ -3035,29 +3035,29 @@
       "697"
     ],
     "relatedAttackPatterns": [
-      "120",
       "3",
       "43",
-      "71"
+      "71",
+      "120"
     ]
   },
   "184": {
     "name": "Incomplete List of Disallowed Inputs",
     "description": "The product implements a protection mechanism that relies on a list of inputs (or properties of inputs) that are not allowed by policy or otherwise require other action to neutralize before additional processing takes place, but the list is incomplete.",
     "childOf": [
-      "1023",
-      "693"
+      "693",
+      "1023"
     ],
     "relatedAttackPatterns": [
-      "120",
       "182",
       "3",
-      "43",
-      "73",
-      "15",
-      "6",
       "71",
-      "85"
+      "6",
+      "73",
+      "85",
+      "120",
+      "15",
+      "43"
     ]
   },
   "185": {
@@ -3180,57 +3180,57 @@
       "707"
     ],
     "relatedAttackPatterns": [
-      "46",
-      "63",
-      "101",
-      "182",
-      "231",
-      "24",
-      "31",
-      "85",
-      "120",
-      "153",
-      "22",
-      "664",
-      "81",
-      "71",
-      "80",
-      "83",
-      "10",
-      "13",
-      "23",
-      "52",
-      "64",
-      "79",
-      "135",
-      "209",
-      "230",
-      "473",
-      "53",
-      "43",
-      "588",
-      "67",
-      "78",
-      "8",
-      "88",
-      "104",
-      "136",
-      "267",
-      "28",
-      "73",
-      "110",
-      "261",
-      "3",
-      "45",
-      "47",
-      "7",
-      "72",
       "9",
       "108",
+      "110",
+      "24",
+      "473",
+      "53",
+      "64",
+      "67",
       "109",
+      "136",
+      "261",
+      "31",
+      "83",
+      "22",
+      "28",
+      "46",
+      "664",
+      "72",
+      "73",
+      "79",
+      "10",
       "14",
+      "230",
+      "63",
+      "120",
+      "153",
+      "45",
+      "52",
+      "85",
+      "135",
+      "23",
+      "3",
+      "42",
+      "588",
+      "71",
+      "8",
+      "88",
+      "101",
+      "104",
+      "231",
+      "47",
+      "7",
+      "78",
+      "81",
+      "13",
+      "182",
+      "209",
       "250",
-      "42"
+      "267",
+      "43",
+      "80"
     ]
   },
   "200": {
@@ -3240,65 +3240,65 @@
       "668"
     ],
     "relatedAttackPatterns": [
-      "287",
-      "291",
-      "296",
-      "312",
-      "328",
       "508",
-      "298",
-      "317",
-      "574",
-      "307",
-      "322",
       "575",
       "616",
-      "169",
       "290",
-      "301",
-      "321",
-      "329",
-      "293",
-      "295",
-      "309",
-      "326",
-      "327",
-      "13",
-      "22",
-      "299",
-      "294",
-      "651",
-      "330",
-      "472",
-      "302",
+      "297",
       "310",
-      "497",
+      "317",
+      "323",
       "285",
       "306",
-      "313",
-      "576",
-      "60",
-      "643",
-      "300",
-      "305",
-      "319",
-      "325",
-      "308",
-      "116",
-      "292",
-      "303",
-      "323",
+      "302",
       "324",
-      "573",
-      "577",
-      "59",
-      "224",
-      "297",
+      "328",
+      "651",
+      "291",
+      "293",
+      "313",
+      "330",
+      "294",
+      "305",
+      "300",
+      "169",
+      "303",
+      "325",
+      "574",
+      "298",
       "304",
+      "322",
+      "59",
+      "299",
       "320",
+      "295",
+      "60",
+      "224",
+      "292",
+      "321",
+      "327",
+      "329",
+      "643",
+      "116",
+      "22",
+      "497",
       "646",
+      "296",
+      "319",
+      "326",
+      "472",
+      "576",
+      "79",
+      "309",
       "318",
-      "79"
+      "577",
+      "308",
+      "312",
+      "301",
+      "307",
+      "573",
+      "13",
+      "287"
     ]
   },
   "201": {
@@ -3309,14 +3309,14 @@
     ],
     "relatedAttackPatterns": [
       "12",
+      "217",
+      "613",
+      "612",
+      "618",
       "619",
       "621",
       "622",
-      "623",
-      "217",
-      "612",
-      "613",
-      "618"
+      "623"
     ]
   },
   "202": {
@@ -3344,10 +3344,10 @@
       "203"
     ],
     "relatedAttackPatterns": [
+      "331",
       "332",
       "541",
-      "580",
-      "331"
+      "580"
     ]
   },
   "205": {
@@ -3676,8 +3676,8 @@
     "name": "Improper Handling of Inconsistent Structural Elements",
     "description": "The product does not handle or incorrectly handles when two or more structural elements should be consistent, but are not.",
     "childOf": [
-      "707",
-      "237"
+      "237",
+      "707"
     ],
     "relatedAttackPatterns": null
   },
@@ -3859,18 +3859,18 @@
       "1390"
     ],
     "relatedAttackPatterns": [
+      "16",
       "49",
-      "509",
       "555",
-      "561",
-      "565",
+      "560",
       "600",
       "652",
-      "16",
-      "55",
-      "560",
       "653",
-      "70"
+      "70",
+      "509",
+      "55",
+      "561",
+      "565"
     ]
   },
   "263": {
@@ -3880,18 +3880,18 @@
       "1390"
     ],
     "relatedAttackPatterns": [
-      "16",
-      "49",
-      "55",
-      "561",
-      "600",
-      "653",
-      "509",
       "555",
       "560",
+      "561",
       "565",
+      "600",
       "652",
-      "70"
+      "49",
+      "509",
+      "55",
+      "653",
+      "70",
+      "16"
     ]
   },
   "266": {
@@ -3909,11 +3909,11 @@
       "269"
     ],
     "relatedAttackPatterns": [
-      "643",
       "648",
       "58",
       "634",
-      "637"
+      "637",
+      "643"
     ]
   },
   "268": {
@@ -3931,9 +3931,9 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "58",
       "122",
-      "233"
+      "233",
+      "58"
     ]
   },
   "27": {
@@ -3951,9 +3951,9 @@
       "269"
     ],
     "relatedAttackPatterns": [
-      "17",
       "30",
-      "35"
+      "35",
+      "17"
     ]
   },
   "271": {
@@ -3989,8 +3989,8 @@
     "name": "Improper Handling of Insufficient Privileges",
     "description": "The product does not handle or incorrectly handles when it has insufficient privileges to perform an operation, leading to resultant weaknesses.",
     "childOf": [
-      "269",
-      "755"
+      "755",
+      "269"
     ],
     "relatedAttackPatterns": null
   },
@@ -4080,23 +4080,23 @@
     "description": "The product does not restrict or incorrectly restricts access to a resource from an unauthorized actor. Access control involves the use of several protection mechanisms such as: Authentication (proving the identity of an actor) Authorization (ensuring that a given actor can access a resource), and Accountability (tracking of activities that were performed) When any mechanism is not applied or otherwise fails, attackers can compromise the security of the product by gaining privileges, reading sensitive information, executing commands, evading detection, etc. There are two distinct behaviors that can introduce access control weaknesses: Specification: incorrect privileges, permissions, ownership, etc. are explicitly specified for either the user or the resource (for example, setting a password file to be world-writable, or giving administrator capabilities to a guest user). This action could be performed by the program or the administrator. Enforcement: the mechanism contains errors that prevent it from properly enforcing the specified access control requirements (e.g., allowing the user to specify their own privileges, or allowing a syntactically-incorrect ACL to produce insecure settings). This problem occurs within the program itself, in that it does not actually enforce the intended security policy that the administrator specifies.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "441",
-      "546",
-      "552",
-      "558",
-      "563",
-      "578",
-      "502",
-      "503",
-      "536",
-      "551",
       "19",
-      "478",
+      "563",
+      "558",
+      "441",
       "479",
-      "550",
+      "551",
+      "552",
       "556",
       "562",
-      "564"
+      "564",
+      "502",
+      "546",
+      "536",
+      "550",
+      "578",
+      "478",
+      "503"
     ]
   },
   "285": {
@@ -4107,22 +4107,22 @@
     ],
     "relatedAttackPatterns": [
       "1",
-      "59",
-      "647",
-      "668",
-      "87",
       "104",
       "17",
-      "5",
-      "13",
-      "402",
-      "51",
-      "77",
       "127",
+      "668",
+      "87",
+      "402",
+      "5",
+      "51",
+      "60",
+      "647",
+      "76",
+      "77",
+      "13",
       "39",
       "45",
-      "60",
-      "76"
+      "59"
     ]
   },
   "286": {
@@ -4140,16 +4140,16 @@
       "284"
     ],
     "relatedAttackPatterns": [
+      "151",
+      "194",
       "57",
-      "593",
       "633",
       "650",
       "94",
       "114",
       "115",
-      "151",
-      "194",
-      "22"
+      "22",
+      "593"
     ]
   },
   "288": {
@@ -4187,12 +4187,12 @@
     ],
     "relatedAttackPatterns": [
       "21",
+      "459",
       "461",
+      "473",
       "667",
       "94",
       "22",
-      "459",
-      "473",
       "476",
       "59",
       "60"
@@ -4202,8 +4202,8 @@
     "name": "Reliance on IP Address for Authentication",
     "description": "The product uses an IP address for authentication. IP addresses can be easily spoofed. Attackers can forge the source IP address of the packets they send, but response packets will return to the forged IP address. To see the response packets, the attacker has to sniff the traffic between the victim machine and the forged IP address. In order to accomplish the required sniffing, attackers typically attempt to locate themselves on the same subnet as the victim machine. Attackers may be able to circumvent this requirement by using source routing, but source routing is disabled across much of the Internet today. In summary, IP address verification can be a useful part of an authentication scheme, but it should not be the single factor required for authentication.",
     "childOf": [
-      "290",
-      "923"
+      "923",
+      "290"
     ],
     "relatedAttackPatterns": [
       "4"
@@ -4230,16 +4230,16 @@
       "1390"
     ],
     "relatedAttackPatterns": [
-      "102",
-      "555",
-      "60",
-      "652",
       "701",
-      "509",
-      "561",
+      "94",
+      "555",
       "644",
+      "652",
+      "60",
       "645",
-      "94"
+      "102",
+      "509",
+      "561"
     ]
   },
   "295": {
@@ -4249,8 +4249,8 @@
       "287"
     ],
     "relatedAttackPatterns": [
-      "475",
-      "459"
+      "459",
+      "475"
     ]
   },
   "296": {
@@ -4304,15 +4304,15 @@
       "923"
     ],
     "relatedAttackPatterns": [
-      "94",
-      "590",
+      "612",
       "613",
-      "615",
       "662",
-      "466",
       "57",
       "589",
-      "612"
+      "615",
+      "94",
+      "466",
+      "590"
     ]
   },
   "301": {
@@ -4333,14 +4333,14 @@
       "807"
     ],
     "relatedAttackPatterns": [
-      "10",
-      "13",
       "21",
       "274",
       "31",
       "39",
       "45",
-      "77"
+      "77",
+      "10",
+      "13"
     ]
   },
   "303": {
@@ -4357,8 +4357,8 @@
     "name": "Missing Critical Step in Authentication",
     "description": "The product implements an authentication technique, but it skips a step that weakens the technique. Authentication techniques should follow the algorithms that define them exactly, otherwise authentication can be bypassed or more easily subjected to brute force attacks.",
     "childOf": [
-      "573",
-      "303"
+      "303",
+      "573"
     ],
     "relatedAttackPatterns": null
   },
@@ -4377,11 +4377,11 @@
       "287"
     ],
     "relatedAttackPatterns": [
+      "12",
       "166",
       "216",
       "36",
-      "62",
-      "12"
+      "62"
     ]
   },
   "307": {
@@ -4392,13 +4392,13 @@
       "799"
     ],
     "relatedAttackPatterns": [
+      "652",
+      "653",
       "16",
       "49",
       "560",
       "565",
-      "600",
-      "652",
-      "653"
+      "600"
     ]
   },
   "308": {
@@ -4409,20 +4409,20 @@
       "654"
     ],
     "relatedAttackPatterns": [
-      "49",
-      "55",
-      "600",
-      "653",
-      "16",
-      "509",
-      "652",
+      "555",
       "560",
       "565",
-      "555",
+      "652",
+      "70",
+      "509",
+      "653",
+      "16",
+      "49",
+      "55",
       "561",
+      "600",
       "644",
-      "645",
-      "70"
+      "645"
     ]
   },
   "309": {
@@ -4433,18 +4433,18 @@
       "654"
     ],
     "relatedAttackPatterns": [
+      "653",
+      "16",
       "49",
       "55",
-      "561",
-      "565",
-      "652",
-      "70",
-      "16",
       "555",
       "560",
+      "565",
+      "509",
+      "561",
       "600",
-      "653",
-      "509"
+      "652",
+      "70"
     ]
   },
   "31": {
@@ -4462,20 +4462,20 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "157",
-      "37",
-      "388",
-      "158",
-      "31",
-      "384",
-      "385",
-      "386",
       "65",
       "204",
-      "383",
-      "387",
+      "388",
       "477",
-      "609"
+      "609",
+      "158",
+      "385",
+      "383",
+      "384",
+      "386",
+      "157",
+      "37",
+      "31",
+      "387"
     ]
   },
   "312": {
@@ -4554,11 +4554,11 @@
       "311"
     ],
     "relatedAttackPatterns": [
+      "102",
       "117",
       "383",
       "477",
-      "65",
-      "102"
+      "65"
     ]
   },
   "32": {
@@ -4630,21 +4630,21 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "608",
-      "614",
-      "97",
       "20",
       "459",
       "473",
-      "475"
+      "475",
+      "608",
+      "614",
+      "97"
     ]
   },
   "328": {
     "name": "Use of Weak Hash",
     "description": "The product uses an algorithm that produces a digest (output value) that does not meet security expectations for a hash function that allows an adversary to reasonably determine the original input (preimage attack), find another input that can produce the same hash (2nd preimage attack), or find multiple inputs that evaluate to the same hash (birthday attack). A hash function is defined as an algorithm that maps arbitrarily sized data into a fixed-sized digest (output) such that the following properties hold: The algorithm is not invertible (also called \"one-way\" or \"not reversible\") The algorithm is deterministic; the same input produces the same digest every time Building on this definition, a cryptographic hash function must also ensure that a malicious actor cannot leverage the hash function to have a reasonable chance of success at determining any of the following: the original input (preimage attack), given only the digest another input that can produce the same digest (2nd preimage attack), given the original input a set of two or more inputs that evaluate to the same digest (birthday attack), given the actor can arbitrarily choose the inputs to be hashed and can do so a reasonable amount of times What is regarded as \"reasonable\" varies by context and threat model, but in general, \"reasonable\" could cover any attack that is more efficient than brute force (i.e., on average, attempting half of all possible combinations). Note that some attacks might be more efficient than brute force but are still not regarded as achievable in the real world. Any algorithm that does not meet the above conditions will generally be considered weak for general use in hashing. In addition to algorithmic weaknesses, a hash function can be made weak by using the hash in a security context that breaks its security guarantees. For example, using a hash function without a salt for storing passwords (that are sufficiently short) could enable an adversary to create a \"rainbow table\" [REF-637] to recover the password under certain conditions; this attack works against such hash functions as MD5, SHA-1, and SHA-2.",
     "childOf": [
-      "327",
-      "326"
+      "326",
+      "327"
     ],
     "relatedAttackPatterns": [
       "461",
@@ -4702,8 +4702,8 @@
     "name": "Improper Handling of Insufficient Entropy in TRNG",
     "description": "True random number generators (TRNG) generally have a limited source of entropy and therefore can fail or block. The rate at which true random numbers can be generated is limited. It is important that one uses them only when they are needed for security.",
     "childOf": [
-      "755",
-      "331"
+      "331",
+      "755"
     ],
     "relatedAttackPatterns": null
   },
@@ -4810,18 +4810,18 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "148",
-      "384",
-      "385",
-      "386",
-      "111",
-      "142",
       "387",
       "388",
       "665",
-      "701",
+      "111",
       "141",
-      "218"
+      "148",
+      "384",
+      "386",
+      "701",
+      "142",
+      "218",
+      "385"
     ]
   },
   "346": {
@@ -4832,22 +4832,22 @@
       "284"
     ],
     "relatedAttackPatterns": [
+      "142",
+      "386",
+      "510",
+      "75",
+      "89",
+      "111",
+      "141",
+      "160",
+      "384",
+      "385",
+      "387",
+      "21",
+      "60",
       "388",
       "59",
-      "60",
-      "75",
-      "141",
-      "142",
-      "160",
-      "21",
-      "385",
-      "386",
-      "76",
-      "111",
-      "384",
-      "387",
-      "510",
-      "89"
+      "76"
     ]
   },
   "347": {
@@ -4924,10 +4924,10 @@
       "345"
     ],
     "relatedAttackPatterns": [
-      "111",
-      "462",
       "467",
-      "62"
+      "62",
+      "111",
+      "462"
     ]
   },
   "353": {
@@ -4979,8 +4979,8 @@
     "name": "Improperly Implemented Security Check for Standard",
     "description": "The product does not implement or incorrectly implements one or more security-relevant checks as specified by the design of a standardized algorithm, protocol, or technique.",
     "childOf": [
-      "573",
-      "693"
+      "693",
+      "573"
     ],
     "relatedAttackPatterns": null
   },
@@ -5022,8 +5022,8 @@
       "691"
     ],
     "relatedAttackPatterns": [
-      "26",
-      "29"
+      "29",
+      "26"
     ]
   },
   "363": {
@@ -5079,8 +5079,8 @@
       "362"
     ],
     "relatedAttackPatterns": [
-      "29",
-      "26"
+      "26",
+      "29"
     ]
   },
   "369": {
@@ -5202,13 +5202,13 @@
       "610"
     ],
     "relatedAttackPatterns": [
-      "61",
       "196",
       "21",
       "31",
       "39",
       "59",
-      "60"
+      "60",
+      "61"
     ]
   },
   "385": {
@@ -5292,9 +5292,9 @@
     "name": "Declaration of Catch for Generic Exception",
     "description": "Catching overly broad exceptions promotes complex error handling code that is more likely to contain security vulnerabilities. Multiple catch blocks can get ugly and repetitive, but \"condensing\" catch blocks by catching a high-level class like Exception can obscure exceptions that deserve special treatment or that should not be caught at this point in the program. Catching an overly broad exception essentially defeats the purpose of a language's typed exceptions, and can become particularly dangerous if the program grows and begins to throw new types of exceptions. The new exception types will not receive any attention.",
     "childOf": [
-      "705",
       "755",
-      "221"
+      "221",
+      "705"
     ],
     "relatedAttackPatterns": null
   },
@@ -5323,9 +5323,9 @@
       "664"
     ],
     "relatedAttackPatterns": [
-      "227",
       "492",
-      "147"
+      "147",
+      "227"
     ]
   },
   "401": {
@@ -5359,13 +5359,13 @@
       "664"
     ],
     "relatedAttackPatterns": [
+      "666",
+      "125",
+      "130",
       "131",
       "494",
       "495",
-      "496",
-      "666",
-      "125",
-      "130"
+      "496"
     ]
   },
   "405": {
@@ -5457,9 +5457,9 @@
     "name": "Double Free",
     "description": "The product calls free() twice on the same memory address.",
     "childOf": [
+      "825",
       "1341",
-      "666",
-      "825"
+      "666"
     ],
     "relatedAttackPatterns": null
   },
@@ -5543,11 +5543,11 @@
       "424"
     ],
     "relatedAttackPatterns": [
-      "127",
-      "143",
       "144",
       "668",
-      "87"
+      "87",
+      "127",
+      "143"
     ]
   },
   "426": {
@@ -5646,9 +5646,9 @@
       "435"
     ],
     "relatedAttackPatterns": [
+      "105",
       "273",
-      "34",
-      "105"
+      "34"
     ]
   },
   "437": {
@@ -5690,8 +5690,8 @@
       "610"
     ],
     "relatedAttackPatterns": [
-      "465",
-      "219"
+      "219",
+      "465"
     ]
   },
   "443": {
@@ -5707,8 +5707,8 @@
       "436"
     ],
     "relatedAttackPatterns": [
-      "273",
-      "33"
+      "33",
+      "273"
     ]
   },
   "446": {
@@ -5723,8 +5723,8 @@
     "name": "Unimplemented or Unsupported Feature in UI",
     "description": "A UI function for a security feature appears to be supported and gives feedback to the user that suggests that it is supported, but the underlying functionality is not implemented.",
     "childOf": [
-      "671",
-      "446"
+      "446",
+      "671"
     ],
     "relatedAttackPatterns": null
   },
@@ -5769,11 +5769,11 @@
       "221"
     ],
     "relatedAttackPatterns": [
-      "154",
       "163",
       "164",
       "173",
-      "98"
+      "98",
+      "154"
     ]
   },
   "453": {
@@ -5796,9 +5796,9 @@
     "name": "Non-exit on Failed Initialization",
     "description": "The product does not exit or otherwise modify its operation when security-relevant errors occur during initialization, such as when a configuration file has a format error or a hardware security module (HSM) cannot be activated, which can cause the product to execute in a less secure fashion than intended by the administrator.",
     "childOf": [
+      "636",
       "665",
-      "705",
-      "636"
+      "705"
     ],
     "relatedAttackPatterns": null
   },
@@ -5836,8 +5836,8 @@
     "name": "Path Equivalence: 'filename ' (Trailing Space)",
     "description": "The product accepts path input in the form of trailing space ('filedir ') without appropriate validation, which can lead to ambiguous path resolution and allow an attacker to traverse the file system to unintended locations or access arbitrary files.",
     "childOf": [
-      "162",
-      "41"
+      "41",
+      "162"
     ],
     "relatedAttackPatterns": [
       "649"
@@ -5847,8 +5847,8 @@
     "name": "Improper Cleanup on Thrown Exception",
     "description": "The product does not clean up its state or incorrectly cleans up its state when an exception is thrown, leading to unexpected state or control flow. Often, when functions or loops become complicated, some level of resource cleanup is needed throughout execution. Exceptions can disturb the flow of the code and prevent the necessary cleanup from happening.",
     "childOf": [
-      "459",
-      "755"
+      "755",
+      "459"
     ],
     "relatedAttackPatterns": null
   },
@@ -5934,11 +5934,11 @@
       "664"
     ],
     "relatedAttackPatterns": [
+      "386",
+      "387",
       "388",
       "384",
-      "385",
-      "386",
-      "387"
+      "385"
     ]
   },
   "472": {
@@ -5949,10 +5949,10 @@
       "471"
     ],
     "relatedAttackPatterns": [
+      "146",
       "226",
       "31",
-      "39",
-      "146"
+      "39"
     ]
   },
   "473": {
@@ -6059,8 +6059,8 @@
     "name": "Omitted Break Statement in Switch",
     "description": "The product omits a break statement within a switch or similar construct, causing code associated with multiple conditions to execute. This can cause problems when the programmer only intended to execute code associated with one condition. This can lead to critical code executing in situations where it should not.",
     "childOf": [
-      "710",
-      "670"
+      "670",
+      "710"
     ],
     "relatedAttackPatterns": null
   },
@@ -6143,18 +6143,18 @@
       "669"
     ],
     "relatedAttackPatterns": [
-      "662",
-      "184",
       "186",
       "533",
       "538",
-      "692",
+      "657",
+      "662",
       "693",
       "695",
+      "184",
       "185",
       "187",
-      "657",
-      "691"
+      "691",
+      "692"
     ]
   },
   "495": {
@@ -6250,9 +6250,9 @@
       "912"
     ],
     "relatedAttackPatterns": [
+      "636",
       "442",
-      "448",
-      "636"
+      "448"
     ]
   },
   "507": {
@@ -6341,8 +6341,8 @@
     "name": "Path Equivalence: '/multiple/trailing/slash//'",
     "description": "The product accepts path input in the form of multiple trailing slash ('/multiple/trailing/slash//') without appropriate validation, which can lead to ambiguous path resolution and allow an attacker to traverse the file system to unintended locations or access arbitrary files.",
     "childOf": [
-      "41",
-      "163"
+      "163",
+      "41"
     ],
     "relatedAttackPatterns": null
   },
@@ -6361,15 +6361,15 @@
       "1391"
     ],
     "relatedAttackPatterns": [
+      "555",
       "561",
       "112",
-      "49",
-      "55",
-      "555",
-      "565",
-      "70",
       "16",
-      "509"
+      "55",
+      "70",
+      "49",
+      "509",
+      "565"
     ]
   },
   "522": {
@@ -6380,19 +6380,19 @@
       "1390"
     ],
     "relatedAttackPatterns": [
-      "102",
       "509",
-      "555",
       "560",
-      "600",
-      "645",
-      "652",
+      "561",
+      "644",
       "653",
+      "102",
       "474",
       "50",
       "551",
-      "561",
-      "644"
+      "555",
+      "600",
+      "645",
+      "652"
     ]
   },
   "523": {
@@ -6545,11 +6545,11 @@
       "552"
     ],
     "relatedAttackPatterns": [
+      "21",
       "31",
       "39",
       "59",
-      "60",
-      "21"
+      "60"
     ]
   },
   "54": {
@@ -6666,12 +6666,12 @@
     "name": "Files or Directories Accessible to External Parties",
     "description": "The product makes files or directories accessible to unauthorized actors, even though they should not be. Web servers, FTP servers, and similar servers may store a set of files underneath a \"root\" directory that is accessible to the server's users. Applications may store sensitive files underneath this root without also using access control to limit which users may request those files, if any. Alternately, an application might package multiple files or directories into an archive file (e.g., ZIP or tar), but the application might not exclude sensitive files that are underneath those directories. In cloud technologies and containers, this weakness might present itself in the form of misconfigured storage accounts that can be read or written by a public or anonymous user.",
     "childOf": [
-      "285",
-      "668"
+      "668",
+      "285"
     ],
     "relatedAttackPatterns": [
-      "639",
-      "150"
+      "150",
+      "639"
     ]
   },
   "553": {
@@ -7119,18 +7119,18 @@
       "693"
     ],
     "relatedAttackPatterns": [
+      "21",
       "31",
-      "387",
-      "388",
-      "384",
+      "383",
       "385",
-      "162",
+      "386",
+      "388",
+      "208",
       "202",
       "207",
-      "208",
-      "21",
-      "383",
-      "386"
+      "384",
+      "387",
+      "162"
     ]
   },
   "603": {
@@ -7381,8 +7381,8 @@
     "name": "Not Using Complete Mediation",
     "description": "The product does not perform access checks on a resource every time the resource is accessed by an entity, which can create resultant weaknesses if that entity's rights or privileges change over time.",
     "childOf": [
-      "657",
-      "862"
+      "862",
+      "657"
     ],
     "relatedAttackPatterns": [
       "104"
@@ -7549,16 +7549,16 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "49",
       "652",
-      "653",
+      "274",
+      "49",
       "560",
       "565",
-      "600",
       "70",
       "16",
-      "274",
-      "55"
+      "55",
+      "600",
+      "653"
     ]
   },
   "655": {
@@ -7624,11 +7624,11 @@
     "description": "The product does not maintain or incorrectly maintains control over a resource throughout its lifetime of creation, use, and release. Resources often have explicit instructions on how to be created, used and destroyed. When code does not follow these instructions, it can lead to unexpected behaviors and potentially exploitable states. Even without explicit instructions, various principles are expected to be adhered to, such as \"Do not use an object until after its creation is complete,\" or \"do not use an object after it has been slated for destruction.\"",
     "childOf": null,
     "relatedAttackPatterns": [
-      "62",
-      "196",
       "21",
       "60",
-      "61"
+      "61",
+      "62",
+      "196"
     ]
   },
   "665": {
@@ -7657,9 +7657,9 @@
       "662"
     ],
     "relatedAttackPatterns": [
+      "27",
       "25",
-      "26",
-      "27"
+      "26"
     ]
   },
   "668": {
@@ -7753,16 +7753,16 @@
     ],
     "relatedAttackPatterns": [
       "14",
-      "46",
-      "47",
       "67",
-      "8",
+      "9",
       "92",
-      "10",
       "100",
       "24",
       "45",
-      "9"
+      "46",
+      "47",
+      "8",
+      "10"
     ]
   },
   "681": {
@@ -7778,8 +7778,8 @@
     "description": "The product performs a calculation that generates incorrect or unintended results that are later used in security-critical decisions or resource management. When product performs a security-critical calculation incorrectly, it might lead to incorrect resource allocations, incorrect privilege assignments, or failed comparisons among other things. Many of the direct results of an incorrect calculation can lead to even larger problems such as failed protection mechanisms or even arbitrary code execution.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "129",
-      "128"
+      "128",
+      "129"
     ]
   },
   "683": {
@@ -7874,11 +7874,11 @@
       "184"
     ],
     "relatedAttackPatterns": [
-      "71",
-      "80",
       "85",
       "120",
-      "267"
+      "267",
+      "71",
+      "80"
     ]
   },
   "693": {
@@ -7886,23 +7886,23 @@
     "description": "The product does not use or incorrectly uses a protection mechanism that provides sufficient defense against directed attacks against the product. This weakness covers three distinct situations. A \"missing\" protection mechanism occurs when the application does not define any mechanism against a certain class of attack. An \"insufficient\" protection mechanism might provide some defenses - for example, against the most common attacks - but it does not protect against everything that is intended. Finally, an \"ignored\" mechanism occurs when a mechanism is available and in active use within the product, but the developer has not applied it in some code path.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "20",
-      "36",
-      "127",
       "668",
+      "87",
+      "59",
+      "74",
+      "107",
+      "477",
+      "20",
       "22",
       "480",
-      "57",
-      "59",
       "65",
-      "74",
-      "87",
-      "17",
-      "107",
-      "237",
-      "477",
+      "1",
+      "127",
+      "36",
       "51",
-      "1"
+      "57",
+      "17",
+      "237"
     ]
   },
   "694": {
@@ -7939,35 +7939,35 @@
     "description": "The product compares two entities in a security-relevant context, but the comparison is incorrect, which may lead to resultant weaknesses. This Pillar covers several possibilities: the comparison checks one factor incorrectly; the comparison should consider multiple factors, but it does not check at least one of those factors at all; the comparison checks the wrong factor.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "44",
-      "53",
-      "8",
-      "9",
-      "15",
+      "24",
+      "47",
+      "92",
+      "10",
+      "45",
+      "14",
       "3",
-      "73",
-      "80",
-      "6",
-      "64",
-      "78",
-      "88",
       "41",
-      "52",
+      "80",
+      "9",
+      "120",
+      "15",
+      "53",
+      "6",
+      "7",
+      "88",
       "182",
+      "43",
       "67",
       "79",
-      "24",
-      "45",
-      "267",
-      "43",
       "46",
-      "7",
       "71",
-      "10",
-      "120",
-      "92",
-      "14",
-      "47"
+      "73",
+      "78",
+      "267",
+      "44",
+      "52",
+      "64",
+      "8"
     ]
   },
   "698": {
@@ -8016,10 +8016,10 @@
       "664"
     ],
     "relatedAttackPatterns": [
-      "159",
       "177",
       "48",
-      "641"
+      "641",
+      "159"
     ]
   },
   "707": {
@@ -8027,22 +8027,22 @@
     "description": "The product does not ensure or incorrectly ensures that structured messages or data are well-formed and that certain security properties are met before being read from an upstream component or sent to a downstream component. If a message is malformed, it may cause the message to be incorrectly interpreted. Neutralization is an abstract term for any technique that ensures that input (and output) conforms with expectations and is \"safe.\" This can be done by: checking that the input/output is already \"safe\" (e.g. validation) transformation of the input/output to be \"safe\" using techniques such as filtering, encoding/decoding, escaping/unescaping, quoting/unquoting, or canonicalization preventing the input/output from being directly provided by an attacker (e.g. \"indirect selection\" that maps externally-provided values to internally-controlled values) preventing the input/output from being processed at all This weakness typically applies in cases where the product prepares a control message that another process must act on, such as a command or query, and malicious input that was intended as data, can enter the control plane instead. However, this weakness also applies to more general cases where there are not always control implications.",
     "childOf": null,
     "relatedAttackPatterns": [
+      "78",
+      "83",
+      "3",
+      "53",
+      "64",
       "468",
       "52",
-      "53",
-      "83",
-      "43",
-      "64",
+      "84",
+      "7",
+      "276",
+      "278",
+      "279",
       "79",
       "250",
-      "276",
       "277",
-      "279",
-      "278",
-      "7",
-      "78",
-      "84",
-      "3"
+      "43"
     ]
   },
   "708": {
@@ -8077,18 +8077,18 @@
     "name": "External Control of File Name or Path",
     "description": "The product allows user input to control or influence paths or file names that are used in filesystem operations. This could allow an attacker to access or modify system files or other files that are critical to the application. Path manipulation errors occur when the following two conditions are met: 1. An attacker can specify a path used in an operation on the filesystem. 2. By specifying the resource, the attacker gains a capability that would not otherwise be permitted. For example, the program may give the attacker the ability to overwrite the specified file or run with a configuration controlled by the attacker.",
     "childOf": [
-      "642",
-      "610"
+      "610",
+      "642"
     ],
     "relatedAttackPatterns": [
-      "79",
-      "80",
-      "13",
       "267",
       "64",
       "72",
       "76",
-      "78"
+      "78",
+      "79",
+      "80",
+      "13"
     ]
   },
   "732": {
@@ -8099,17 +8099,17 @@
       "668"
     ],
     "relatedAttackPatterns": [
+      "1",
+      "180",
       "206",
       "60",
-      "61",
-      "62",
-      "1",
+      "642",
       "122",
       "127",
       "17",
-      "180",
       "234",
-      "642"
+      "61",
+      "62"
     ]
   },
   "733": {
@@ -8133,43 +8133,43 @@
       "707"
     ],
     "relatedAttackPatterns": [
-      "24",
-      "273",
-      "42",
-      "6",
       "10",
-      "101",
-      "120",
+      "267",
+      "42",
+      "51",
       "64",
       "7",
+      "84",
+      "52",
+      "79",
       "8",
+      "9",
+      "24",
+      "47",
+      "6",
+      "80",
+      "101",
+      "105",
+      "71",
+      "108",
+      "135",
+      "34",
+      "45",
+      "72",
+      "120",
+      "250",
+      "273",
+      "28",
+      "3",
+      "43",
+      "46",
+      "53",
+      "67",
+      "78",
       "83",
       "13",
-      "28",
-      "51",
       "14",
-      "84",
-      "3",
-      "72",
-      "76",
-      "9",
-      "43",
-      "53",
-      "71",
-      "105",
-      "108",
-      "80",
-      "52",
-      "67",
-      "45",
-      "46",
-      "47",
-      "34",
-      "78",
-      "79",
-      "135",
-      "250",
-      "267"
+      "76"
     ]
   },
   "749": {
@@ -8289,8 +8289,8 @@
     "name": "Multiple Locks of a Critical Resource",
     "description": "The product locks a critical resource more times than intended, leading to an unexpected state in the system. When a product is operating in a concurrent environment and repeatedly locks a critical resource, the consequences will vary based on the type of lock, the lock's implementation, and the resource being protected. In some situations such as with semaphores, the resources are pooled and extra locking calls will reduce the size of the total available pool, possibly leading to degraded performance or a denial of service. If this can be triggered by an attacker, it will be similar to an unrestricted lock (CWE-412). In the context of a binary lock, it is likely that any duplicate locking attempts will never succeed since the lock is already held and progress may not be possible.",
     "childOf": [
-      "667",
-      "675"
+      "675",
+      "667"
     ],
     "relatedAttackPatterns": null
   },
@@ -8341,14 +8341,14 @@
       "74"
     ],
     "relatedAttackPatterns": [
+      "40",
+      "43",
+      "75",
       "76",
       "136",
       "15",
       "183",
-      "248",
-      "40",
-      "43",
-      "75"
+      "248"
     ]
   },
   "770": {
@@ -8359,25 +8359,25 @@
       "665"
     ],
     "relatedAttackPatterns": [
+      "469",
+      "482",
+      "488",
       "490",
-      "495",
       "528",
       "125",
       "130",
-      "229",
-      "230",
-      "494",
-      "469",
-      "482",
-      "489",
+      "231",
       "491",
-      "197",
-      "486",
-      "487",
       "496",
       "147",
-      "231",
-      "488",
+      "229",
+      "486",
+      "487",
+      "494",
+      "197",
+      "230",
+      "495",
+      "489",
       "493"
     ]
   },
@@ -8465,11 +8465,11 @@
       "77"
     ],
     "relatedAttackPatterns": [
-      "108",
-      "15",
       "43",
       "6",
-      "88"
+      "88",
+      "108",
+      "15"
     ]
   },
   "780": {
@@ -8561,12 +8561,12 @@
       "74"
     ],
     "relatedAttackPatterns": [
-      "592",
-      "63",
-      "85",
       "209",
       "588",
-      "591"
+      "591",
+      "592",
+      "63",
+      "85"
     ]
   },
   "790": {
@@ -8637,13 +8637,13 @@
     "name": "Use of Hard-coded Credentials",
     "description": "The product contains hard-coded credentials, such as a password or cryptographic key. There are two main variations: Inbound: the product contains an authentication mechanism that checks the input credentials against a hard-coded set of credentials. In this variant, a default administration account is created, and a simple password is hard-coded into the product and associated with that account. This hard-coded password is the same for each installation of the product, and it usually cannot be changed or disabled by system administrators without manually modifying the program, or otherwise patching the product. It can also be difficult for the administrator to detect. Outbound: the product connects to another system or component, and it contains hard-coded credentials for connecting to that component. This variant applies to front-end systems that authenticate with a back-end service. The back-end service may require a fixed password that can be easily discovered. The programmer may simply hard-code those back-end credentials into the front-end product.",
     "childOf": [
-      "1391",
       "344",
-      "671"
+      "671",
+      "1391"
     ],
     "relatedAttackPatterns": [
-      "191",
-      "70"
+      "70",
+      "191"
     ]
   },
   "799": {
@@ -8669,10 +8669,10 @@
       "79"
     ],
     "relatedAttackPatterns": [
-      "86",
       "18",
       "193",
-      "32"
+      "32",
+      "86"
     ]
   },
   "804": {
@@ -8814,19 +8814,19 @@
       "669"
     ],
     "relatedAttackPatterns": [
+      "263",
       "640",
-      "660",
+      "695",
+      "175",
       "201",
       "251",
       "252",
-      "253",
-      "263",
+      "660",
       "698",
-      "175",
       "228",
+      "253",
       "538",
-      "549",
-      "695"
+      "549"
     ]
   },
   "83": {
@@ -9081,8 +9081,8 @@
       "74"
     ],
     "relatedAttackPatterns": [
-      "83",
-      "250"
+      "250",
+      "83"
     ]
   },
   "910": {
@@ -9124,8 +9124,8 @@
     "name": "Improper Control of Dynamically-Identified Variables",
     "description": "The product does not properly restrict reading from or writing to dynamically-identified variables. Many languages offer powerful features that allow the programmer to access arbitrary variables that are specified by an input string. While these features can offer significant flexibility and reduce development time, they can be extremely dangerous if attackers can modify unintended variables that have security implications.",
     "childOf": [
-      "913",
-      "99"
+      "99",
+      "913"
     ],
     "relatedAttackPatterns": null
   },
@@ -9238,8 +9238,8 @@
     "name": "Use of Implicit Intent for Sensitive Communication",
     "description": "The Android application uses an implicit intent for transmitting sensitive data to other applications. Since an implicit intent does not specify a particular application to receive the data, any application can process the intent by using an Intent Filter for that intent. This can allow untrusted applications to obtain sensitive data. There are two variations on the standard broadcast intent, ordered and sticky. Ordered broadcast intents are delivered to a series of registered receivers in order of priority as declared by the Receivers. A malicious receiver can give itself a high priority and cause a denial of service by stopping the broadcast from propagating further down the chain. There is also the possibility of malicious data modification, as a receiver may also alter the data within the Intent before passing it on to the next receiver. The downstream components have no way of asserting that the data has not been altered earlier in the chain. Sticky broadcast intents remain accessible after the initial broadcast. An old sticky intent will be broadcast again to any new receivers that register for it in the future, greatly increasing the chances of information exposure over time. Also, sticky broadcasts cannot be protected by permissions that may apply to other kinds of intents. In addition, any broadcast intent may include a URI that references data that the receiving component does not normally have the privileges to access. The sender of the intent can include special privileges that grant the receiver read or write access to the specific URI included in the intent. A malicious receiver that intercepts this intent will also gain those privileges and be able to read or write the resource at the specified URI.",
     "childOf": [
-      "285",
-      "668"
+      "668",
+      "285"
     ],
     "relatedAttackPatterns": null
   },
@@ -9266,13 +9266,13 @@
     "name": "Improper Control of Generation of Code ('Code Injection')",
     "description": "The product constructs all or part of a code segment using externally-influenced input from an upstream component, but it does not neutralize or incorrectly neutralizes special elements that could modify the syntax or behavior of the intended code segment.",
     "childOf": [
-      "913",
-      "74"
+      "74",
+      "913"
     ],
     "relatedAttackPatterns": [
+      "242",
       "35",
-      "77",
-      "242"
+      "77"
     ]
   },
   "940": {
@@ -9283,10 +9283,10 @@
       "346"
     ],
     "relatedAttackPatterns": [
-      "500",
-      "594",
       "595",
-      "596"
+      "596",
+      "500",
+      "594"
     ]
   },
   "941": {
@@ -9301,9 +9301,9 @@
     "name": "Permissive Cross-domain Security Policy with Untrusted Domains",
     "description": "The product uses a web-client protection mechanism such as a Content Security Policy (CSP) or cross-domain policy file, but the policy includes untrusted domains with which the web client is allowed to communicate. If a cross-domain policy file includes domains that should not be trusted, such as when using wildcards under a high-level domain, then the application could be attacked by these untrusted domains. In many cases, the attack can be launched without the victim even being aware of it.",
     "childOf": [
-      "183",
       "863",
-      "923"
+      "923",
+      "183"
     ],
     "relatedAttackPatterns": null
   },
@@ -9334,11 +9334,11 @@
       "94"
     ],
     "relatedAttackPatterns": [
-      "77",
       "81",
       "85",
       "35",
-      "73"
+      "73",
+      "77"
     ]
   },
   "97": {
@@ -9356,8 +9356,8 @@
     "name": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion')",
     "description": "The PHP application receives input from an upstream component, but it does not restrict or incorrectly restricts the input before its usage in \"require,\" \"include,\" or similar functions. In certain versions and configurations of PHP, this can allow an attacker to specify a URL to a remote location from which the product will obtain the code to execute. In other cases in association with path traversal, the attacker can specify a local file that may contain executable statements that can be parsed by PHP.",
     "childOf": [
-      "706",
-      "829"
+      "829",
+      "706"
     ],
     "relatedAttackPatterns": [
       "193"
