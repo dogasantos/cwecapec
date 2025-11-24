@@ -9,62 +9,89 @@ import (
 	"strings"
 )
 
-// NVD Feed structures (JSON 2.0 format)
+// ============================================================================
+// ESTRUTURAS DE DADOS - NVD FEED (ENTRADA)
+// ============================================================================
+// Estas estruturas mapeiam o formato JSON 2.0 do NVD (National Vulnerability Database)
+// ============================================================================
+
+// NVDFeed representa o feed completo de vulnerabilidades do NVD
 type NVDFeed struct {
-	ResultsPerPage  int             `json:"resultsPerPage"`
-	StartIndex      int             `json:"startIndex"`
-	TotalResults    int             `json:"totalResults"`
-	Format          string          `json:"format"`
-	Version         string          `json:"version"`
-	Timestamp       string          `json:"timestamp"`
-	Vulnerabilities []Vulnerability `json:"vulnerabilities"`
+	ResultsPerPage  int             `json:"resultsPerPage"`  // Número de resultados por página
+	StartIndex      int             `json:"startIndex"`      // Índice inicial dos resultados
+	TotalResults    int             `json:"totalResults"`    // Total de resultados disponíveis
+	Format          string          `json:"format"`          // Formato do feed (ex: "NVD_CVE")
+	Version         string          `json:"version"`         // Versão do formato (ex: "2.0")
+	Timestamp       string          `json:"timestamp"`       // Timestamp da geração do feed
+	Vulnerabilities []Vulnerability `json:"vulnerabilities"` // Lista de vulnerabilidades
 }
 
+// Vulnerability representa uma vulnerabilidade individual no feed
 type Vulnerability struct {
-	CVE CVEData `json:"cve"`
+	CVE CVEData `json:"cve"` // Dados do CVE
 }
 
+// CVEData contém os dados principais de um CVE
 type CVEData struct {
-	ID           string        `json:"id"`
-	Descriptions []Description `json:"descriptions"`
-	Published    string        `json:"published"`
-	Weaknesses   []Weakness    `json:"weaknesses"`
+	ID           string        `json:"id"`           // ID do CVE (ex: "CVE-2024-12345")
+	Descriptions []Description `json:"descriptions"` // Descrições em múltiplos idiomas
+	Published    string        `json:"published"`    // Data de publicação (ISO 8601)
+	Weaknesses   []Weakness    `json:"weaknesses"`   // Lista de CWEs associados
 }
 
+// Description representa uma descrição textual em um idioma específico
 type Description struct {
-	Lang  string `json:"lang"`
-	Value string `json:"value"`
+	Lang  string `json:"lang"`  // Código do idioma (ex: "en", "es")
+	Value string `json:"value"` // Texto da descrição
 }
 
+// Weakness representa uma fraqueza (CWE) associada ao CVE
 type Weakness struct {
-	Description []WeaknessDesc `json:"description"`
+	Description []WeaknessDesc `json:"description"` // Descrições da fraqueza
 }
 
+// WeaknessDesc contém a descrição de uma fraqueza em um idioma
 type WeaknessDesc struct {
-	Lang  string `json:"lang"`
-	Value string `json:"value"`
+	Lang  string `json:"lang"`  // Código do idioma
+	Value string `json:"value"` // Valor do CWE (ex: "CWE-79")
 }
 
-// Training data structure
+// ============================================================================
+// ESTRUTURAS DE DADOS - TRAINING DATA (SAÍDA)
+// ============================================================================
+
+// TrainingRecord representa um registro de treinamento processado
 type TrainingRecord struct {
-	CVEID         string   `json:"cve_id"`
-	Description   string   `json:"description"`
-	CWEs          []string `json:"cwes"`
-	AttackVectors []string `json:"attack_vectors"`
-	PublishedDate string   `json:"published_date"`
+	CVEID         string   `json:"cve_id"`         // ID do CVE
+	Description   string   `json:"description"`    // Descrição em inglês
+	CWEs          []string `json:"cwes"`           // Lista de IDs de CWE (ex: ["79", "89"])
+	AttackVectors []string `json:"attack_vectors"` // Vetores de ataque mapeados
+	PublishedDate string   `json:"published_date"` // Data de publicação
 }
 
-// Attack vector mapping
+// ============================================================================
+// ESTRUTURAS DE DADOS - MAPEAMENTO DE VETORES DE ATAQUE
+// ============================================================================
+
+// AttackVectorMapping define o mapeamento de CWEs para um vetor de ataque
 type AttackVectorMapping struct {
-	Name        string
-	CWEs        []string
-	Description string
-	Priority    int
+	Name        string   // Nome do vetor de ataque (ex: "sql_injection")
+	CWEs        []string // Lista de IDs de CWE associados
+	Description string   // Descrição legível do vetor
+	Priority    int      // Prioridade (1=Crítico, 2=Alto, 3=Médio)
 }
 
-// Attack vector definitions
+// ============================================================================
+// MAPEAMENTO DE VETORES DE ATAQUE
+// ============================================================================
+// Define 35 vetores de ataque organizados em 3 níveis de prioridade
+// ============================================================================
+
 var attackVectorMappings = []AttackVectorMapping{
-	// Tier 1: Critical (10 vectors)
+	// ========================================================================
+	// TIER 1: CRÍTICO (10 vetores)
+	// Vulnerabilidades de maior impacto e mais exploradas
+	// ========================================================================
 	{Name: "xss", CWEs: []string{"79", "80", "83"}, Description: "Cross-Site Scripting", Priority: 1},
 	{Name: "sql_injection", CWEs: []string{"89"}, Description: "SQL Injection", Priority: 1},
 	{Name: "rce", CWEs: []string{"94", "95"}, Description: "Remote Code Execution", Priority: 1},
@@ -76,7 +103,10 @@ var attackVectorMappings = []AttackVectorMapping{
 	{Name: "authz_bypass", CWEs: []string{"285", "639"}, Description: "Authorization Bypass", Priority: 1},
 	{Name: "file_upload", CWEs: []string{"434"}, Description: "File Upload Vulnerabilities", Priority: 1},
 
-	// Tier 2: High Priority (10 vectors)
+	// ========================================================================
+	// TIER 2: ALTA PRIORIDADE (10 vetores)
+	// Vulnerabilidades de alto impacto mas menos comuns
+	// ========================================================================
 	{Name: "csrf", CWEs: []string{"352"}, Description: "Cross-Site Request Forgery", Priority: 2},
 	{Name: "xxe", CWEs: []string{"611"}, Description: "XML External Entity", Priority: 2},
 	{Name: "ldap_injection", CWEs: []string{"90"}, Description: "LDAP Injection", Priority: 2},
@@ -88,7 +118,10 @@ var attackVectorMappings = []AttackVectorMapping{
 	{Name: "hardcoded_credentials", CWEs: []string{"798", "259", "321"}, Description: "Hard-coded Credentials", Priority: 2},
 	{Name: "info_disclosure", CWEs: []string{"200", "209", "213", "215", "532"}, Description: "Information Disclosure", Priority: 2},
 
-	// Tier 3: Medium Priority (15 vectors)
+	// ========================================================================
+	// TIER 3: PRIORIDADE MÉDIA (15 vetores)
+	// Vulnerabilidades importantes mas de menor impacto imediato
+	// ========================================================================
 	{Name: "dos", CWEs: []string{"400", "770", "400", "835", "674"}, Description: "Denial of Service", Priority: 3},
 	{Name: "nosql_injection", CWEs: []string{"943"}, Description: "NoSQL Injection", Priority: 3},
 	{Name: "xpath_injection", CWEs: []string{"643"}, Description: "XPath Injection", Priority: 3},
@@ -106,7 +139,28 @@ var attackVectorMappings = []AttackVectorMapping{
 	{Name: "code_injection", CWEs: []string{"94", "95"}, Description: "Code Injection", Priority: 3},
 }
 
-// Build CWE to attack vector mapping
+// ============================================================================
+// FUNÇÕES DE MAPEAMENTO
+// ============================================================================
+
+/*
+ * Função: buildCWEMap
+ * Descrição: Constrói um mapa reverso de CWE ID para vetores de ataque
+ * Objetivo: Permitir consulta rápida O(1) de quais vetores de ataque estão
+ *           associados a um CWE específico
+ * Como faz: 1. Cria um mapa vazio de CWE ID → lista de vetores
+ *           2. Itera por todos os mapeamentos de vetores de ataque
+ *           3. Para cada CWE em cada mapeamento:
+ *              a. Adiciona o nome do vetor à lista do CWE
+ *           4. Retorna o mapa completo
+ * Input: Nenhum (usa a variável global attackVectorMappings)
+ * Output: map[string][]string - Mapa de CWE ID para lista de vetores de ataque
+ *         Exemplo: {"79": ["xss"], "89": ["sql_injection"]}
+ * Por que faz: O mapeamento direto (vetor → CWEs) é útil para definição,
+ *              mas o mapeamento reverso (CWE → vetores) é necessário para
+ *              classificação. Quando processamos um CVE com CWE-79, precisamos
+ *              saber rapidamente que ele mapeia para "xss".
+ */
 func buildCWEMap() map[string][]string {
 	cweMap := make(map[string][]string)
 	for _, mapping := range attackVectorMappings {
@@ -117,28 +171,48 @@ func buildCWEMap() map[string][]string {
 	return cweMap
 }
 
-// Download and decompress gzipped feed
+// ============================================================================
+// FUNÇÕES DE DOWNLOAD E PARSING
+// ============================================================================
+
+/*
+ * Função: downloadFeed
+ * Descrição: Baixa e descomprime um feed do NVD no formato JSON gzipado
+ * Objetivo: Obter os dados de vulnerabilidades do NVD para processamento
+ * Como faz: 1. Faz requisição HTTP GET para o URL do feed
+ *           2. Verifica se a resposta é HTTP 200 (sucesso)
+ *           3. Cria um leitor gzip para descomprimir o conteúdo
+ *           4. Parseia o JSON descomprimido diretamente em memória
+ *           5. Retorna a estrutura NVDFeed parseada
+ * Input: url (string) - URL do feed NVD (ex: nvdcve-2.0-2024.json.gz)
+ * Output: (*NVDFeed, error) - Feed parseado ou erro
+ * Por que faz: O NVD distribui feeds anuais em formato JSON gzipado.
+ *              Esta função encapsula todo o processo de download, descompressão
+ *              e parsing, tratando erros em cada etapa.
+ */
 func downloadFeed(url string) (*NVDFeed, error) {
 	fmt.Printf("  Downloading: %s\n", url)
 
+	// Fazer requisição HTTP GET
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("download failed: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// Verificar código de status HTTP
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
-	// Decompress gzip
+	// Descomprimir gzip
 	gzReader, err := gzip.NewReader(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("gzip decompression failed: %w", err)
 	}
 	defer gzReader.Close()
 
-	// Parse JSON
+	// Parsear JSON diretamente do stream descomprimido
 	var feed NVDFeed
 	if err := json.NewDecoder(gzReader).Decode(&feed); err != nil {
 		return nil, fmt.Errorf("JSON parsing failed: %w", err)
@@ -149,12 +223,30 @@ func downloadFeed(url string) (*NVDFeed, error) {
 	return &feed, nil
 }
 
-// Extract CWE IDs from vulnerability
+// ============================================================================
+// FUNÇÕES DE EXTRAÇÃO E MAPEAMENTO
+// ============================================================================
+
+/*
+ * Função: extractCWEs
+ * Descrição: Extrai os IDs de CWE de uma vulnerabilidade do NVD
+ * Objetivo: Obter a lista de CWEs associados a um CVE para mapeamento
+ * Como faz: 1. Itera por todas as fraquezas (weaknesses) do CVE
+ *           2. Para cada descrição de fraqueza:
+ *              a. Verifica se começa com "CWE-"
+ *              b. Remove o prefixo "CWE-" para obter apenas o número
+ *              c. Adiciona à lista de CWEs
+ *           3. Retorna a lista completa
+ * Input: vuln (Vulnerability) - Vulnerabilidade do feed NVD
+ * Output: []string - Lista de IDs de CWE (ex: ["79", "89"])
+ * Por que faz: O NVD armazena CWEs no formato "CWE-79", mas nosso mapeamento
+ *              usa apenas o número ("79"). Esta função normaliza o formato.
+ */
 func extractCWEs(vuln Vulnerability) []string {
 	var cwes []string
 	for _, weakness := range vuln.CVE.Weaknesses {
 		for _, desc := range weakness.Description {
-			// Extract CWE number from "CWE-XXX" format
+			// Extrair número do CWE do formato "CWE-XXX"
 			if strings.HasPrefix(desc.Value, "CWE-") {
 				cweNum := strings.TrimPrefix(desc.Value, "CWE-")
 				cwes = append(cwes, cweNum)
@@ -164,8 +256,25 @@ func extractCWEs(vuln Vulnerability) []string {
 	return cwes
 }
 
-// Map CWEs to attack vectors
+/*
+ * Função: mapToAttackVectors
+ * Descrição: Mapeia uma lista de CWEs para seus vetores de ataque correspondentes
+ * Objetivo: Converter CWEs em vetores de ataque para treinamento do classificador
+ * Como faz: 1. Cria um conjunto (map) para evitar duplicatas
+ *           2. Para cada CWE na lista:
+ *              a. Busca no mapa CWE → vetores
+ *              b. Se encontrado, adiciona todos os vetores ao conjunto
+ *           3. Converte o conjunto para slice
+ *           4. Retorna a lista de vetores únicos
+ * Input: cwes ([]string) - Lista de IDs de CWE
+ *        cweMap (map[string][]string) - Mapa de CWE para vetores
+ * Output: []string - Lista de vetores de ataque únicos
+ * Por que faz: Um CVE pode ter múltiplos CWEs, e cada CWE pode mapear para
+ *              múltiplos vetores. Esta função consolida tudo em uma lista
+ *              única de vetores, removendo duplicatas.
+ */
 func mapToAttackVectors(cwes []string, cweMap map[string][]string) []string {
+	// Usar conjunto para evitar duplicatas
 	vectorSet := make(map[string]bool)
 	for _, cwe := range cwes {
 		if vectors, ok := cweMap[cwe]; ok {
@@ -175,6 +284,7 @@ func mapToAttackVectors(cwes []string, cweMap map[string][]string) []string {
 		}
 	}
 
+	// Converter conjunto para slice
 	var vectors []string
 	for v := range vectorSet {
 		vectors = append(vectors, v)
@@ -182,35 +292,72 @@ func mapToAttackVectors(cwes []string, cweMap map[string][]string) []string {
 	return vectors
 }
 
+// ============================================================================
+// FUNÇÃO PRINCIPAL
+// ============================================================================
+
+/*
+ * Função: main
+ * Descrição: Ponto de entrada do programa que orquestra a coleta e preparação
+ *            dos dados de treinamento a partir do feed NVD
+ * Objetivo: Criar um dataset de treinamento (training_data.json) contendo CVEs
+ *           com suas descrições, CWEs e vetores de ataque mapeados, pronto para
+ *           uso no treinamento do modelo Naive Bayes
+ * Como faz: 1. Configura parâmetros (ano, arquivo de saída)
+ *           2. Constrói o mapa reverso de CWE → vetores
+ *           3. Baixa o feed NVD do ano especificado (tenta formato 2.0, depois 1.1)
+ *           4. Processa cada vulnerabilidade:
+ *              a. Extrai descrição em inglês
+ *              b. Extrai CWEs
+ *              c. Mapeia CWEs para vetores de ataque
+ *              d. Cria registro de treinamento se houver vetores
+ *           5. Salva todos os registros em JSON formatado
+ *           6. Exibe estatísticas:
+ *              a. Total de CVEs processados
+ *              b. CVEs com vetores de ataque
+ *              c. Distribuição de vetores de ataque
+ * Input: Nenhum (configuração hardcoded: ano 2024)
+ * Output: Arquivo resources/training_data.json contendo:
+ *         - Lista de registros de treinamento
+ *         - Cada registro com: CVE ID, descrição, CWEs, vetores, data
+ *         Estatísticas no console
+ * Por que faz: Esta é a Fase 1 da pipeline de treinamento. Sem dados de
+ *              treinamento de qualidade, não é possível treinar o modelo
+ *              Naive Bayes. Esta função:
+ *              - Automatiza a coleta de dados do NVD
+ *              - Filtra CVEs sem CWEs ou vetores mapeados
+ *              - Cria um dataset limpo e estruturado
+ *              - Fornece visibilidade da distribuição de dados
+ */
 func main() {
 	fmt.Println("=================================================================")
 	fmt.Println("Phase 1: NVD Feed Collection & Preparation for Naive Bayes")
 	fmt.Println("=================================================================\n")
 
-	// Configuration
+	// Configuração
 	year := 2024
 	outputFile := "resources/training_data.json"
 
-	// NVD JSON 2.0 feed URL
+	// URL do feed JSON 2.0 do NVD
 	feedURL := fmt.Sprintf("https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz", year)
 
-	// Try 2.0 format first
+	// Tentar formato 2.0 primeiro
 	feedURL = fmt.Sprintf("https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-%d.json.gz", year)
 
-	// Build CWE mapping
+	// Construir mapeamento de CWE
 	cweMap := buildCWEMap()
 	fmt.Printf("Loaded %d attack vector categories\n", len(attackVectorMappings))
 	fmt.Printf("Mapped %d unique CWE IDs\n\n", len(cweMap))
 
 	fmt.Printf("Downloading NVD feed for year %d...\n", year)
 
-	// Download feed
+	// Baixar feed
 	feed, err := downloadFeed(feedURL)
 	if err != nil {
 		fmt.Printf("Error downloading feed: %v\n", err)
 		fmt.Println("\nTrying alternative URL format...")
 
-		// Try alternative URL (1.1 format)
+		// Tentar URL alternativo (formato 1.1)
 		feedURL = fmt.Sprintf("https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz", year)
 		feed, err = downloadFeed(feedURL)
 		if err != nil {
@@ -221,7 +368,7 @@ func main() {
 
 	fmt.Println("\nProcessing vulnerabilities...")
 
-	// Process vulnerabilities
+	// Processar vulnerabilidades
 	var trainingData []TrainingRecord
 	totalProcessed := 0
 	totalWithVectors := 0
@@ -229,11 +376,12 @@ func main() {
 	for i, vuln := range feed.Vulnerabilities {
 		totalProcessed++
 
+		// Exibir progresso a cada 1000 CVEs
 		if (i+1)%1000 == 0 {
 			fmt.Printf("  Processed %d/%d CVEs (%d with attack vectors)\n", i+1, len(feed.Vulnerabilities), totalWithVectors)
 		}
 
-		// Extract English description
+		// Extrair descrição em inglês
 		var description string
 		for _, desc := range vuln.CVE.Descriptions {
 			if desc.Lang == "en" {
@@ -242,25 +390,26 @@ func main() {
 			}
 		}
 
+		// Pular se não houver descrição em inglês
 		if description == "" {
 			continue
 		}
 
-		// Extract CWEs
+		// Extrair CWEs
 		cwes := extractCWEs(vuln)
 		if len(cwes) == 0 {
-			continue
+			continue // Pular CVEs sem CWEs
 		}
 
-		// Map to attack vectors
+		// Mapear para vetores de ataque
 		vectors := mapToAttackVectors(cwes, cweMap)
 		if len(vectors) == 0 {
-			continue
+			continue // Pular CVEs sem vetores mapeados
 		}
 
 		totalWithVectors++
 
-		// Create training record
+		// Criar registro de treinamento
 		trainingData = append(trainingData, TrainingRecord{
 			CVEID:         vuln.CVE.ID,
 			Description:   description,
@@ -272,7 +421,7 @@ func main() {
 
 	fmt.Printf("  Processed %d/%d CVEs (%d with attack vectors)\n\n", totalProcessed, len(feed.Vulnerabilities), totalWithVectors)
 
-	// Save training data
+	// Salvar dados de treinamento
 	fmt.Println("=================================================================")
 	fmt.Printf("Collection complete!\n")
 	fmt.Printf("  Total CVEs processed: %d\n", totalProcessed)
@@ -286,6 +435,7 @@ func main() {
 	}
 	defer file.Close()
 
+	// Serializar com indentação para legibilidade
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(trainingData); err != nil {
@@ -295,7 +445,7 @@ func main() {
 
 	fmt.Println("Training data saved successfully!\n")
 
-	// Show attack vector distribution
+	// Mostrar distribuição de vetores de ataque
 	vectorCounts := make(map[string]int)
 	for _, record := range trainingData {
 		for _, vector := range record.AttackVectors {
