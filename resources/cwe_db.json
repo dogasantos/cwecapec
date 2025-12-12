@@ -30,17 +30,17 @@
     "name": "Improper Restriction of Rendered UI Layers or Frames",
     "description": "The web application does not restrict or incorrectly restricts frame objects or UI layers that belong to another application or domain, which can lead to user confusion about which interface the user is interacting with. A web application is expected to place restrictions on whether it is allowed to be rendered within frames, iframes, objects, embed or applet elements. Without the restrictions, users can be tricked into interacting with the application when they were not intending to.",
     "childOf": [
-      "451",
-      "441"
+      "441",
+      "451"
     ],
     "relatedAttackPatterns": [
+      "504",
       "506",
       "587",
       "654",
       "103",
       "181",
-      "222",
-      "504"
+      "222"
     ]
   },
   "1022": {
@@ -53,7 +53,7 @@
   },
   "1023": {
     "name": "Incomplete Comparison with Missing Factors",
-    "description": "The product performs a comparison between entities that must consider multiple factors or characteristics of each entity, but the comparison does not include one or more of these factors. An incomplete comparison can lead to resultant weaknesses, e.g., by operating on the wrong object or making a security decision without considering a required factor.",
+    "description": "The product performs a comparison between entities that must consider multiple factors or characteristics of each entity, but the comparison does not include one or more of these factors.",
     "childOf": [
       "697"
     ],
@@ -61,7 +61,7 @@
   },
   "1024": {
     "name": "Comparison of Incompatible Types",
-    "description": "The product performs a comparison between two entities, but the entities are of different, incompatible types that cannot be guaranteed to provide correct results when they are directly compared. In languages that are strictly typed but support casting/conversion, such as C or C++, the programmer might assume that casting one entity to the same type as another entity will ensure that the comparison will be performed correctly, but this cannot be guaranteed. In languages that are not strictly typed, such as PHP or JavaScript, there may be implicit casting/conversion to a type that the programmer is unaware of, causing unexpected results; for example, the string \"123\" might be converted to a number type. See examples.",
+    "description": "The product performs a comparison between two entities, but the entities are of different, incompatible types that cannot be guaranteed to provide correct results when they are directly compared.",
     "childOf": [
       "697"
     ],
@@ -69,7 +69,7 @@
   },
   "1025": {
     "name": "Comparison Using Wrong Factors",
-    "description": "The code performs a comparison between two entities, but the comparison examines the wrong factors or characteristics of the entities, which can lead to incorrect results and resultant weaknesses. This can lead to incorrect results and resultant weaknesses. For example, the code might inadvertently compare references to objects, instead of the relevant contents of those objects, causing two \"equal\" objects to be considered unequal.",
+    "description": "The code performs a comparison between two entities, but the comparison examines the wrong factors or characteristics of the entities, which can lead to incorrect results and resultant weaknesses.",
     "childOf": [
       "697"
     ],
@@ -77,7 +77,7 @@
   },
   "103": {
     "name": "Struts: Incomplete validate() Method Definition",
-    "description": "The product has a validator form that either does not define a validate() method, or defines a validate() method but does not call super.validate(). If the code does not call super.validate(), the Validation Framework cannot check the contents of the form against a validation form. In other words, the validation framework will be disabled for the given form.",
+    "description": "The product has a validator form that either does not define a validate() method, or defines a validate() method but does not call super.validate().",
     "childOf": [
       "573"
     ],
@@ -97,8 +97,8 @@
     "name": "Insecure Automated Optimizations",
     "description": "The product uses a mechanism that automatically optimizes code, e.g. to improve a characteristic such as performance, but the optimizations can have an unintended side effect that might violate an intended security assumption.",
     "childOf": [
-      "758",
-      "435"
+      "435",
+      "758"
     ],
     "relatedAttackPatterns": null
   },
@@ -121,7 +121,7 @@
   },
   "1041": {
     "name": "Use of Redundant Code",
-    "description": "The product has multiple functions, methods, procedures, macros, etc. that contain the same code. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. For example, if there are two copies of the same code, the programmer might fix a weakness in one copy while forgetting to fix the same weakness in another copy.",
+    "description": "The product has multiple functions, methods, procedures, macros, etc. that contain the same code.",
     "childOf": [
       "710"
     ],
@@ -129,7 +129,7 @@
   },
   "1042": {
     "name": "Static Member Data Element outside of a Singleton Class Element",
-    "description": "The code contains a member element that is declared as static (but not final), in which its parent class element is not a singleton class - that is, a class element that can be used only once in the 'to' association of a Create action. This issue can make the product perform more slowly. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability.",
+    "description": "The code contains a member element that is declared as static (but not final), in which its parent class element is not a singleton class - that is, a class element that can be used only once in the 'to' association of a Create action.",
     "childOf": [
       "1176"
     ],
@@ -137,7 +137,7 @@
   },
   "1043": {
     "name": "Data Element Aggregating an Excessively Large Number of Non-Primitive Elements",
-    "description": "The product uses a data element that has an excessively large number of sub-elements with non-primitive data types such as structures or aggregated objects. This issue can make the product perform more slowly. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability. While the interpretation of \"excessively large\" may vary for each product or developer, CISQ recommends a default of 5 sub-elements.",
+    "description": "The product uses a data element that has an excessively large number of sub-elements with non-primitive data types such as structures or aggregated objects. While the interpretation of \"excessively large\" may vary for each product or developer, CISQ recommends a default of 5 sub-elements.",
     "childOf": [
       "1093"
     ],
@@ -145,7 +145,7 @@
   },
   "1044": {
     "name": "Architecture with Number of Horizontal Layers Outside of Expected Range",
-    "description": "The product's architecture contains too many - or too few - horizontal layers. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities. While the interpretation of \"expected range\" may vary for each product or developer, CISQ recommends a default minimum of 4 layers and maximum of 8 layers.",
+    "description": "The product's architecture contains too many - or too few - horizontal layers. While the interpretation of \"expected range\" may vary for each product or developer, CISQ recommends a default minimum of 4 layers and maximum of 8 layers.",
     "childOf": [
       "710"
     ],
@@ -153,7 +153,7 @@
   },
   "1045": {
     "name": "Parent Class with a Virtual Destructor and a Child Class without a Virtual Destructor",
-    "description": "A parent class has a virtual destructor method, but the parent has a child class that does not have a virtual destructor. This issue can prevent the product from running reliably, since the child might not perform essential destruction operations. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability, such as a memory leak (CWE-401).",
+    "description": "A parent class has a virtual destructor method, but the parent has a child class that does not have a virtual destructor.",
     "childOf": [
       "1076"
     ],
@@ -161,7 +161,7 @@
   },
   "1046": {
     "name": "Creation of Immutable Text Using String Concatenation",
-    "description": "The product creates an immutable text string using string concatenation operations. When building a string via a looping feature (e.g., a FOR or WHILE loop), the use of += to append to the existing string will result in the creation of a new object with each iteration. This programming pattern can be inefficient in comparison with use of text buffer data elements. This issue can make the product perform more slowly. If the relevant code is reachable by an attacker, then this could be influenced to create performance problem.",
+    "description": "The product creates an immutable text string using string concatenation operations. When building a string via a looping feature (e.g., a FOR or WHILE loop), the use of += to append to the existing string will result in the creation of a new object with each iteration, which can be inefficient in comparison with use of text buffer data elements.",
     "childOf": [
       "1176"
     ],
@@ -169,7 +169,7 @@
   },
   "1047": {
     "name": "Modules with Circular Dependencies",
-    "description": "The product contains modules in which one module has references that cycle back to itself, i.e., there are circular dependencies. As an example, with Java, this weakness might indicate cycles between packages. This issue makes it more difficult to maintain the product due to insufficient modularity, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities. This issue can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The product contains modules in which one module has references that cycle back to itself, i.e., there are circular dependencies. As an example, with Java, this weakness might indicate cycles between packages.",
     "childOf": [
       "1120"
     ],
@@ -177,7 +177,7 @@
   },
   "1048": {
     "name": "Invokable Control Element with Large Number of Outward Calls",
-    "description": "The code contains callable control elements that contain an excessively large number of references to other application objects external to the context of the callable, i.e. a Fan-Out value that is excessively large. While the interpretation of \"excessively large Fan-Out value\" may vary for each product or developer, CISQ recommends a default of 5 referenced objects. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code contains callable control elements that contain an excessively large number of references to other application objects external to the context of the callable, i.e. a Fan-Out value that is excessively large. While the interpretation of \"excessively large Fan-Out value\" may vary for each product or developer, CISQ recommends a default of 5 referenced objects.",
     "childOf": [
       "710"
     ],
@@ -185,7 +185,7 @@
   },
   "1049": {
     "name": "Excessive Data Query Operations in a Large Data Table",
-    "description": "The product performs a data query with a large number of joins and sub-queries on a large data table. This issue can make the product perform more slowly. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability. While the interpretation of \"large data table\" and \"large number of joins or sub-queries\" may vary for each product or developer, CISQ recommends a default of 1 million rows for a \"large\" data table, a default minimum of 5 joins, and a default minimum of 3 sub-queries.",
+    "description": "The product performs a data query with a large number of joins and sub-queries on a large data table. While the interpretation of \"large data table\" and \"large number of joins or sub-queries\" may vary for each product or developer, CISQ recommends a default of 1 million rows for a \"large\" data table, a default minimum of 5 joins, and a default minimum of 3 sub-queries.",
     "childOf": [
       "1176"
     ],
@@ -201,7 +201,7 @@
   },
   "1050": {
     "name": "Excessive Platform Resource Consumption within a Loop",
-    "description": "The product has a loop body or loop condition that contains a control element that directly or indirectly consumes platform resources, e.g. messaging, sessions, locks, or file descriptors. This issue can make the product perform more slowly. If an attacker can influence the number of iterations in the loop, then this performance problem might allow a denial of service by consuming more platform resources than intended.",
+    "description": "The product has a loop body or loop condition that contains a control element that directly or indirectly consumes platform resources, e.g. messaging, sessions, locks, or file descriptors.",
     "childOf": [
       "405"
     ],
@@ -209,7 +209,7 @@
   },
   "1051": {
     "name": "Initialization with Hard-Coded Network Resource Configuration Data",
-    "description": "The product initializes data using hard-coded values that act as network resource identifiers. This issue can prevent the product from running reliably, e.g. if it runs in an environment does not use the hard-coded network resource identifiers. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The product initializes data using hard-coded values that act as network resource identifiers.",
     "childOf": [
       "1419"
     ],
@@ -217,7 +217,7 @@
   },
   "1052": {
     "name": "Excessive Use of Hard-Coded Literals in Initialization",
-    "description": "The product initializes a data element using a hard-coded literal that is not a simple integer or static constant element. This issue makes it more difficult to modify or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product initializes a data element using a hard-coded literal that is not a simple integer or static constant element.",
     "childOf": [
       "1419"
     ],
@@ -225,7 +225,7 @@
   },
   "1053": {
     "name": "Missing Documentation for Design",
-    "description": "The product does not have documentation that represents how it is designed. This issue can make it more difficult to understand and maintain the product. It can make it more difficult and time-consuming to detect and/or fix vulnerabilities.",
+    "description": "The product does not have documentation that represents how it is designed.",
     "childOf": [
       "1059"
     ],
@@ -233,7 +233,7 @@
   },
   "1054": {
     "name": "Invocation of a Control Element at an Unnecessarily Deep Horizontal Layer",
-    "description": "The code at one architectural layer invokes code that resides at a deeper layer than the adjacent layer, i.e., the invocation skips at least one layer, and the invoked code is not part of a vertical utility layer that can be referenced from any horizontal layer. This issue makes it more difficult to understand and maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code at one architectural layer invokes code that resides at a deeper layer than the adjacent layer, i.e., the invocation skips at least one layer, and the invoked code is not part of a vertical utility layer that can be referenced from any horizontal layer.",
     "childOf": [
       "1061"
     ],
@@ -241,7 +241,7 @@
   },
   "1055": {
     "name": "Multiple Inheritance from Concrete Classes",
-    "description": "The product contains a class with inheritance from more than one concrete class. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product contains a class with inheritance from more than one concrete class.",
     "childOf": [
       "1093"
     ],
@@ -249,7 +249,7 @@
   },
   "1056": {
     "name": "Invokable Control Element with Variadic Parameters",
-    "description": "A named-callable or method control element has a signature that supports a variable (variadic) number of parameters or arguments. This issue can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability. With variadic arguments, it can be difficult or inefficient for manual analysis to be certain of which function/method is being invoked.",
+    "description": "A named-callable or method control element has a signature that supports a variable (variadic) number of parameters or arguments.",
     "childOf": [
       "1120"
     ],
@@ -257,7 +257,7 @@
   },
   "1057": {
     "name": "Data Access Operations Outside of Expected Data Manager Component",
-    "description": "The product uses a dedicated, central data manager component as required by design, but it contains code that performs data-access operations that do not use this data manager. This issue can make the product perform more slowly than intended, since the intended central data manager may have been explicitly optimized for performance or other quality characteristics. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability.",
+    "description": "The product uses a dedicated, central data manager component as required by design, but it contains code that performs data-access operations that do not use this data manager.",
     "childOf": [
       "1061"
     ],
@@ -265,7 +265,7 @@
   },
   "1058": {
     "name": "Invokable Control Element in Multi-Thread Context with non-Final Static Storable or Member Element",
-    "description": "The code contains a function or method that operates in a multi-threaded environment but owns an unsafe non-final static storable or member data element. This issue can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The code contains a function or method that operates in a multi-threaded environment but owns an unsafe non-final static storable or member data element.",
     "childOf": [
       "662"
     ],
@@ -289,7 +289,7 @@
   },
   "1060": {
     "name": "Excessive Number of Inefficient Server-Side Data Accesses",
-    "description": "The product performs too many data queries without using efficient data processing functionality such as stored procedures. This issue can make the product perform more slowly due to computational expense. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability. While the interpretation of \"too many data queries\" may vary for each product or developer, CISQ recommends a default maximum of 5 data queries for an inefficient function/procedure.",
+    "description": "The product performs too many data queries without using efficient data processing functionality such as stored procedures. While the interpretation of \"too many data queries\" may vary for each product or developer, CISQ recommends a default maximum of 5 data queries for an inefficient function/procedure.",
     "childOf": [
       "1120"
     ],
@@ -297,7 +297,7 @@
   },
   "1061": {
     "name": "Insufficient Encapsulation",
-    "description": "The product does not sufficiently hide the internal representation and implementation details of data or methods, which might allow external components or modules to modify data unexpectedly, invoke unexpected functionality, or introduce dependencies that the programmer did not intend. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product does not sufficiently hide the internal representation and implementation details of data or methods, which might allow external components or modules to modify data unexpectedly, invoke unexpected functionality, or introduce dependencies that the programmer did not intend.",
     "childOf": [
       "710"
     ],
@@ -305,7 +305,7 @@
   },
   "1062": {
     "name": "Parent Class with References to Child Class",
-    "description": "The code has a parent class that contains references to a child class, its methods, or its members. This issue can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The code has a parent class that contains references to a child class, its methods, or its members.",
     "childOf": [
       "1061"
     ],
@@ -313,7 +313,7 @@
   },
   "1063": {
     "name": "Creation of Class Instance within a Static Code Block",
-    "description": "A static code block creates an instance of a class. This pattern identifies situations where a storable data element or member data element is initialized with a value in a block of code which is declared as static. This issue can make the product perform more slowly by performing initialization before it is needed. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability.",
+    "description": "A static code block creates an instance of a class. This pattern identifies situations where a storable data element or member data element is initialized with a value in a block of code which is declared as static.",
     "childOf": [
       "1176"
     ],
@@ -321,7 +321,7 @@
   },
   "1064": {
     "name": "Invokable Control Element with Signature Containing an Excessive Number of Parameters",
-    "description": "The product contains a function, subroutine, or method whose signature has an unnecessarily large number of parameters/arguments. This issue makes it more difficult to understand and/or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities. While the interpretation of \"large number of parameters.\" may vary for each product or developer, CISQ recommends a default maximum of 7 parameters/arguments.",
+    "description": "The product contains a function, subroutine, or method whose signature has an unnecessarily large number of parameters/arguments. While the interpretation of \"large number of parameters\" may vary for each product or developer, CISQ recommends a default maximum of 7 parameters/arguments.",
     "childOf": [
       "1120"
     ],
@@ -329,7 +329,7 @@
   },
   "1065": {
     "name": "Runtime Resource Management Control Element in a Component Built to Run on Application Servers",
-    "description": "The product uses deployed components from application servers, but it also uses low-level functions/methods for management of resources, instead of the API provided by the application server. This issue can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The product uses deployed components from application servers, but it also uses low-level functions/methods for management of resources, instead of the API provided by the application server.",
     "childOf": [
       "710"
     ],
@@ -337,7 +337,7 @@
   },
   "1066": {
     "name": "Missing Serialization Control Element",
-    "description": "The product contains a serializable data element that does not have an associated serialization method. This issue can prevent the product from running reliably, e.g. by triggering an exception. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability. As examples, the serializable nature of a data element comes from a serializable SerializableAttribute attribute in .NET and the inheritance from the java.io.Serializable interface in Java.",
+    "description": "The product contains a serializable data element that does not have an associated serialization method.",
     "childOf": [
       "710"
     ],
@@ -345,7 +345,7 @@
   },
   "1067": {
     "name": "Excessive Execution of Sequential Searches of Data Resource",
-    "description": "The product contains a data query against an SQL table or view that is configured in a way that does not utilize an index and may cause sequential searches to be performed. This issue can make the product perform more slowly. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability.",
+    "description": "The product contains a data query against an SQL table or view that is configured in a way that does not utilize an index and may cause sequential searches to be performed.",
     "childOf": [
       "1176"
     ],
@@ -353,7 +353,7 @@
   },
   "1068": {
     "name": "Inconsistency Between Implementation and Documented Design",
-    "description": "The implementation of the product is not consistent with the design as described within the relevant documentation. This issue makes it more difficult to maintain the product due to inconsistencies, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The implementation of the product is not consistent with the design as described within the relevant documentation.",
     "childOf": [
       "710"
     ],
@@ -361,7 +361,7 @@
   },
   "1069": {
     "name": "Empty Exception Block",
-    "description": "An invokable code block contains an exception handling block that does not contain any code, i.e. is empty. When an exception handling block (such as a Catch and Finally block) is used, but that block is empty, this can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "An invokable code block contains an exception handling block that does not contain any code, i.e. is empty.",
     "childOf": [
       "1071"
     ],
@@ -369,7 +369,7 @@
   },
   "107": {
     "name": "Struts: Unused Validation Form",
-    "description": "An unused validation form indicates that validation logic is not up-to-date. It is easy for developers to forget to update validation logic when they remove or rename action form mappings. One indication that validation logic is not being properly maintained is the presence of an unused validation form.",
+    "description": "An unused validation form indicates that validation logic is not up-to-date.",
     "childOf": [
       "1164"
     ],
@@ -377,7 +377,7 @@
   },
   "1070": {
     "name": "Serializable Data Element Containing non-Serializable Item Elements",
-    "description": "The product contains a serializable, storable data element such as a field or member, but the data element contains member elements that are not serializable. This issue can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability. As examples, the serializable nature of a data element comes from a serializable SerializableAttribute attribute in .NET and the inheritance from the java.io.Serializable interface in Java.",
+    "description": "The product contains a serializable, storable data element such as a field or member, but the data element contains member elements that are not serializable.",
     "childOf": [
       "1076"
     ],
@@ -393,7 +393,7 @@
   },
   "1072": {
     "name": "Data Resource Access without Use of Connection Pooling",
-    "description": "The product accesses a data resource through a database without using a connection pooling capability. This issue can make the product perform more slowly, as connection pools allow connections to be reused without the overhead and time consumption of opening and closing a new connection. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability.",
+    "description": "The product accesses a data resource through a database without using a connection pooling capability.",
     "childOf": [
       "405"
     ],
@@ -401,7 +401,7 @@
   },
   "1073": {
     "name": "Non-SQL Invokable Control Element with Excessive Number of Data Resource Accesses",
-    "description": "The product contains a client with a function or method that contains a large number of data accesses/queries that are sent through a data manager, i.e., does not use efficient database capabilities. This issue can make the product perform more slowly. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability. While the interpretation of \"large number of data accesses/queries\" may vary for each product or developer, CISQ recommends a default maximum of 2 data accesses per function/method.",
+    "description": "The product contains a client with a function or method that contains a large number of data accesses/queries that are sent through a data manager, i.e., does not use efficient database capabilities. While the interpretation of \"large number of data accesses/queries\" may vary for each product or developer, CISQ recommends a default maximum of 2 data accesses per function/method.",
     "childOf": [
       "405"
     ],
@@ -409,7 +409,7 @@
   },
   "1074": {
     "name": "Class with Excessively Deep Inheritance",
-    "description": "A class has an inheritance level that is too high, i.e., it has a large number of parent classes. This issue makes it more difficult to understand and maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities. While the interpretation of \"large number of parent classes\" may vary for each product or developer, CISQ recommends a default maximum of 7 parent classes.",
+    "description": "A class has an inheritance level that is too high, i.e., it has a large number of parent classes. While the interpretation of \"large number of parent classes\" may vary for each product or developer, CISQ recommends a default maximum of 7 parent classes.",
     "childOf": [
       "1093"
     ],
@@ -417,7 +417,7 @@
   },
   "1075": {
     "name": "Unconditional Control Flow Transfer outside of Switch Block",
-    "description": "The product performs unconditional control transfer (such as a \"goto\") in code outside of a branching structure such as a switch block. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product performs unconditional control transfer (such as a \"goto\") in code outside of a branching structure such as a switch block.",
     "childOf": [
       "1120"
     ],
@@ -425,7 +425,7 @@
   },
   "1076": {
     "name": "Insufficient Adherence to Expected Conventions",
-    "description": "The product's architecture, source code, design, documentation, or other artifact does not follow required conventions. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product's architecture, source code, design, documentation, or other artifact does not follow required conventions.",
     "childOf": [
       "710"
     ],
@@ -433,7 +433,7 @@
   },
   "1077": {
     "name": "Floating Point Comparison with Incorrect Operator",
-    "description": "The code performs a comparison such as an equality test between two float (floating point) values, but it uses comparison operators that do not account for the possibility of loss of precision. Numeric calculation using floating point values can generate imprecise results because of rounding errors. As a result, two different calculations might generate numbers that are mathematically equal, but have slightly different bit representations that do not translate to the same mathematically-equal values. As a result, an equality test or other comparison might produce unexpected results. This issue can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The code performs a comparison such as an equality test between two float (floating point) values, but it uses comparison operators that do not account for the possibility of loss of precision. Numeric calculation using floating point values can generate imprecise results because of rounding errors. As a result, two different calculations might generate numbers that are mathematically equal, but have slightly different bit representations that do not translate to the same mathematically-equal values. As a result, an equality test or other comparison might produce unexpected results.",
     "childOf": [
       "697"
     ],
@@ -449,7 +449,7 @@
   },
   "1079": {
     "name": "Parent Class without Virtual Destructor Method",
-    "description": "A parent class contains one or more child classes, but the parent class does not have a virtual destructor method. This issue can prevent the product from running reliably due to undefined or unexpected behaviors. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "A parent class contains one or more child classes, but the parent class does not have a virtual destructor method.",
     "childOf": [
       "1076"
     ],
@@ -465,7 +465,7 @@
   },
   "1080": {
     "name": "Source Code File with Excessive Number of Lines of Code",
-    "description": "A source code file has too many lines of code. This issue makes it more difficult to understand and/or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities. While the interpretation of \"too many lines of code\" may vary for each product or developer, CISQ recommends a default threshold value of 1000.",
+    "description": "A source code file has too many lines of code. While the interpretation of \"too many lines of code\" may vary for each product or developer, CISQ recommends a default threshold value of 1000.",
     "childOf": [
       "1120"
     ],
@@ -473,7 +473,7 @@
   },
   "1082": {
     "name": "Class Instance Self Destruction Control Element",
-    "description": "The code contains a class instance that calls the method or function to delete or destroy itself. For example, in C++, \"delete this\" will cause the object to delete itself. This issue can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The code contains a class instance that calls the method or function to delete or destroy itself. For example, in C++, \"delete this\" will cause the object to delete itself.",
     "childOf": [
       "1076"
     ],
@@ -481,7 +481,7 @@
   },
   "1083": {
     "name": "Data Access from Outside Expected Data Manager Component",
-    "description": "The product is intended to manage data access through a particular data manager component such as a relational or non-SQL database, but it contains code that performs data access operations without using that component. When the product has a data access component, the design may be intended to handle all data access operations through that component. If a data access operation is performed outside of that component, then this may indicate a violation of the intended design. This issue can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The product is intended to manage data access through a particular data manager component such as a relational or non-SQL database, but it contains code that performs data access operations without using that component. When the product has a data access component, the design may be intended to handle all data access operations through that component. If a data access operation is performed outside of that component, then this may indicate a violation of the intended design.",
     "childOf": [
       "1061"
     ],
@@ -489,7 +489,7 @@
   },
   "1084": {
     "name": "Invokable Control Element with Excessive File or Data Access Operations",
-    "description": "A function or method contains too many operations that utilize a data manager or file resource. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities. While the interpretation of \"too many operations\" may vary for each product or developer, CISQ recommends a default maximum of 7 operations for the same data manager or file.",
+    "description": "A function or method contains too many operations that utilize a data manager or file resource. While the interpretation of \"too many operations\" may vary for each product or developer, CISQ recommends a default maximum of 7 operations for the same data manager or file.",
     "childOf": [
       "405"
     ],
@@ -497,7 +497,7 @@
   },
   "1085": {
     "name": "Invokable Control Element with Excessive Volume of Commented-out Code",
-    "description": "A function, method, procedure, etc. contains an excessive amount of code that has been commented out within its body. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities. While the interpretation of \"excessive volume\" may vary for each product or developer, CISQ recommends a default threshold of 2% of commented code.",
+    "description": "A function, method, procedure, etc. contains an excessive amount of code that has been commented out within its body. While the interpretation of \"excessive volume\" may vary for each product or developer, CISQ recommends a default threshold of 2% of commented code.",
     "childOf": [
       "1078"
     ],
@@ -505,7 +505,7 @@
   },
   "1086": {
     "name": "Class with Excessive Number of Child Classes",
-    "description": "A class contains an unnecessarily large number of children. This issue makes it more difficult to understand and maintain the software, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities. While the interpretation of \"large number of children\" may vary for each product or developer, CISQ recommends a default maximum of 10 child classes.",
+    "description": "A class contains an unnecessarily large number of children. While the interpretation of \"large number of children\" may vary for each product or developer, CISQ recommends a default maximum of 10 child classes.",
     "childOf": [
       "1093"
     ],
@@ -513,7 +513,7 @@
   },
   "1087": {
     "name": "Class with Virtual Method without a Virtual Destructor",
-    "description": "A class contains a virtual method, but the method does not have an associated virtual destructor. This issue can prevent the product from running reliably, e.g. due to undefined behavior. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "A class contains a virtual method, but the method does not have an associated virtual destructor.",
     "childOf": [
       "1076"
     ],
@@ -521,7 +521,7 @@
   },
   "1088": {
     "name": "Synchronous Access of Remote Resource without Timeout",
-    "description": "The code has a synchronous call to a remote resource, but there is no timeout for the call, or the timeout is set to infinite. This issue can prevent the product from running reliably, since an outage for the remote resource can cause the product to hang. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The code has a synchronous call to a remote resource, but there is no timeout for the call, or the timeout is set to infinite.",
     "childOf": [
       "821"
     ],
@@ -529,7 +529,7 @@
   },
   "1089": {
     "name": "Large Data Table with Excessive Number of Indices",
-    "description": "The product uses a large data table that contains an excessively large number of indices. This issue can make the product perform more slowly. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability. While the interpretation of \"large data table\" and \"excessively large number of indices\" may vary for each product or developer, CISQ recommends a default threshold of 1000000 rows for a \"large\" table and a default threshold of 3 indices.",
+    "description": "The product uses a large data table that contains an excessively large number of indices. While the interpretation of \"large data table\" and \"excessively large number of indices\" may vary for each product or developer, CISQ recommends a default threshold of 1000000 rows for a \"large\" table and a default threshold of 3 indices.",
     "childOf": [
       "405"
     ],
@@ -545,7 +545,7 @@
   },
   "1090": {
     "name": "Method Containing Access of a Member Element from Another Class",
-    "description": "A method for a class performs an operation that directly accesses a member element from another class. This issue suggests poor encapsulation and makes it more difficult to understand and maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "A method for a class performs an operation that directly accesses a member element from another class.",
     "childOf": [
       "1061"
     ],
@@ -553,7 +553,7 @@
   },
   "1091": {
     "name": "Use of Object without Invoking Destructor Method",
-    "description": "The product contains a method that accesses an object but does not later invoke the element's associated finalize/destructor method. This issue can make the product perform more slowly by retaining memory and/or other resources longer than necessary. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability.",
+    "description": "The product contains a method that accesses an object but does not later invoke the element's associated finalize/destructor method.",
     "childOf": [
       "772",
       "1076"
@@ -562,7 +562,7 @@
   },
   "1092": {
     "name": "Use of Same Invokable Control Element in Multiple Architectural Layers",
-    "description": "The product uses the same control element across multiple architectural layers. This issue makes it more difficult to understand and maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product uses the same control element across multiple architectural layers.",
     "childOf": [
       "710"
     ],
@@ -570,7 +570,7 @@
   },
   "1093": {
     "name": "Excessively Complex Data Representation",
-    "description": "The product uses an unnecessarily complex internal representation for its data structures or interrelationships between those structures. This issue makes it more difficult to understand or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product uses an unnecessarily complex internal representation for its data structures or interrelationships between those structures.",
     "childOf": [
       "710"
     ],
@@ -578,7 +578,7 @@
   },
   "1094": {
     "name": "Excessive Index Range Scan for a Data Resource",
-    "description": "The product contains an index range scan for a large data table, but the scan can cover a large number of rows. This issue can make the product perform more slowly. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability. While the interpretation of \"large data table\" and \"excessive index range\" may vary for each product or developer, CISQ recommends a threshold of 1000000 table rows and a threshold of 10 for the index range.",
+    "description": "The product contains an index range scan for a large data table, but the scan can cover a large number of rows. While the interpretation of \"large data table\" and \"excessive index range\" may vary for each product or developer, CISQ recommends a threshold of 1000000 table rows and a threshold of 10 for the index range.",
     "childOf": [
       "405"
     ],
@@ -586,7 +586,7 @@
   },
   "1095": {
     "name": "Loop Condition Value Update within the Loop",
-    "description": "The product uses a loop with a control flow condition based on a value that is updated within the body of the loop. This issue makes it more difficult to understand and/or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product uses a loop with a control flow condition based on a value that is updated within the body of the loop.",
     "childOf": [
       "1120"
     ],
@@ -594,7 +594,7 @@
   },
   "1096": {
     "name": "Singleton Class Instance Creation without Proper Locking or Synchronization",
-    "description": "The product implements a Singleton design pattern but does not use appropriate locking or other synchronization mechanism to ensure that the singleton class is only instantiated once. This issue can prevent the product from running reliably, e.g. by making the instantiation process non-thread-safe and introducing deadlock (CWE-833) or livelock conditions. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The product implements a Singleton design pattern but does not use appropriate locking or other synchronization mechanism to ensure that the singleton class is only instantiated once.",
     "childOf": [
       "820"
     ],
@@ -602,7 +602,7 @@
   },
   "1097": {
     "name": "Persistent Storable Data Element without Associated Comparison Control Element",
-    "description": "The product uses a storable data element that does not have all of the associated functions or methods that are necessary to support comparison. For example, with Java, a class that is made persistent requires both hashCode() and equals() methods to be defined. This issue can prevent the product from running reliably, due to incorrect or unexpected comparison results. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The product uses a storable data element that does not have all of the associated functions or methods that are necessary to support comparison.",
     "childOf": [
       "1076"
     ],
@@ -610,7 +610,7 @@
   },
   "1098": {
     "name": "Data Element containing Pointer Item without Proper Copy Control Element",
-    "description": "The code contains a data element with a pointer that does not have an associated copy or constructor method. This issue can prevent the product from running reliably. If the relevant code is reachable by an attacker, then this reliability problem might introduce a vulnerability.",
+    "description": "The code contains a data element with a pointer that does not have an associated copy or constructor method.",
     "childOf": [
       "1076"
     ],
@@ -618,7 +618,7 @@
   },
   "1099": {
     "name": "Inconsistent Naming Conventions for Identifiers",
-    "description": "The product's code, documentation, or other artifacts do not consistently use the same naming conventions for variables, callables, groups of related callables, I/O capabilities, data types, file names, or similar types of elements. This issue makes it more difficult to understand and/or maintain the product due to inconsistencies, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product's code, documentation, or other artifacts do not consistently use the same naming conventions for variables, callables, groups of related callables, I/O capabilities, data types, file names, or similar types of elements.",
     "childOf": [
       "1078"
     ],
@@ -642,7 +642,7 @@
   },
   "1100": {
     "name": "Insufficient Isolation of System-Dependent Functions",
-    "description": "The product or code does not isolate system-dependent functionality into separate standalone modules. This issue makes it more difficult to maintain and/or port the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product or code does not isolate system-dependent functionality into separate standalone modules.",
     "childOf": [
       "1061"
     ],
@@ -650,7 +650,7 @@
   },
   "1101": {
     "name": "Reliance on Runtime Component in Generated Code",
-    "description": "The product uses automatically-generated code that cannot be executed without a specific runtime support component. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product uses automatically-generated code that cannot be executed without a specific runtime support component.",
     "childOf": [
       "710"
     ],
@@ -658,7 +658,7 @@
   },
   "1102": {
     "name": "Reliance on Machine-Dependent Data Representation",
-    "description": "The code uses a data representation that relies on low-level data representation or constructs that may vary across different processors, physical machines, OSes, or other physical components. This issue makes it more difficult to maintain and/or port the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code uses a data representation that relies on low-level data representation or constructs that may vary across different processors, physical machines, OSes, or other physical components.",
     "childOf": [
       "758"
     ],
@@ -666,7 +666,7 @@
   },
   "1103": {
     "name": "Use of Platform-Dependent Third Party Components",
-    "description": "The product relies on third-party components that do not provide equivalent functionality across all desirable platforms. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product relies on third-party components that do not provide equivalent functionality across all desirable platforms.",
     "childOf": [
       "758"
     ],
@@ -674,7 +674,7 @@
   },
   "1104": {
     "name": "Use of Unmaintained Third Party Components",
-    "description": "The product relies on third-party components that are not actively supported or maintained by the original developer or a trusted proxy for the original developer. Reliance on components that are no longer maintained can make it difficult or impossible to fix significant bugs, vulnerabilities, or quality issues. In effect, unmaintained code can become obsolete. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product relies on third-party components that are not actively supported or maintained by the original developer or a trusted proxy for the original developer.",
     "childOf": [
       "1357"
     ],
@@ -682,7 +682,7 @@
   },
   "1105": {
     "name": "Insufficient Encapsulation of Machine-Dependent Functionality",
-    "description": "The product or code uses machine-dependent functionality, but it does not sufficiently encapsulate or isolate this functionality from the rest of the code. This issue makes it more difficult to port or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product or code uses machine-dependent functionality, but it does not sufficiently encapsulate or isolate this functionality from the rest of the code.",
     "childOf": [
       "758",
       "1061"
@@ -691,7 +691,7 @@
   },
   "1106": {
     "name": "Insufficient Use of Symbolic Constants",
-    "description": "The source code uses literal constants that may need to change or evolve over time, instead of using symbolic constants. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The source code uses literal constants that may need to change or evolve over time, instead of using symbolic constants.",
     "childOf": [
       "1078"
     ],
@@ -699,7 +699,7 @@
   },
   "1107": {
     "name": "Insufficient Isolation of Symbolic Constant Definitions",
-    "description": "The source code uses symbolic constants, but it does not sufficiently place the definitions of these constants into a more centralized or isolated location. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The source code uses symbolic constants, but it does not sufficiently place the definitions of these constants into a more centralized or isolated location.",
     "childOf": [
       "1078"
     ],
@@ -707,7 +707,7 @@
   },
   "1108": {
     "name": "Excessive Reliance on Global Variables",
-    "description": "The code is structured in a way that relies too much on using or setting global variables throughout various points in the code, instead of preserving the associated information in a narrower, more local context. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code is structured in a way that relies too much on using or setting global variables throughout various points in the code, instead of preserving the associated information in a narrower, more local context.",
     "childOf": [
       "1076"
     ],
@@ -715,7 +715,7 @@
   },
   "1109": {
     "name": "Use of Same Variable for Multiple Purposes",
-    "description": "The code contains a callable, block, or other code element in which the same variable is used to control more than one unique task or store more than one instance of data. Use of the same variable for multiple purposes can make it more difficult for a person to read or understand the code, potentially hiding other quality issues. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code contains a callable, block, or other code element in which the same variable is used to control more than one unique task or store more than one instance of data.",
     "childOf": [
       "1078"
     ],
@@ -755,7 +755,7 @@
   },
   "1113": {
     "name": "Inappropriate Comment Style",
-    "description": "The source code uses comment styles or formats that are inconsistent or do not follow expected standards for the product. This issue makes it more difficult to maintain the product due to insufficient legibility, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The source code uses comment styles or formats that are inconsistent or do not follow expected standards for the product.",
     "childOf": [
       "1078"
     ],
@@ -763,7 +763,7 @@
   },
   "1114": {
     "name": "Inappropriate Whitespace Style",
-    "description": "The source code contains whitespace that is inconsistent across the code or does not follow expected standards for the product. This issue makes it more difficult to understand and maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The source code contains whitespace that is inconsistent across the code or does not follow expected standards for the product.",
     "childOf": [
       "1078"
     ],
@@ -771,15 +771,15 @@
   },
   "1115": {
     "name": "Source Code Element without Standard Prologue",
-    "description": "The source code contains elements such as source files that do not consistently provide a prologue or header that has been standardized for the project. The lack of a prologue can make it more difficult to accurately and quickly understand the associated code. Standard prologues or headers may contain information such as module name, version number, author, date, purpose, function, assumptions, limitations, accuracy considerations, etc. This issue makes it more difficult to maintain the product due to insufficient analyzability, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The source code contains elements such as source files that do not consistently provide a prologue or header that has been standardized for the project. Standard prologues or headers may contain information such as module name, version number, author, date, purpose, function, assumptions, limitations, accuracy considerations, etc.",
     "childOf": [
       "1078"
     ],
     "relatedAttackPatterns": null
   },
   "1116": {
-    "name": "Inaccurate Comments",
-    "description": "The source code contains comments that do not accurately describe or explain aspects of the portion of the code with which the comment is associated. When a comment does not accurately reflect the associated code elements, this can introduce confusion to a reviewer (due to inconsistencies) or make it more difficult and less efficient to validate that the code is implementing the intended behavior correctly. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "name": "Inaccurate Source Code Comments",
+    "description": "The source code contains comments that do not accurately describe or explain aspects of the portion of the code with which the comment is associated.",
     "childOf": [
       "1078"
     ],
@@ -787,7 +787,7 @@
   },
   "1117": {
     "name": "Callable with Insufficient Behavioral Summary",
-    "description": "The code contains a function or method whose signature and/or associated inline documentation does not sufficiently describe the callable's inputs, outputs, side effects, assumptions, or return codes. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code contains a function or method whose signature and/or associated inline documentation does not sufficiently describe the callable's inputs, outputs, side effects, assumptions, or return codes.",
     "childOf": [
       "1078"
     ],
@@ -803,7 +803,7 @@
   },
   "1119": {
     "name": "Excessive Use of Unconditional Branching",
-    "description": "The code uses too many unconditional branches (such as \"goto\"). This issue makes it more difficult to understand and/or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code uses too many unconditional branches (such as \"goto\").",
     "childOf": [
       "1120"
     ],
@@ -816,13 +816,13 @@
       "1286"
     ],
     "relatedAttackPatterns": [
-      "231",
-      "230"
+      "230",
+      "231"
     ]
   },
   "1120": {
     "name": "Excessive Code Complexity",
-    "description": "The code is too complex, as calculated using a well-defined, quantitative measure. This issue makes it more difficult to understand and/or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities. This issue can make the product perform more slowly. If the relevant code is reachable by an attacker, then this performance problem might introduce a vulnerability.",
+    "description": "The code is too complex, as calculated using a well-defined, quantitative measure.",
     "childOf": [
       "710"
     ],
@@ -830,7 +830,7 @@
   },
   "1121": {
     "name": "Excessive McCabe Cyclomatic Complexity",
-    "description": "The code contains McCabe cyclomatic complexity that exceeds a desirable maximum. This issue makes it more difficult to understand and/or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code contains McCabe cyclomatic complexity that exceeds a desirable maximum.",
     "childOf": [
       "1120"
     ],
@@ -838,7 +838,7 @@
   },
   "1122": {
     "name": "Excessive Halstead Complexity",
-    "description": "The code is structured in a way that a Halstead complexity measure exceeds a desirable maximum. A variety of Halstead complexity measures exist, such as program vocabulary size or volume. This issue makes it more difficult to understand and/or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code is structured in a way that a Halstead complexity measure exceeds a desirable maximum. A variety of Halstead complexity measures exist, such as program vocabulary size or volume.",
     "childOf": [
       "1120"
     ],
@@ -846,7 +846,7 @@
   },
   "1123": {
     "name": "Excessive Use of Self-Modifying Code",
-    "description": "The product uses too much self-modifying code. This issue makes it more difficult to understand or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The product uses too much self-modifying code.",
     "childOf": [
       "1120"
     ],
@@ -854,7 +854,7 @@
   },
   "1124": {
     "name": "Excessively Deep Nesting",
-    "description": "The code contains a callable or other code grouping in which the nesting / branching is too deep. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code contains a callable or other code grouping in which the nesting / branching is too deep.",
     "childOf": [
       "1120"
     ],
@@ -870,7 +870,7 @@
   },
   "1126": {
     "name": "Declaration of Variable with Unnecessarily Wide Scope",
-    "description": "The source code declares a variable in one scope, but the variable is only used within a narrower scope. This issue makes it more difficult to understand and/or maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The source code declares a variable in one scope, but the variable is only used within a narrower scope.",
     "childOf": [
       "710"
     ],
@@ -878,7 +878,7 @@
   },
   "1127": {
     "name": "Compilation with Insufficient Warnings or Errors",
-    "description": "The code is compiled without sufficient warnings enabled, which may prevent the detection of subtle bugs or quality issues. This issue makes it more difficult to maintain the product, which indirectly affects security by making it more difficult or time-consuming to find and/or fix vulnerabilities. It also might make it easier to introduce vulnerabilities.",
+    "description": "The code is compiled without sufficient warnings enabled, which may prevent the detection of subtle bugs or quality issues.",
     "childOf": [
       "710"
     ],
@@ -888,14 +888,14 @@
     "name": "Improper Neutralization of CRLF Sequences in HTTP Headers ('HTTP Request/Response Splitting')",
     "description": "The product receives data from an HTTP agent/component (e.g., web server, proxy, browser, etc.), but it does not neutralize or incorrectly neutralizes CR and LF characters before the data is included in outgoing HTTP headers. HTTP agents or components may include a web server, load balancer, reverse proxy, web caching proxy, application firewall, web browser, etc. Regardless of the role, they are expected to maintain coherent, consistent HTTP communication state across all components. However, including unexpected data in an HTTP header allows an attacker to specify the entirety of the HTTP message that is rendered by the client HTTP agent (e.g., web browser) or back-end HTTP agent (e.g., web server), whether the message is part of a request or a response. When an HTTP request contains unexpected CR and LF characters, the server may respond with an output stream that is interpreted as \"splitting\" the stream into two different HTTP messages instead of one. CR is carriage return, also given by %0d or \\r, and LF is line feed, also given by %0a or \\n. In addition to CR and LF characters, other valid/RFC compliant special characters and unique character encodings can be utilized, such as HT (horizontal tab, also given by %09 or \\t) and SP (space, also given as + sign or %20). These types of unvalidated and unexpected data in HTTP message headers allow an attacker to control the second \"split\" message to mount attacks such as server-side request forgery, cross-site scripting, and cache poisoning attacks. HTTP response splitting weaknesses may be present when: Data enters a web application through an untrusted source, most frequently an HTTP request. The data is included in an HTTP response header sent to a web user without neutralizing malicious characters that can be interpreted as separator characters for headers.",
     "childOf": [
-      "93",
-      "436"
+      "436",
+      "93"
     ],
     "relatedAttackPatterns": [
+      "105",
       "31",
       "34",
-      "85",
-      "105"
+      "85"
     ]
   },
   "114": {
@@ -924,10 +924,10 @@
       "707"
     ],
     "relatedAttackPatterns": [
+      "81",
       "85",
       "104",
-      "73",
-      "81"
+      "73"
     ]
   },
   "1164": {
@@ -968,7 +968,7 @@
   },
   "1176": {
     "name": "Inefficient CPU Computation",
-    "description": "The product performs CPU computations using algorithms that are not as efficient as they could be for the needs of the developer, i.e., the computations can be optimized further. This issue can make the product perform more slowly, possibly in ways that are noticeable to the users. If an attacker can influence the amount of computation that must be performed, e.g. by triggering worst-case complexity, then this performance problem might introduce a vulnerability.",
+    "description": "The product performs CPU computations using algorithms that are not as efficient as they could be for the needs of the developer, i.e., the computations can be optimized further.",
     "childOf": [
       "405"
     ],
@@ -989,14 +989,14 @@
       "664"
     ],
     "relatedAttackPatterns": [
-      "14",
-      "24",
       "45",
       "46",
       "47",
       "8",
       "9",
-      "10"
+      "10",
+      "14",
+      "24"
     ]
   },
   "1187": {
@@ -1007,8 +1007,9 @@
   },
   "1188": {
     "name": "Initialization of a Resource with an Insecure Default",
-    "description": "The product initializes or sets a resource with a default that is intended to be changed by the administrator, but the default is not secure. Developers often choose default values that leave the product as open and easy to use as possible out-of-the-box, under the assumption that the administrator can (or should) change the default value. However, this ease-of-use comes at a cost when the default is insecure and the administrator does not change it.",
+    "description": "The product initializes or sets a resource with a default that is intended to be changed by the product's installer, administrator, or maintainer, but the default is not secure.",
     "childOf": [
+      "344",
       "1419"
     ],
     "relatedAttackPatterns": [
@@ -1019,8 +1020,8 @@
     "name": "Improper Isolation of Shared Resources on System-on-a-Chip (SoC)",
     "description": "The System-On-a-Chip (SoC) does not properly isolate shared resources between trusted and untrusted agents. A System-On-a-Chip (SoC) has a lot of functionality, but it may have a limited number of pins or pads. A pin can only perform one function at a time. However, it can be configured to perform multiple different functions. This technique is called pin multiplexing. Similarly, several resources on the chip may be shared to multiplex and support different features or functions. When such resources are shared between trusted and untrusted agents, untrusted agents may be able to access the assets intended to be accessed only by the trusted agents.",
     "childOf": [
-      "653",
-      "668"
+      "668",
+      "653"
     ],
     "relatedAttackPatterns": [
       "124"
@@ -1033,18 +1034,18 @@
       "118"
     ],
     "relatedAttackPatterns": [
-      "46",
-      "47",
-      "8",
-      "100",
       "14",
       "24",
       "42",
-      "44",
+      "46",
+      "9",
+      "47",
+      "8",
       "10",
+      "100",
       "123",
-      "45",
-      "9"
+      "44",
+      "45"
     ]
   },
   "1190": {
@@ -1104,19 +1105,19 @@
       "787"
     ],
     "relatedAttackPatterns": [
-      "14",
-      "46",
-      "8",
-      "92",
       "10",
       "100",
+      "44",
+      "67",
+      "47",
+      "8",
+      "9",
+      "14",
       "24",
       "42",
-      "44",
       "45",
-      "47",
-      "67",
-      "9"
+      "46",
+      "92"
     ]
   },
   "1204": {
@@ -1126,8 +1127,8 @@
       "330"
     ],
     "relatedAttackPatterns": [
-      "97",
-      "20"
+      "20",
+      "97"
     ]
   },
   "1209": {
@@ -1259,8 +1260,8 @@
     "name": "Security-Sensitive Hardware Controls with Missing Lock Bit Protection",
     "description": "The product uses a register lock bit protection mechanism, but it does not ensure that the lock bit prevents modification of system registers or controls that perform changes to important hardware system configuration. Integrated circuits and hardware intellectual properties (IPs) might provide device configuration controls that need to be programmed after device power reset by a trusted firmware or software module, commonly set by BIOS/bootloader. After reset, there can be an expectation that the controls cannot be used to perform any further modification. This behavior is commonly implemented using a trusted lock bit, which can be set to disable writes to a protected set of registers or address regions. The lock protection is intended to prevent modification of certain system configuration (e.g., memory/memory protection unit configuration). However, if the lock bit does not effectively write-protect all system registers or controls that could modify the protected system configuration, then an adversary may be able to use software to access the registers/controls and modify the protected hardware configuration.",
     "childOf": [
-      "667",
-      "284"
+      "284",
+      "667"
     ],
     "relatedAttackPatterns": [
       "176",
@@ -1279,7 +1280,7 @@
   },
   "1235": {
     "name": "Incorrect Use of Autoboxing and Unboxing for Performance Critical Operations",
-    "description": "The code uses boxed primitives, which may introduce inefficiencies into performance-critical operations. Languages such as Java and C# support automatic conversion through their respective compilers from primitive types into objects of the corresponding wrapper classes, and vice versa. For example, a compiler might convert an int to Integer (called autoboxing) or an Integer to int (called unboxing). This eliminates forcing the programmer to perform these conversions manually, which makes the code cleaner. However, this feature comes at a cost of performance and can lead to resource exhaustion and impact availability when used with generic collections. Therefore, they should not be used for scientific computing or other performance critical operations. They are only suited to support \"impedance mismatch\" between reference types and primitives.",
+    "description": "The code uses boxed primitives, which may introduce inefficiencies into performance-critical operations.",
     "childOf": [
       "400"
     ],
@@ -1287,7 +1288,7 @@
   },
   "1236": {
     "name": "Improper Neutralization of Formula Elements in a CSV File",
-    "description": "The product saves user-provided information into a Comma-Separated Value (CSV) file, but it does not neutralize or incorrectly neutralizes special elements that could be interpreted as a command when the file is opened by a spreadsheet product. User-provided data is often saved to traditional databases. This data can be exported to a CSV file, which allows users to read the data using spreadsheet software such as Excel, Numbers, or Calc. This software interprets entries beginning with '=' as formulas, which are then executed by the spreadsheet software. The software's formula language often allows methods to access hyperlinks or the local command line, and frequently allows enough characters to invoke an entire script. Attackers can populate data fields which, when saved to a CSV file, may attempt information exfiltration or other malicious activity when automatically executed by the spreadsheet software.",
+    "description": "The product saves user-provided information into a Comma-Separated Value (CSV) file, but it does not neutralize or incorrectly neutralizes special elements that could be interpreted as a command when the file is opened by a spreadsheet product.",
     "childOf": [
       "74"
     ],
@@ -1300,15 +1301,15 @@
       "226"
     ],
     "relatedAttackPatterns": [
-      "150",
       "204",
       "37",
-      "545"
+      "545",
+      "150"
     ]
   },
   "124": {
     "name": "Buffer Underwrite ('Buffer Underflow')",
-    "description": "The product writes to a buffer using an index or pointer that references a memory location prior to the beginning of the buffer. This typically occurs when a pointer or its index is decremented to a position before the buffer, when pointer arithmetic results in a position before the beginning of the valid memory location, or when a negative index is used.",
+    "description": "The product writes to a buffer using an index or pointer that references a memory location prior to the beginning of the buffer.",
     "childOf": [
       "786",
       "787"
@@ -1327,7 +1328,7 @@
   },
   "1241": {
     "name": "Use of Predictable Algorithm in Random Number Generator",
-    "description": "The device uses an algorithm that is predictable and generates a pseudo-random number. Pseudo-random number generator algorithms are predictable because their registers have a finite number of possible states, which eventually lead to repeating patterns. As a result, pseudo-random number generators (PRNGs) can compromise their randomness or expose their internal state to various attacks, such as reverse engineering or tampering. It is highly recommended to use hardware-based true random number generators (TRNGs) to ensure the security of encryption schemes. TRNGs generate unpredictable, unbiased, and independent random numbers because they employ physical phenomena, e.g., electrical noise, as sources to generate random numbers.",
+    "description": "The device uses an algorithm that is predictable and generates a pseudo-random number. Pseudo-random number generator algorithms are predictable because their registers have a finite number of possible states, which eventually lead to repeating patterns. As a result, pseudo-random number generators (PRNGs) can compromise their randomness or expose their internal state to various attacks, such as reverse engineering or tampering.",
     "childOf": [
       "330"
     ],
@@ -1337,7 +1338,7 @@
   },
   "1242": {
     "name": "Inclusion of Undocumented Features or Chicken Bits",
-    "description": "The device includes chicken bits or undocumented features that can create entry points for unauthorized actors. A common design practice is to use undocumented bits on a device that can be used to disable certain functional security features. These bits are commonly referred to as \"chicken bits\". They can facilitate quick identification and isolation of faulty components, features that negatively affect performance, or features that do not provide the required controllability for debug and test. Another way to achieve this is through implementation of undocumented features. An attacker might exploit these interfaces for unauthorized access.",
+    "description": "The device includes chicken bits or undocumented features that can create entry points for unauthorized actors. A common design practice is to use undocumented bits on a device that can be used to disable certain functional security features. These bits are commonly referred to as \"chicken bits\". They can facilitate quick identification and isolation of faulty components, features that negatively affect performance, or features that do not provide the required controllability for debug and test. Another way to achieve this is through implementation of undocumented features.",
     "childOf": [
       "912"
     ],
@@ -1348,7 +1349,7 @@
   },
   "1243": {
     "name": "Sensitive Non-Volatile Information Not Protected During Debug",
-    "description": "Access to security-sensitive information stored in fuses is not limited during debug. Several security-sensitive values are programmed into fuses to be used during early-boot flows or later at runtime. Examples of these security-sensitive values include root keys, encryption keys, manufacturing-specific information, chip-manufacturer-specific information, and original-equipment-manufacturer (OEM) data. After the chip is powered on, these values are sensed from fuses and stored in temporary locations such as registers and local memories. These locations are typically access-control protected from untrusted agents capable of accessing them. Even to trusted agents, only read-access is provided. However, these locations are not blocked during debug operations, allowing a user to access this sensitive information.",
+    "description": "Access to security-sensitive information stored in fuses is not limited during debug. Several security-sensitive values are programmed into fuses to be used during early-boot flows or later at runtime. Examples of these security-sensitive values include root keys, encryption keys, manufacturing-specific information, chip-manufacturer-specific information, and original-equipment-manufacturer (OEM) data. After the chip is powered on, these values are sensed from fuses and stored in temporary locations such as registers and local memories. These locations are typically access-control protected from untrusted agents capable of accessing them. Even to trusted agents, only read-access is provided.",
     "childOf": [
       "1263"
     ],
@@ -1359,7 +1360,7 @@
   },
   "1244": {
     "name": "Internal Asset Exposed to Unsafe Debug Access Level or State",
-    "description": "The product uses physical debug or test interfaces with support for multiple access levels, but it assigns the wrong debug access level to an internal asset, providing unintended access to the asset from untrusted debug agents. Debug authorization can have multiple levels of access, defined such that different system internal assets are accessible based on the current authorized debug level. Other than debugger authentication (e.g., using passwords or challenges), the authorization can also be based on the system state or boot stage. For example, full system debug access might only be allowed early in boot after a system reset to ensure that previous session data is not accessible to the authenticated debugger. If this protection mechanism does not ensure that internal assets have the correct debug access level during each boot stage or change in system state, an attacker could obtain sensitive information from the internal asset using a debugger.",
+    "description": "The product uses physical debug or test interfaces with support for multiple access levels, but it assigns the wrong debug access level to an internal asset, providing unintended access to the asset from untrusted debug agents. Debug authorization can have multiple levels of access, defined such that different system internal assets are accessible based on the current authorized debug level. Other than debugger authentication (e.g., using passwords or challenges), the authorization can also be based on the system state or boot stage. For example, full system debug access might only be allowed early in boot after a system reset to ensure that previous session data is not accessible to the authenticated debugger.",
     "childOf": [
       "863"
     ],
@@ -1369,7 +1370,7 @@
   },
   "1245": {
     "name": "Improper Finite State Machines (FSMs) in Hardware Logic",
-    "description": "Faulty finite state machines (FSMs) in the hardware logic allow an attacker to put the system in an undefined state, to cause a denial of service (DoS) or gain privileges on the victim's system. The functionality and security of the system heavily depend on the implementation of FSMs. FSMs can be used to indicate the current security state of the system. Lots of secure data operations and data transfers rely on the state reported by the FSM. Faulty FSM designs that do not account for all states, either through undefined states (left as don't cares) or through incorrect implementation, might lead an attacker to drive the system into an unstable state from which the system cannot recover without a reset, thus causing a DoS. Depending on what the FSM is used for, an attacker might also gain additional privileges to launch further attacks and compromise the security guarantees.",
+    "description": "Faulty finite state machines (FSMs) in the hardware logic allow an attacker to put the system in an undefined state, to cause a denial of service (DoS) or gain privileges on the victim's system. The functionality and security of the system heavily depend on the implementation of FSMs. FSMs can be used to indicate the current security state of the system. Lots of secure data operations and data transfers rely on the state reported by the FSM.",
     "childOf": [
       "684"
     ],
@@ -1379,7 +1380,7 @@
   },
   "1246": {
     "name": "Improper Write Handling in Limited-write Non-Volatile Memories",
-    "description": "The product does not implement or incorrectly implements wear leveling operations in limited-write non-volatile memories. Non-volatile memories such as NAND Flash, EEPROM, etc. have individually erasable segments, each of which can be put through a limited number of program/erase or write cycles. For example, the device can only endure a limited number of writes, after which the device becomes unreliable. In order to wear out the cells in a uniform manner, non-volatile memory and storage products based on the above-mentioned technologies implement a technique called wear leveling. Once a set threshold is reached, wear leveling maps writes of a logical block to a different physical block. This prevents a single physical block from prematurely failing due to a high concentration of writes. If wear leveling is improperly implemented, attackers may be able to programmatically cause the storage to become unreliable within a much shorter time than would normally be expected.",
+    "description": "The product does not implement or incorrectly implements wear leveling operations in limited-write non-volatile memories. Non-volatile memories such as NAND Flash, EEPROM, etc. have individually erasable segments, each of which can be put through a limited number of program/erase or write cycles. For example, the device can only endure a limited number of writes, after which the device becomes unreliable. In order to wear out the cells in a uniform manner, non-volatile memory and storage products based on the above-mentioned technologies implement a technique called wear leveling. Once a set threshold is reached, wear leveling maps writes of a logical block to a different physical block. This prevents a single physical block from prematurely failing due to a high concentration of writes.",
     "childOf": [
       "400"
     ],
@@ -1400,7 +1401,7 @@
   },
   "1248": {
     "name": "Semiconductor Defects in Hardware Logic with Security-Sensitive Implications",
-    "description": "The security-sensitive hardware module contains semiconductor defects. A semiconductor device can fail for various reasons. While some are manufacturing and packaging defects, the rest are due to prolonged use or usage under extreme conditions. Some mechanisms that lead to semiconductor defects include encapsulation failure, die-attach failure, wire-bond failure, bulk-silicon defects, oxide-layer faults, aluminum-metal faults (including electromigration, corrosion of aluminum, etc.), and thermal/electrical stress. These defects manifest as faults on chip-internal signals or registers, have the effect of inputs, outputs, or intermediate signals being always 0 or always 1, and do not switch as expected. If such faults occur in security-sensitive hardware modules, the security objectives of the hardware module may be compromised.",
+    "description": "The security-sensitive hardware module contains semiconductor defects. A semiconductor device can fail for various reasons. While some are manufacturing and packaging defects, the rest are due to prolonged use or usage under extreme conditions. Some mechanisms that lead to semiconductor defects include encapsulation failure, die-attach failure, wire-bond failure, bulk-silicon defects, oxide-layer faults, aluminum-metal faults (including electromigration, corrosion of aluminum, etc.), and thermal/electrical stress. These defects manifest as faults on chip-internal signals or registers, have the effect of inputs, outputs, or intermediate signals being always 0 or always 1, and do not switch as expected.",
     "childOf": [
       "693"
     ],
@@ -1445,7 +1446,7 @@
   },
   "1252": {
     "name": "CPU Hardware Not Configured to Support Exclusivity of Write and Execute Operations",
-    "description": "The CPU is not configured to provide hardware support for exclusivity of write and execute operations on memory. This allows an attacker to execute data from all of memory. CPUs provide a special bit that supports exclusivity of write and execute operations. This bit is used to segregate areas of memory to either mark them as code (instructions, which can be executed) or data (which should not be executed). In this way, if a user can write to a region of memory, the user cannot execute from that region and vice versa. This exclusivity provided by special hardware bit is leveraged by the operating system to protect executable space. While this bit is available in most modern processors by default, in some CPUs the exclusivity is implemented via a memory-protection unit (MPU) and memory-management unit (MMU) in which memory regions can be carved out with exact read, write, and execute permissions. However, if the CPU does not have an MMU/MPU, then there is no write exclusivity. Without configuring exclusivity of operations via segregated areas of memory, an attacker may be able to inject malicious code onto memory and later execute it.",
+    "description": "The CPU is not configured to provide hardware support for exclusivity of write and execute operations on memory. This allows an attacker to execute data from all of memory. CPUs provide a special bit that supports exclusivity of write and execute operations. This bit is used to segregate areas of memory to either mark them as code (instructions, which can be executed) or data (which should not be executed). In this way, if a user can write to a region of memory, the user cannot execute from that region and vice versa. This exclusivity provided by special hardware bit is leveraged by the operating system to protect executable space. While this bit is available in most modern processors by default, in some CPUs the exclusivity is implemented via a memory-protection unit (MPU) and memory-management unit (MMU) in which memory regions can be carved out with exact read, write, and execute permissions. However, if the CPU does not have an MMU/MPU, then there is no write exclusivity.",
     "childOf": [
       "284"
     ],
@@ -1455,7 +1456,7 @@
   },
   "1253": {
     "name": "Incorrect Selection of Fuse Values",
-    "description": "The logic level used to set a system to a secure state relies on a fuse being unblown. An attacker can set the system to an insecure state merely by blowing the fuse. Fuses are often used to store secret data, including security configuration data. When not blown, a fuse is considered to store a logic 0, and, when blown, it indicates a logic 1. Fuses are generally considered to be one-directional, i.e., once blown to logic 1, it cannot be reset to logic 0. However, if the logic used to determine system-security state (by leveraging the values sensed from the fuses) uses negative logic, an attacker might blow the fuse and drive the system to an insecure state.",
+    "description": "The logic level used to set a system to a secure state relies on a fuse being unblown. Fuses are often used to store secret data, including security configuration data. When not blown, a fuse is considered to store a logic 0, and, when blown, it indicates a logic 1. Fuses are generally considered to be one-directional, i.e., once blown to logic 1, it cannot be reset to logic 0.",
     "childOf": [
       "693"
     ],
@@ -1491,8 +1492,8 @@
       "285"
     ],
     "relatedAttackPatterns": [
-      "624",
-      "625"
+      "625",
+      "624"
     ]
   },
   "1257": {
@@ -1502,27 +1503,26 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "679",
-      "456"
+      "456",
+      "679"
     ]
   },
   "1258": {
     "name": "Exposure of Sensitive System Information Due to Uncleared Debug Information",
     "description": "The hardware does not fully clear security-sensitive values, such as keys and intermediate values in cryptographic operations, when debug mode is entered. Security sensitive values, keys, intermediate steps of cryptographic operations, etc. are stored in temporary registers in the hardware. If these values are not cleared when debug mode is entered they may be accessed by a debugger allowing sensitive information to be accessible by untrusted parties.",
     "childOf": [
-      "212",
-      "200"
+      "212"
     ],
     "relatedAttackPatterns": [
-      "150",
-      "204",
       "37",
-      "545"
+      "545",
+      "150",
+      "204"
     ]
   },
   "1259": {
     "name": "Improper Restriction of Security Token Assignment",
-    "description": "The System-On-A-Chip (SoC) implements a Security Token mechanism to differentiate what actions are allowed or disallowed when a transaction originates from an entity. However, the Security Tokens are improperly protected. Systems-On-A-Chip (Integrated circuits and hardware engines) implement Security Tokens to differentiate and identify which actions originated from which agent. These actions may be one of the directives: 'read', 'write', 'program', 'reset', 'fetch', 'compute', etc. Security Tokens are assigned to every agent in the System that is capable of generating an action or receiving an action from another agent. Multiple Security Tokens may be assigned to an agent and may be unique based on the agent's trust level or allowed privileges. Since the Security Tokens are integral for the maintenance of security in an SoC, they need to be protected properly. A common weakness afflicting Security Tokens is improperly restricting the assignment to trusted components. Consequently, an improperly protected Security Token may be able to be programmed by a malicious agent (i.e., the Security Token is mutable) to spoof the action as if it originated from a trusted agent.",
+    "description": "The System-On-A-Chip (SoC) implements a Security Token mechanism to differentiate what actions are allowed or disallowed when a transaction originates from an entity. However, the Security Tokens are improperly protected. Systems-On-A-Chip (Integrated circuits and hardware engines) implement Security Tokens to differentiate and identify which actions originated from which agent. These actions may be one of the directives: 'read', 'write', 'program', 'reset', 'fetch', 'compute', etc. Security Tokens are assigned to every agent in the System that is capable of generating an action or receiving an action from another agent. Multiple Security Tokens may be assigned to an agent and may be unique based on the agent's trust level or allowed privileges. Since the Security Tokens are integral for the maintenance of security in an SoC, they need to be protected properly. A common weakness afflicting Security Tokens is improperly restricting the assignment to trusted components.",
     "childOf": [
       "284"
     ],
@@ -1535,8 +1535,8 @@
     "name": "Buffer Over-read",
     "description": "The product reads from a buffer using buffer access mechanisms such as indexes or pointers that reference memory locations after the targeted buffer.",
     "childOf": [
-      "125",
-      "788"
+      "788",
+      "125"
     ],
     "relatedAttackPatterns": null
   },
@@ -1581,7 +1581,7 @@
   },
   "1264": {
     "name": "Hardware Logic with Insecure De-Synchronization between Control and Data Channels",
-    "description": "The hardware logic for error handling and security checks can incorrectly forward data before the security check is complete. Many high-performance on-chip bus protocols and processor data-paths employ separate channels for control and data to increase parallelism and maximize throughput. Bugs in the hardware logic that handle errors and security checks can make it possible for data to be forwarded before the completion of the security checks. If the data can propagate to a location in the hardware observable to an attacker, loss of data confidentiality can occur. 'Meltdown' is a concrete example of how de-synchronization between data and permissions checking logic can violate confidentiality requirements. Data loaded from a page marked as privileged was returned to the cpu regardless of current privilege level for performance reasons. The assumption was that the cpu could later remove all traces of this data during the handling of the illegal memory access exception, but this assumption was proven false as traces of the secret data were not removed from the microarchitectural state.",
+    "description": "The hardware logic for error handling and security checks can incorrectly forward data before the security check is complete. Many high-performance on-chip bus protocols and processor data-paths employ separate channels for control and data to increase parallelism and maximize throughput. Bugs in the hardware logic that handle errors and security checks can make it possible for data to be forwarded before the completion of the security checks. If the data can propagate to a location in the hardware observable to an attacker, loss of data confidentiality can occur. 'Meltdown' is a concrete example of how de-synchronization between data and permissions checking logic can violate confidentiality requirements. Data loaded from a page marked as privileged was returned to the CPU regardless of current privilege level for performance reasons. The assumption was that the CPU could later remove all traces of this data during the handling of the illegal memory access exception, but this assumption was proven false as traces of the secret data were not removed from the microarchitectural state.",
     "childOf": [
       "821"
     ],
@@ -1592,9 +1592,9 @@
   },
   "1265": {
     "name": "Unintended Reentrant Invocation of Non-reentrant Code Via Nested Calls",
-    "description": "During execution of non-reentrant code, the product performs a call that unintentionally produces a nested invocation of the non-reentrant code. In a complex product, a single function call may lead to many different possible code paths, some of which may involve deeply nested calls. It may be difficult to foresee all possible code paths that could emanate from a given function call. In some systems, an external actor can manipulate inputs to the system and thereby achieve a wide range of possible control flows. This is frequently a concern in products that execute scripts from untrusted sources. Examples of such products are web browsers and PDF readers. A weakness is present when one of the possible code paths resulting from a function call alters program state that the original caller assumes to be unchanged during the call.",
+    "description": "The product invokes code that is believed to be reentrant, but the code performs a call that unintentionally produces a nested invocation of the non-reentrant code. In a complex product, a single function call may lead to many different possible code paths, some of which may involve deeply nested calls. It may be difficult to foresee all possible code paths that could emanate from a given function call, even if that call is assumed to be reentrant. In some systems, an external actor can manipulate inputs to the system and thereby achieve a wide range of possible control flows. This is frequently a concern in products that execute scripts from untrusted sources. Examples of such products are web browsers and PDF readers. A weakness is present when one of the possible code paths resulting from a function call alters program state that the original caller assumes to be unchanged during the call.",
     "childOf": [
-      "691"
+      "662"
     ],
     "relatedAttackPatterns": [
       "74"
@@ -1607,11 +1607,11 @@
       "404"
     ],
     "relatedAttackPatterns": [
+      "150",
+      "37",
       "545",
       "546",
-      "675",
-      "150",
-      "37"
+      "675"
     ]
   },
   "1267": {
@@ -1621,15 +1621,15 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "121",
-      "681"
+      "681",
+      "121"
     ]
   },
   "1268": {
     "name": "Policy Privileges are not Assigned Consistently Between Control and Data Agents",
     "description": "The product's hardware-enforced access control for a particular resource improperly accounts for privilege discrepancies between control and write policies. Integrated circuits and hardware engines may provide access to resources (device-configuration, encryption keys, etc.) belonging to trusted firmware or software modules (commonly set by a BIOS or a bootloader). These accesses are typically controlled and limited by the hardware. Hardware design access control is sometimes implemented using a policy. A policy defines which entity or agent may or may not be allowed to perform an action. When a system implements multiple levels of policies, a control policy may allow direct access to a resource as well as changes to the policies themselves. Resources that include agents in their control policy but not in their write policy could unintentionally allow an untrusted agent to insert itself in the write policy register. Inclusion in the write policy register could allow a malicious or misbehaving agent write access to resources. This action could result in security compromises including leaked information, leaked encryption keys, or modification of device configuration.",
     "childOf": [
-      "284"
+      "266"
     ],
     "relatedAttackPatterns": [
       "180"
@@ -1647,7 +1647,7 @@
   },
   "127": {
     "name": "Buffer Under-read",
-    "description": "The product reads from a buffer using buffer access mechanisms such as indexes or pointers that reference memory locations prior to the targeted buffer. This typically occurs when the pointer or its index is decremented to a position before the buffer, when pointer arithmetic results in a position before the beginning of the valid memory location, or when a negative index is used. This may result in exposure of sensitive information or possibly a crash.",
+    "description": "The product reads from a buffer using buffer access mechanisms such as indexes or pointers that reference memory locations prior to the targeted buffer.",
     "childOf": [
       "125",
       "786"
@@ -1656,14 +1656,14 @@
   },
   "1270": {
     "name": "Generation of Incorrect Security Tokens",
-    "description": "The product implements a Security Token mechanism to differentiate what actions are allowed or disallowed when a transaction originates from an entity. However, the Security Tokens generated in the system are incorrect. Systems-On-a-Chip (SoC) (Integrated circuits and hardware engines) implement Security Tokens to differentiate and identify actions originated from various agents. These actions could be \"read\", \"write\", \"program\", \"reset\", \"fetch\", \"compute\", etc. Security Tokens are generated and assigned to every agent on the SoC that is either capable of generating an action or receiving an action from another agent. Every agent could be assigned a unique, Security Token based on its trust level or privileges. Incorrectly generated Security Tokens could result in the same token used for multiple agents or multiple tokens being used for the same agent. This condition could result in a Denial-of-Service (DoS) or the execution of an action that in turn could result in privilege escalation or unintended access.",
+    "description": "The product implements a Security Token mechanism to differentiate what actions are allowed or disallowed when a transaction originates from an entity. However, the Security Tokens generated in the system are incorrect. Systems-On-a-Chip (SoC) (Integrated circuits and hardware engines) implement Security Tokens to differentiate and identify actions originated from various agents. These actions could be \"read\", \"write\", \"program\", \"reset\", \"fetch\", \"compute\", etc. Security Tokens are generated and assigned to every agent on the SoC that is either capable of generating an action or receiving an action from another agent. Every agent could be assigned a unique, Security Token based on its trust level or privileges.",
     "childOf": [
       "284"
     ],
     "relatedAttackPatterns": [
-      "121",
       "633",
-      "681"
+      "681",
+      "121"
     ]
   },
   "1271": {
@@ -1701,7 +1701,7 @@
   },
   "1274": {
     "name": "Improper Access Control for Volatile Memory Containing Boot Code",
-    "description": "The product conducts a secure-boot process that transfers bootloader code from Non-Volatile Memory (NVM) into Volatile Memory (VM), but it does not have sufficient access control or other protections for the Volatile Memory. Adversaries could bypass the secure-boot process and execute their own untrusted, malicious boot code. As a part of a secure-boot process, the read-only-memory (ROM) code for a System-on-Chip (SoC) or other system fetches bootloader code from Non-Volatile Memory (NVM) and stores the code in Volatile Memory (VM), such as dynamic, random-access memory (DRAM) or static, random-access memory (SRAM). The NVM is usually external to the SoC, while the VM is internal to the SoC. As the code is transferred from NVM to VM, it is authenticated by the SoC's ROM code. If the volatile-memory-region protections or access controls are insufficient to prevent modifications from an adversary or untrusted agent, the secure boot may be bypassed or replaced with the execution of an adversary's code.",
+    "description": "The product conducts a secure-boot process that transfers bootloader code from Non-Volatile Memory (NVM) into Volatile Memory (VM), but it does not have sufficient access control or other protections for the Volatile Memory. Adversaries could bypass the secure-boot process and execute their own untrusted, malicious boot code. As a part of a secure-boot process, the read-only-memory (ROM) code for a System-on-Chip (SoC) or other system fetches bootloader code from Non-Volatile Memory (NVM) and stores the code in Volatile Memory (VM), such as dynamic, random-access memory (DRAM) or static, random-access memory (SRAM). The NVM is usually external to the SoC, while the VM is internal to the SoC. As the code is transferred from NVM to VM, it is authenticated by the SoC's ROM code.",
     "childOf": [
       "284"
     ],
@@ -1775,8 +1775,8 @@
     "name": "Access Control Check Implemented After Asset is Accessed",
     "description": "A product's hardware-based access control check occurs after the asset has been accessed. The product implements a hardware-based access control check. The asset should be accessible only after the check is successful. If, however, this operation is not atomic and the asset is accessed before the check is complete, the security of the system may be compromised.",
     "childOf": [
-      "696",
-      "284"
+      "284",
+      "696"
     ],
     "relatedAttackPatterns": [
       "180"
@@ -1815,7 +1815,7 @@
   },
   "1284": {
     "name": "Improper Validation of Specified Quantity in Input",
-    "description": "The product receives input that is expected to specify a quantity (such as size or length), but it does not validate or incorrectly validates that the quantity has the required properties. Specified quantities include size, length, frequency, price, rate, number of operations, time, and others. Code may rely on specified quantities to allocate resources, perform calculations, control iteration, etc. When the quantity is not properly validated, then attackers can specify malicious quantities to cause excessive resource allocation, trigger unexpected failures, enable buffer overflows, etc.",
+    "description": "The product receives input that is expected to specify a quantity (such as size or length), but it does not validate or incorrectly validates that the quantity has the required properties. Specified quantities include size, length, frequency, price, rate, number of operations, time, and others. Code may rely on specified quantities to allocate resources, perform calculations, control iteration, etc.",
     "childOf": [
       "20"
     ],
@@ -1836,8 +1836,8 @@
       "20"
     ],
     "relatedAttackPatterns": [
-      "676",
-      "66"
+      "66",
+      "676"
     ]
   },
   "1287": {
@@ -1996,8 +1996,8 @@
       "203"
     ],
     "relatedAttackPatterns": [
-      "189",
-      "699"
+      "699",
+      "189"
     ]
   },
   "1301": {
@@ -2017,8 +2017,8 @@
       "1294"
     ],
     "relatedAttackPatterns": [
-      "681",
-      "121"
+      "121",
+      "681"
     ]
   },
   "1303": {
@@ -2113,8 +2113,8 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "1",
-      "180"
+      "180",
+      "1"
     ]
   },
   "1316": {
@@ -2173,8 +2173,8 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "180",
-      "1"
+      "1",
+      "180"
     ]
   },
   "1321": {
@@ -2184,9 +2184,9 @@
       "915"
     ],
     "relatedAttackPatterns": [
-      "77",
       "1",
-      "180"
+      "180",
+      "77"
     ]
   },
   "1322": {
@@ -2420,9 +2420,9 @@
       "707"
     ],
     "relatedAttackPatterns": [
+      "105",
       "15",
-      "34",
-      "105"
+      "34"
     ]
   },
   "1384": {
@@ -2467,7 +2467,7 @@
   },
   "1391": {
     "name": "Use of Weak Credentials",
-    "description": "The product uses weak credentials (such as a default key or hard-coded password) that can be calculated, derived, reused, or guessed by an attacker. By design, authentication protocols try to ensure that attackers must perform brute force attacks if they do not know the credentials such as a key or password. However, when these credentials are easily predictable or even fixed (as with default or hard-coded passwords and keys), then the attacker can defeat the mechanism without relying on brute force. Credentials may be weak for different reasons, such as: Hard-coded (i.e., static and unchangeable by the administrator) Default (i.e., the same static value across different deployments/installations, but able to be changed by the administrator) Predictable (i.e., generated in a way that produces unique credentials across deployments/installations, but can still be guessed with reasonable efficiency) Even if a new, unique credential is intended to be generated for each product installation, if the generation is predictable, then that may also simplify guessing attacks.",
+    "description": "The product uses weak credentials (such as a default key or hard-coded password) that can be calculated, derived, reused, or guessed by an attacker. By design, authentication protocols try to ensure that attackers must perform brute force attacks if they do not know the credentials such as a key or password. However, when these credentials are easily predictable or even fixed (as with default or hard-coded passwords and keys), then the attacker can defeat the mechanism without relying on brute force. Credentials may be weak for different reasons, such as: Hard-coded (i.e., static and unchangeable by the administrator) Default (i.e., the same static value across different deployments/installations, but able to be changed by the administrator) Predictable (i.e., generated in a way that produces unique credentials across deployments/installations, but can still be guessed with reasonable efficiency) Previously Compromised (i.e., \"leaked\" credentials that were published as part of a data breach) Even if a new, unique credential is intended to be generated for each product installation, if the generation is predictable, then that may also simplify guessing attacks.",
     "childOf": [
       "1390"
     ],
@@ -2699,16 +2699,16 @@
       "610"
     ],
     "relatedAttackPatterns": [
-      "146",
-      "176",
-      "579",
-      "69",
-      "76",
-      "77",
       "13",
       "203",
+      "271",
+      "579",
+      "69",
+      "77",
+      "146",
+      "176",
       "270",
-      "271"
+      "76"
     ]
   },
   "150": {
@@ -2897,14 +2897,14 @@
     "relatedAttackPatterns": [
       "120",
       "3",
-      "53",
-      "64",
-      "72",
-      "80",
-      "267",
       "52",
+      "64",
+      "78",
+      "267",
+      "53",
       "71",
-      "78"
+      "72",
+      "80"
     ]
   },
   "173": {
@@ -2917,23 +2917,23 @@
       "120",
       "3",
       "71",
-      "79",
+      "78",
+      "80",
       "267",
       "4",
       "52",
       "53",
       "64",
       "72",
-      "78",
-      "80"
+      "79"
     ]
   },
   "174": {
     "name": "Double Decoding of the Same Data",
     "description": "The product decodes the same input twice, which can limit the effectiveness of any protection mechanism that occurs in between the decoding operations.",
     "childOf": [
-      "172",
-      "675"
+      "675",
+      "172"
     ],
     "relatedAttackPatterns": null
   },
@@ -2984,9 +2984,9 @@
       "696"
     ],
     "relatedAttackPatterns": [
+      "3",
       "43",
-      "71",
-      "3"
+      "71"
     ]
   },
   "180": {
@@ -2996,12 +2996,12 @@
       "179"
     ],
     "relatedAttackPatterns": [
-      "267",
       "3",
       "71",
       "78",
       "79",
-      "80"
+      "80",
+      "267"
     ]
   },
   "181": {
@@ -3011,13 +3011,13 @@
       "179"
     ],
     "relatedAttackPatterns": [
-      "3",
-      "43",
-      "78",
       "79",
       "80",
       "120",
-      "267"
+      "267",
+      "3",
+      "43",
+      "78"
     ]
   },
   "182": {
@@ -3049,15 +3049,15 @@
       "1023"
     ],
     "relatedAttackPatterns": [
-      "3",
-      "43",
       "120",
       "15",
       "182",
-      "6",
-      "71",
       "73",
-      "85"
+      "85",
+      "3",
+      "43",
+      "6",
+      "71"
     ]
   },
   "185": {
@@ -3180,57 +3180,57 @@
       "707"
     ],
     "relatedAttackPatterns": [
-      "71",
-      "85",
-      "104",
-      "109",
-      "120",
-      "46",
-      "52",
+      "136",
       "42",
-      "7",
-      "73",
-      "9",
-      "88",
-      "22",
-      "45",
-      "63",
-      "664",
+      "52",
       "81",
+      "83",
+      "47",
+      "8",
       "101",
-      "153",
-      "3",
-      "473",
+      "108",
+      "23",
+      "231",
+      "45",
+      "46",
+      "73",
+      "88",
       "53",
+      "664",
       "67",
-      "110",
+      "109",
       "135",
-      "14",
+      "22",
+      "267",
+      "473",
+      "72",
+      "85",
+      "9",
       "24",
       "261",
-      "267",
+      "3",
       "43",
+      "63",
       "64",
-      "136",
-      "23",
-      "230",
-      "231",
-      "250",
-      "72",
-      "79",
-      "8",
-      "108",
-      "13",
-      "28",
-      "47",
-      "83",
       "78",
+      "79",
+      "14",
+      "209",
+      "230",
+      "28",
+      "588",
       "80",
       "10",
+      "104",
+      "120",
+      "250",
+      "7",
+      "71",
+      "110",
+      "13",
+      "153",
       "182",
-      "209",
-      "31",
-      "588"
+      "31"
     ]
   },
   "200": {
@@ -3240,65 +3240,65 @@
       "668"
     ],
     "relatedAttackPatterns": [
-      "312",
-      "573",
+      "508",
       "574",
-      "292",
-      "321",
-      "651",
-      "169",
-      "306",
-      "317",
-      "320",
-      "224",
-      "291",
-      "575",
-      "324",
-      "295",
-      "302",
-      "309",
-      "328",
       "576",
-      "577",
-      "307",
-      "290",
-      "313",
-      "318",
-      "326",
-      "285",
-      "287",
-      "297",
-      "299",
-      "303",
-      "310",
       "60",
+      "293",
+      "302",
+      "327",
+      "651",
+      "13",
+      "328",
+      "646",
+      "573",
       "59",
-      "22",
-      "330",
-      "472",
+      "169",
       "294",
       "300",
-      "304",
-      "323",
-      "616",
-      "296",
-      "319",
-      "508",
+      "310",
       "643",
-      "646",
-      "298",
-      "308",
+      "472",
+      "497",
       "116",
-      "293",
-      "327",
       "79",
-      "13",
-      "301",
-      "305",
+      "320",
       "322",
-      "325",
+      "295",
+      "301",
+      "318",
+      "290",
+      "313",
+      "321",
+      "575",
+      "22",
+      "308",
+      "319",
+      "323",
+      "324",
+      "330",
+      "291",
+      "298",
+      "306",
       "329",
-      "497"
+      "312",
+      "326",
+      "224",
+      "577",
+      "309",
+      "317",
+      "287",
+      "296",
+      "307",
+      "325",
+      "616",
+      "292",
+      "303",
+      "305",
+      "304",
+      "285",
+      "297",
+      "299"
     ]
   },
   "201": {
@@ -3308,15 +3308,15 @@
       "200"
     ],
     "relatedAttackPatterns": [
-      "12",
-      "612",
-      "618",
       "621",
       "622",
-      "623",
+      "12",
       "217",
       "613",
-      "619"
+      "618",
+      "612",
+      "619",
+      "623"
     ]
   },
   "202": {
@@ -3344,10 +3344,10 @@
       "203"
     ],
     "relatedAttackPatterns": [
+      "332",
       "541",
       "580",
-      "331",
-      "332"
+      "331"
     ]
   },
   "205": {
@@ -3357,8 +3357,8 @@
       "203"
     ],
     "relatedAttackPatterns": [
-      "541",
-      "580"
+      "580",
+      "541"
     ]
   },
   "206": {
@@ -3384,9 +3384,9 @@
       "203"
     ],
     "relatedAttackPatterns": [
-      "580",
       "462",
-      "541"
+      "541",
+      "580"
     ]
   },
   "209": {
@@ -3503,7 +3503,7 @@
   },
   "221": {
     "name": "Information Loss or Omission",
-    "description": "The product does not record, or improperly records, security-relevant information that leads to an incorrect decision or hampers later analysis. This can be resultant, e.g. a buffer overflow might trigger a crash before the product can log the event.",
+    "description": "The product does not record, or improperly records, security-relevant information that leads to an incorrect decision or hampers later analysis.",
     "childOf": [
       "664"
     ],
@@ -3576,8 +3576,8 @@
       "22"
     ],
     "relatedAttackPatterns": [
-      "76",
-      "139"
+      "139",
+      "76"
     ]
   },
   "230": {
@@ -3813,8 +3813,8 @@
     "name": "Empty Password in Configuration File",
     "description": "Using an empty string as a password is insecure.",
     "childOf": [
-      "521",
-      "260"
+      "260",
+      "521"
     ],
     "relatedAttackPatterns": null
   },
@@ -3859,18 +3859,18 @@
       "1390"
     ],
     "relatedAttackPatterns": [
-      "16",
-      "509",
-      "560",
-      "561",
       "600",
+      "652",
       "653",
+      "70",
       "49",
-      "55",
+      "509",
       "555",
       "565",
-      "652",
-      "70"
+      "16",
+      "55",
+      "560",
+      "561"
     ]
   },
   "263": {
@@ -3880,18 +3880,18 @@
       "1390"
     ],
     "relatedAttackPatterns": [
+      "561",
+      "565",
+      "16",
       "55",
       "555",
       "560",
-      "70",
-      "16",
-      "509",
-      "561",
-      "565",
       "600",
       "652",
       "653",
-      "49"
+      "70",
+      "49",
+      "509"
     ]
   },
   "266": {
@@ -3951,9 +3951,9 @@
       "269"
     ],
     "relatedAttackPatterns": [
+      "17",
       "30",
-      "35",
-      "17"
+      "35"
     ]
   },
   "271": {
@@ -3980,8 +3980,8 @@
     "name": "Improper Check for Dropped Privileges",
     "description": "The product attempts to drop privileges but does not check or incorrectly checks to see if the drop succeeded. If the drop fails, the product will continue to run with the raised privileges, which might provide additional access to unprivileged users.",
     "childOf": [
-      "754",
-      "271"
+      "271",
+      "754"
     ],
     "relatedAttackPatterns": null
   },
@@ -4080,49 +4080,49 @@
     "description": "The product does not restrict or incorrectly restricts access to a resource from an unauthorized actor. Access control involves the use of several protection mechanisms such as: Authentication (proving the identity of an actor) Authorization (ensuring that a given actor can access a resource), and Accountability (tracking of activities that were performed) When any mechanism is not applied or otherwise fails, attackers can compromise the security of the product by gaining privileges, reading sensitive information, executing commands, evading detection, etc. There are two distinct behaviors that can introduce access control weaknesses: Specification: incorrect privileges, permissions, ownership, etc. are explicitly specified for either the user or the resource (for example, setting a password file to be world-writable, or giving administrator capabilities to a guest user). This action could be performed by the program or the administrator. Enforcement: the mechanism contains errors that prevent it from properly enforcing the specified access control requirements (e.g., allowing the user to specify their own privileges, or allowing a syntactically-incorrect ACL to produce insecure settings). This problem occurs within the program itself, in that it does not actually enforce the intended security policy that the administrator specifies.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "479",
-      "562",
-      "578",
-      "503",
-      "564",
       "536",
-      "546",
-      "551",
+      "564",
+      "502",
+      "478",
       "552",
+      "558",
       "563",
       "441",
-      "502",
+      "479",
       "550",
-      "556",
-      "558",
+      "551",
+      "578",
       "19",
-      "478"
+      "546",
+      "556",
+      "562",
+      "503"
     ]
   },
   "285": {
     "name": "Improper Authorization",
-    "description": "The product does not perform or incorrectly performs an authorization check when an actor attempts to access a resource or perform an action. Assuming a user with a given identity, authorization is the process of determining whether that user can access a given resource, based on the user's privileges and any permissions or other access-control specifications that apply to the resource. When access control checks are not applied consistently - or not at all - users are able to access data or perform actions that they should not be allowed to perform. This can lead to a wide range of problems, including information exposures, denial of service, and arbitrary code execution.",
+    "description": "The product does not perform or incorrectly performs an authorization check when an actor attempts to access a resource or perform an action.",
     "childOf": [
       "284"
     ],
     "relatedAttackPatterns": [
-      "127",
-      "51",
-      "60",
-      "104",
-      "59",
-      "647",
-      "668",
-      "13",
-      "5",
-      "76",
-      "87",
-      "45",
       "17",
+      "45",
+      "5",
+      "87",
+      "127",
       "39",
       "402",
-      "77",
-      "1"
+      "668",
+      "76",
+      "104",
+      "51",
+      "59",
+      "60",
+      "647",
+      "1",
+      "13",
+      "77"
     ]
   },
   "286": {
@@ -4140,15 +4140,15 @@
       "284"
     ],
     "relatedAttackPatterns": [
+      "194",
+      "57",
       "633",
       "650",
+      "94",
       "114",
       "115",
       "151",
-      "194",
       "22",
-      "57",
-      "94",
       "593"
     ]
   },
@@ -4186,16 +4186,16 @@
       "1390"
     ],
     "relatedAttackPatterns": [
+      "473",
+      "59",
       "60",
+      "667",
+      "94",
       "22",
       "459",
-      "461",
-      "473",
-      "94",
-      "21",
       "476",
-      "59",
-      "667"
+      "21",
+      "461"
     ]
   },
   "291": {
@@ -4230,16 +4230,16 @@
       "1390"
     ],
     "relatedAttackPatterns": [
+      "102",
       "561",
       "60",
-      "652",
-      "701",
-      "102",
-      "555",
-      "644",
       "645",
       "94",
-      "509"
+      "509",
+      "555",
+      "644",
+      "652",
+      "701"
     ]
   },
   "295": {
@@ -4249,8 +4249,8 @@
       "287"
     ],
     "relatedAttackPatterns": [
-      "459",
-      "475"
+      "475",
+      "459"
     ]
   },
   "296": {
@@ -4275,8 +4275,8 @@
     "name": "Improper Validation of Certificate Expiration",
     "description": "A certificate expiration is not validated or is incorrectly validated, so trust may be assigned to certificates that have been abandoned due to age. When the expiration of a certificate is not taken into account, no trust has necessarily been conveyed through it. Therefore, the validity of the certificate cannot be verified and all benefit of the certificate is lost.",
     "childOf": [
-      "672",
-      "295"
+      "295",
+      "672"
     ],
     "relatedAttackPatterns": null
   },
@@ -4304,14 +4304,14 @@
       "923"
     ],
     "relatedAttackPatterns": [
-      "57",
-      "589",
-      "590",
-      "615",
       "662",
       "466",
+      "590",
       "613",
+      "615",
       "94",
+      "57",
+      "589",
       "612"
     ]
   },
@@ -4333,14 +4333,14 @@
       "807"
     ],
     "relatedAttackPatterns": [
+      "274",
       "31",
       "39",
       "45",
       "77",
       "10",
       "13",
-      "21",
-      "274"
+      "21"
     ]
   },
   "303": {
@@ -4377,11 +4377,11 @@
       "287"
     ],
     "relatedAttackPatterns": [
+      "36",
+      "62",
       "12",
       "166",
-      "216",
-      "36",
-      "62"
+      "216"
     ]
   },
   "307": {
@@ -4392,37 +4392,37 @@
       "799"
     ],
     "relatedAttackPatterns": [
-      "16",
-      "49",
       "560",
       "565",
       "600",
       "652",
-      "653"
+      "653",
+      "16",
+      "49"
     ]
   },
   "308": {
     "name": "Use of Single-factor Authentication",
-    "description": "The use of single-factor authentication can lead to unnecessary risk of compromise when compared with the benefits of a dual-factor authentication scheme. While the use of multiple authentication schemes is simply piling on more complexity on top of authentication, it is inestimably valuable to have such measures of redundancy. The use of weak, reused, and common passwords is rampant on the internet. Without the added protection of multiple authentication schemes, a single mistake can result in the compromise of an account. For this reason, if multiple schemes are possible and also easy to use, they should be implemented and required.",
+    "description": "The product uses an authentication algorithm that uses a single factor (e.g., a password) in a security context that should require more than one factor.",
     "childOf": [
       "1390",
       "654"
     ],
     "relatedAttackPatterns": [
-      "560",
-      "600",
-      "645",
+      "555",
+      "565",
+      "644",
+      "16",
       "49",
       "509",
       "653",
-      "70",
-      "644",
-      "652",
-      "555",
+      "55",
+      "560",
       "561",
-      "565",
-      "16",
-      "55"
+      "652",
+      "600",
+      "645",
+      "70"
     ]
   },
   "309": {
@@ -4433,18 +4433,18 @@
       "654"
     ],
     "relatedAttackPatterns": [
-      "600",
-      "652",
-      "70",
       "49",
-      "55",
-      "560",
       "561",
       "565",
-      "653",
+      "600",
+      "652",
       "16",
       "509",
-      "555"
+      "55",
+      "555",
+      "560",
+      "653",
+      "70"
     ]
   },
   "31": {
@@ -4462,20 +4462,20 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "157",
-      "158",
-      "204",
       "387",
       "477",
+      "609",
+      "65",
+      "204",
+      "384",
+      "388",
+      "383",
+      "385",
+      "31",
       "37",
       "386",
-      "609",
-      "385",
-      "388",
-      "31",
-      "383",
-      "384",
-      "65"
+      "157",
+      "158"
     ]
   },
   "312": {
@@ -4514,10 +4514,10 @@
       "312"
     ],
     "relatedAttackPatterns": [
-      "37",
       "39",
       "74",
-      "31"
+      "31",
+      "37"
     ]
   },
   "316": {
@@ -4554,11 +4554,11 @@
       "311"
     ],
     "relatedAttackPatterns": [
+      "65",
       "102",
       "117",
       "383",
-      "477",
-      "65"
+      "477"
     ]
   },
   "32": {
@@ -4605,6 +4605,7 @@
     "name": "Missing Cryptographic Step",
     "description": "The product does not implement a required step in a cryptographic algorithm, resulting in weaker encryption than advertised by the algorithm.",
     "childOf": [
+      "1240",
       "573"
     ],
     "relatedAttackPatterns": [
@@ -4630,13 +4631,13 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "97",
       "20",
       "459",
       "473",
       "475",
       "608",
-      "614"
+      "614",
+      "97"
     ]
   },
   "328": {
@@ -4675,9 +4676,9 @@
       "693"
     ],
     "relatedAttackPatterns": [
+      "112",
       "485",
-      "59",
-      "112"
+      "59"
     ]
   },
   "331": {
@@ -4810,44 +4811,44 @@
       "693"
     ],
     "relatedAttackPatterns": [
-      "665",
-      "701",
-      "111",
-      "141",
       "142",
-      "148",
       "386",
+      "111",
+      "148",
       "218",
       "384",
       "385",
       "387",
-      "388"
+      "388",
+      "665",
+      "141",
+      "701"
     ]
   },
   "346": {
     "name": "Origin Validation Error",
     "description": "The product does not properly verify that the source of data or communication is valid.",
     "childOf": [
-      "284",
-      "345"
+      "345",
+      "284"
     ],
     "relatedAttackPatterns": [
+      "160",
+      "384",
+      "76",
+      "89",
+      "75",
       "141",
-      "142",
+      "387",
+      "60",
+      "385",
       "386",
       "388",
       "510",
-      "160",
-      "384",
-      "385",
-      "111",
-      "21",
-      "75",
-      "76",
-      "89",
-      "387",
       "59",
-      "60"
+      "111",
+      "142",
+      "21"
     ]
   },
   "347": {
@@ -4868,11 +4869,11 @@
       "345"
     ],
     "relatedAttackPatterns": [
+      "142",
+      "73",
       "76",
       "85",
-      "141",
-      "142",
-      "73"
+      "141"
     ]
   },
   "349": {
@@ -4882,14 +4883,14 @@
       "345"
     ],
     "relatedAttackPatterns": [
-      "75",
       "141",
-      "142"
+      "142",
+      "75"
     ]
   },
   "35": {
     "name": "Path Traversal: '.../...//'",
-    "description": "The product uses external input to construct a pathname that should be within a restricted directory, but it does not properly neutralize '.../...//' (doubled triple dot slash) sequences that can resolve to a location that is outside of that directory. This allows attackers to traverse the file system to access files or directories that are outside of the restricted directory. The '.../...//' manipulation is useful for bypassing some path traversal protection schemes. If \"../\" is filtered in a sequential fashion, as done by some regular expression engines, then \".../...//\" can collapse into the \"../\" unsafe value (CWE-182). Removing the first \"../\" yields \"....//\"; the second removal yields \"../\". Depending on the algorithm, the product could be susceptible to CWE-34 but not CWE-35, or vice versa.",
+    "description": "The product uses external input to construct a pathname that should be within a restricted directory, but it does not properly neutralize '.../...//' (doubled triple dot slash) sequences that can resolve to a location that is outside of that directory.",
     "childOf": [
       "23"
     ],
@@ -4937,13 +4938,13 @@
       "345"
     ],
     "relatedAttackPatterns": [
-      "75",
-      "13",
       "14",
       "389",
       "39",
       "665",
-      "74"
+      "74",
+      "75",
+      "13"
     ]
   },
   "354": {
@@ -5019,7 +5020,7 @@
     "name": "Concurrent Execution using Shared Resource with Improper Synchronization ('Race Condition')",
     "description": "The product contains a concurrent code sequence that requires temporary, exclusive access to a shared resource, but a timing window exists in which the shared resource can be modified by another code sequence operating concurrently. A race condition occurs within concurrent environments, and it is effectively a property of a code sequence. Depending on the context, a code sequence may be in the form of a function call, a small number of instructions, a series of program invocations, etc. A race condition violates these properties, which are closely related: Exclusivity - the code sequence is given exclusive access to the shared resource, i.e., no other code sequence can modify properties of the shared resource before the original sequence has completed execution. Atomicity - the code sequence is behaviorally atomic, i.e., no other thread or process can concurrently execute the same sequence of instructions (or a subset) against the same resource. A race condition exists when an \"interfering code sequence\" can still access the shared resource, violating exclusivity. The interfering code sequence could be \"trusted\" or \"untrusted.\" A trusted interfering code sequence occurs within the product; it cannot be modified by the attacker, and it can only be invoked indirectly. An untrusted interfering code sequence can be authored directly by the attacker, and typically it is external to the vulnerable product.",
     "childOf": [
-      "691"
+      "662"
     ],
     "relatedAttackPatterns": [
       "26",
@@ -5151,8 +5152,8 @@
       "668"
     ],
     "relatedAttackPatterns": [
-      "149",
-      "155"
+      "155",
+      "149"
     ]
   },
   "378": {
@@ -5202,13 +5203,13 @@
       "610"
     ],
     "relatedAttackPatterns": [
+      "39",
+      "59",
+      "60",
       "61",
       "196",
       "21",
-      "31",
-      "39",
-      "59",
-      "60"
+      "31"
     ]
   },
   "385": {
@@ -5257,8 +5258,8 @@
     "name": "Missing Report of Error Condition",
     "description": "The product encounters an error but does not provide a status code or return value to indicate that an error has occurred.",
     "childOf": [
-      "755",
-      "684"
+      "684",
+      "755"
     ],
     "relatedAttackPatterns": null
   },
@@ -5323,9 +5324,9 @@
       "664"
     ],
     "relatedAttackPatterns": [
+      "147",
       "227",
-      "492",
-      "147"
+      "492"
     ]
   },
   "401": {
@@ -5359,13 +5360,13 @@
       "664"
     ],
     "relatedAttackPatterns": [
-      "131",
-      "494",
       "495",
       "496",
       "666",
       "125",
-      "130"
+      "130",
+      "131",
+      "494"
     ]
   },
   "405": {
@@ -5413,7 +5414,9 @@
     "name": "Improper Resolution of Path Equivalence",
     "description": "The product is vulnerable to file system contents disclosure through path equivalence. Path equivalence involves the use of special characters in file and directory names. The associated manipulations are intended to generate multiple names for the same object. Path equivalence is usually employed in order to circumvent access controls expressed using an incomplete set of file name or file path representations. This is different from path traversal, wherein the manipulations are performed to generate a name for a different object.",
     "childOf": [
-      "706"
+      "706",
+      "863",
+      "1390"
     ],
     "relatedAttackPatterns": [
       "3"
@@ -5511,8 +5514,8 @@
     "name": "Unprotected Windows Messaging Channel ('Shatter')",
     "description": "The product does not properly verify the source of a message in the Windows Messaging System while running at elevated privileges, creating an alternate channel through which an attacker can directly send a message to the product.",
     "childOf": [
-      "360",
-      "420"
+      "420",
+      "360"
     ],
     "relatedAttackPatterns": null
   },
@@ -5538,16 +5541,16 @@
     "name": "Direct Request ('Forced Browsing')",
     "description": "The web application does not adequately enforce appropriate authorization on all restricted URLs, scripts, or files. Web applications susceptible to direct request attacks often make the false assumption that such resources can only be reached through a given navigation path and so only apply authorization at certain points in the path.",
     "childOf": [
+      "424",
       "862",
-      "288",
-      "424"
+      "288"
     ],
     "relatedAttackPatterns": [
+      "668",
+      "87",
       "127",
       "143",
-      "144",
-      "668",
-      "87"
+      "144"
     ]
   },
   "426": {
@@ -5568,8 +5571,8 @@
       "668"
     ],
     "relatedAttackPatterns": [
-      "38",
-      "471"
+      "471",
+      "38"
     ]
   },
   "428": {
@@ -5646,9 +5649,9 @@
       "435"
     ],
     "relatedAttackPatterns": [
+      "105",
       "273",
-      "34",
-      "105"
+      "34"
     ]
   },
   "437": {
@@ -5748,8 +5751,8 @@
     "name": "Path Equivalence: 'file...name' (Multiple Internal Dot)",
     "description": "The product accepts path input in the form of multiple internal dot ('file...dir') without appropriate validation, which can lead to ambiguous path resolution and allow an attacker to traverse the file system to unintended locations or access arbitrary files.",
     "childOf": [
-      "165",
-      "44"
+      "44",
+      "165"
     ],
     "relatedAttackPatterns": null
   },
@@ -5934,19 +5937,19 @@
       "664"
     ],
     "relatedAttackPatterns": [
-      "384",
-      "385",
       "386",
       "387",
-      "388"
+      "388",
+      "384",
+      "385"
     ]
   },
   "472": {
     "name": "External Control of Assumed-Immutable Web Parameter",
     "description": "The web application does not sufficiently verify inputs that are assumed to be immutable but are actually externally controllable, such as hidden form fields. If a web product does not properly protect assumed-immutable values from modification in hidden form fields, parameters, cookies, or URLs, this can lead to modification of critical data. Web applications often mistakenly make the assumption that data passed to the client in hidden fields or cookies is not susceptible to tampering. Improper validation of data that are user-controllable can lead to the application processing incorrect, and often malicious, input. For example, custom cookies commonly store session data or persistent data across sessions. This kind of session data is normally involved in security related decisions on the server side, such as user authentication and access control. Thus, the cookies might contain sensitive data such as user credentials and privileges. This is a dangerous practice, as it can often lead to improper reliance on the value of the client-provided cookie by the server side application.",
     "childOf": [
-      "471",
-      "642"
+      "642",
+      "471"
     ],
     "relatedAttackPatterns": [
       "146",
@@ -5985,8 +5988,8 @@
     "name": "NULL Pointer Dereference",
     "description": "The product dereferences a pointer that it expects to be valid but is NULL.",
     "childOf": [
-      "754",
-      "710"
+      "710",
+      "754"
     ],
     "relatedAttackPatterns": null
   },
@@ -6010,8 +6013,8 @@
     "name": "Signal Handler Use of a Non-reentrant Function",
     "description": "The product defines a signal handler that calls a non-reentrant function. Non-reentrant functions are functions that cannot safely be called, interrupted, and then recalled before the first call has finished without resulting in memory corruption. This can lead to an unexpected system state and unpredictable results with a variety of potential consequences depending on context, including denial of service and code execution. Many functions are not reentrant, but some of them can result in the corruption of memory if they are used in a signal handler. The function call syslog() is an example of this. In order to perform its functionality, it allocates a small amount of memory as \"scratch space.\" If syslog() is suspended by a signal call and the signal handler calls syslog(), the memory used by both of these functions enters an undefined, and possibly, exploitable state. Implementations of malloc() and free() manage metadata in global structures in order to track which memory is allocated versus which memory is available, but they are non-reentrant. Simultaneous calls to these functions can cause corruption of the metadata.",
     "childOf": [
-      "828",
-      "663"
+      "663",
+      "828"
     ],
     "relatedAttackPatterns": null
   },
@@ -6143,18 +6146,18 @@
       "669"
     ],
     "relatedAttackPatterns": [
-      "184",
-      "186",
+      "533",
       "538",
+      "187",
+      "185",
+      "186",
+      "657",
       "662",
+      "691",
       "692",
       "693",
-      "695",
-      "185",
-      "187",
-      "533",
-      "657",
-      "691"
+      "184",
+      "695"
     ]
   },
   "495": {
@@ -6356,20 +6359,20 @@
   },
   "521": {
     "name": "Weak Password Requirements",
-    "description": "The product does not require that users should have strong passwords, which makes it easier for attackers to compromise user accounts. Authentication mechanisms often rely on a memorized secret (also known as a password) to provide an assertion of identity for a user of a system. It is therefore important that this password be of sufficient complexity and impractical for an adversary to guess. The specific requirements around how complex a password needs to be depends on the type of system being protected. Selecting the correct password requirements and enforcing them through implementation are critical to the overall success of the authentication mechanism.",
+    "description": "The product does not require that users should have strong passwords.",
     "childOf": [
       "1391"
     ],
     "relatedAttackPatterns": [
-      "49",
-      "555",
-      "70",
       "112",
+      "49",
+      "55",
+      "555",
+      "565",
+      "70",
       "16",
       "509",
-      "55",
-      "561",
-      "565"
+      "561"
     ]
   },
   "522": {
@@ -6380,19 +6383,19 @@
       "668"
     ],
     "relatedAttackPatterns": [
-      "50",
+      "102",
       "509",
       "555",
       "561",
-      "652",
-      "474",
-      "551",
-      "560",
-      "600",
+      "653",
       "644",
       "645",
-      "653",
-      "102"
+      "652",
+      "474",
+      "50",
+      "551",
+      "560",
+      "600"
     ]
   },
   "523": {
@@ -6514,7 +6517,7 @@
   },
   "536": {
     "name": "Servlet Runtime Error Message Containing Sensitive Information",
-    "description": "A servlet error message indicates that there exists an unhandled exception in your web application code and may provide useful information to an attacker.",
+    "description": "A servlet error message indicates that there exists an unhandled exception in the web application code and may provide useful information to an attacker.",
     "childOf": [
       "211"
     ],
@@ -6545,11 +6548,11 @@
       "552"
     ],
     "relatedAttackPatterns": [
-      "59",
-      "60",
       "21",
       "31",
-      "39"
+      "39",
+      "59",
+      "60"
     ]
   },
   "54": {
@@ -6666,12 +6669,12 @@
     "name": "Files or Directories Accessible to External Parties",
     "description": "The product makes files or directories accessible to unauthorized actors, even though they should not be. Web servers, FTP servers, and similar servers may store a set of files underneath a \"root\" directory that is accessible to the server's users. Applications may store sensitive files underneath this root without also using access control to limit which users may request those files, if any. Alternately, an application might package multiple files or directories into an archive file (e.g., ZIP or tar), but the application might not exclude sensitive files that are underneath those directories. In cloud technologies and containers, this weakness might present itself in the form of misconfigured storage accounts that can be read or written by a public or anonymous user.",
     "childOf": [
-      "285",
-      "668"
+      "668",
+      "285"
     ],
     "relatedAttackPatterns": [
-      "639",
-      "150"
+      "150",
+      "639"
     ]
   },
   "553": {
@@ -6898,7 +6901,7 @@
   },
   "58": {
     "name": "Path Equivalence: Windows 8.3 Filename",
-    "description": "The product contains a protection mechanism that restricts access to a long filename on a Windows operating system, but it does not properly restrict access to the equivalent short \"8.3\" filename. On later Windows operating systems, a file can have a \"long name\" and a short name that is compatible with older Windows file systems, with up to 8 characters in the filename and 3 characters for the extension. These \"8.3\" filenames, therefore, act as an alternate name for files with long names, so they are useful pathname equivalence manipulations.",
+    "description": "The product contains a protection mechanism that restricts access to a long filename on a Windows operating system, but it does not properly restrict access to the equivalent short \"8.3\" filename.",
     "childOf": [
       "41"
     ],
@@ -7062,8 +7065,8 @@
     "name": "Use of Wrong Operator in String Comparison",
     "description": "The product uses the wrong operator when comparing a string, such as using \"==\" when the .equals() method should be used instead. In Java, using == or != to compare two strings for equality actually compares two objects for equality rather than their string values for equality. Chances are good that the two references will never be equal. While this weakness often only affects program correctness, if the equality is used for a security decision, the unintended comparison result could be leveraged to affect program security.",
     "childOf": [
-      "480",
-      "595"
+      "595",
+      "480"
     ],
     "relatedAttackPatterns": null
   },
@@ -7090,8 +7093,8 @@
       "334"
     ],
     "relatedAttackPatterns": [
-      "59",
-      "21"
+      "21",
+      "59"
     ]
   },
   "600": {
@@ -7119,26 +7122,26 @@
       "693"
     ],
     "relatedAttackPatterns": [
+      "202",
       "208",
       "31",
+      "388",
+      "162",
+      "21",
       "383",
       "384",
       "385",
-      "162",
-      "207",
-      "21",
       "386",
       "387",
-      "388",
-      "202"
+      "207"
     ]
   },
   "603": {
     "name": "Use of Client-Side Authentication",
     "description": "A client/server product performs authentication within client code but not in server code, allowing server-side authentication to be bypassed via a modified client that omits the authentication check. Client-side authentication is extremely weak and may be breached easily. Any attacker may read the source code and reverse-engineer the authentication mechanism to access parts of the application which would otherwise be protected.",
     "childOf": [
-      "1390",
-      "602"
+      "602",
+      "1390"
     ],
     "relatedAttackPatterns": null
   },
@@ -7205,7 +7208,7 @@
   },
   "611": {
     "name": "Improper Restriction of XML External Entity Reference",
-    "description": "The product processes an XML document that can contain XML entities with URIs that resolve to documents outside of the intended sphere of control, causing the product to embed incorrect documents into its output. XML documents optionally contain a Document Type Definition (DTD), which, among other features, enables the definition of XML entities. It is possible to define an entity by providing a substitution string in the form of a URI. The XML parser can access the contents of this URI and embed these contents back into the XML document for further processing. By submitting an XML file that defines an external entity with a file:// URI, an attacker can cause the processing application to read the contents of a local file. For example, a URI such as \"file:///c:/winnt/win.ini\" designates (in Windows) the file C:\\Winnt\\win.ini, or file:///etc/passwd designates the password file in Unix-based systems. Using URIs with other schemes such as http://, the attacker can force the application to make outgoing requests to servers that the attacker cannot reach directly, which can be used to bypass firewall restrictions or hide the source of attacks such as port scanning. Once the content of the URI is read, it is fed back into the application that is processing the XML. This application may echo back the data (e.g. in an error message), thereby exposing the file contents.",
+    "description": "The product processes an XML document that can contain XML entities with URIs that resolve to documents outside of the intended sphere of control, causing the product to embed incorrect documents into its output.",
     "childOf": [
       "610"
     ],
@@ -7259,7 +7262,7 @@
     "name": "Reachable Assertion",
     "description": "The product contains an assert() or similar statement that can be triggered by an attacker, which leads to an application exit or other behavior that is more severe than necessary. While assertion is good for catching logic errors and reducing the chances of reaching more serious vulnerability conditions, it can still lead to a denial of service. For example, if a server handles multiple simultaneous connections, and an assert() occurs in one single connection that causes all other connections to be dropped, this is a reachable assertion that leads to a denial of service.",
     "childOf": [
-      "670"
+      "705"
     ],
     "relatedAttackPatterns": null
   },
@@ -7339,8 +7342,8 @@
     "name": "Null Byte Interaction Error (Poison Null Byte)",
     "description": "The product does not properly handle null bytes or NUL characters when passing data between different representations or components. A null byte (NUL character) can have different meanings across representations or languages. For example, it is a string terminator in standard C libraries, but Perl and PHP strings do not treat it as a terminator. When two representations are crossed - such as when Perl or PHP invokes underlying C functionality - this can produce an interaction error with unexpected results. Similar issues have been reported for ASP. Other interpreters written in C might also be affected. The poison null byte is frequently useful in path traversal attacks by terminating hard-coded extensions that are added to a filename. It can play a role in regular expression processing in PHP.",
     "childOf": [
-      "436",
-      "147"
+      "147",
+      "436"
     ],
     "relatedAttackPatterns": null
   },
@@ -7398,7 +7401,7 @@
   },
   "64": {
     "name": "Windows Shortcut Following (.LNK)",
-    "description": "The product, when opening a file or directory, does not sufficiently handle when the file is a Windows shortcut (.LNK) whose target is outside of the intended control sphere. This could allow an attacker to cause the product to operate on unauthorized files. The shortcut (file with the .lnk extension) can permit an attacker to read/write a file that they originally did not have permissions to access.",
+    "description": "The product, when opening a file or directory, does not sufficiently handle when the file is a Windows shortcut (.LNK) whose target is outside of the intended control sphere. This could allow an attacker to cause the product to operate on unauthorized files.",
     "childOf": [
       "59"
     ],
@@ -7474,7 +7477,8 @@
     "name": "Use of Non-Canonical URL Paths for Authorization Decisions",
     "description": "The product defines policy namespaces and makes authorization decisions based on the assumption that a URL is canonical. This can allow a non-canonical URL to bypass the authorization. If an application defines policy namespaces and makes authorization decisions based on the URL, but it does not require or convert to a canonical URL before making the authorization decision, then it opens the application to attack. For example, if the application only wants to allow access to http://www.example.com/mypage, then the attacker might be able to bypass this restriction using equivalent URLs such as: http://WWW.EXAMPLE.COM/mypage http://www.example.com/%6Dypage (alternate encoding) http://192.168.1.1/mypage (IP address) http://www.example.com/mypage/ (trailing /) http://www.example.com:80/mypage Therefore it is important to specify access control policy that is based on the path information in some canonical form with all alternate encodings rejected (which can be accomplished by a default deny rule).",
     "childOf": [
-      "863"
+      "863",
+      "180"
     ],
     "relatedAttackPatterns": null
   },
@@ -7527,8 +7531,8 @@
     "name": "Improper Neutralization of Data within XQuery Expressions ('XQuery Injection')",
     "description": "The product uses external input to dynamically construct an XQuery expression used to retrieve data from an XML database, but it does not neutralize or incorrectly neutralizes that input. This allows an attacker to control the structure of the query. The net effect is that the attacker will have control over the information selected from the XML database and may use that ability to control application flow, modify logic, retrieve unauthorized data, or bypass important checks (e.g. authentication).",
     "childOf": [
-      "91",
-      "943"
+      "943",
+      "91"
     ],
     "relatedAttackPatterns": null
   },
@@ -7545,28 +7549,28 @@
     "name": "Reliance on a Single Factor in a Security Decision",
     "description": "A protection mechanism relies exclusively, or to a large extent, on the evaluation of a single condition or the integrity of a single object or entity in order to make a decision about granting access to restricted resources or functionality.",
     "childOf": [
-      "657",
-      "693"
+      "693",
+      "657"
     ],
     "relatedAttackPatterns": [
-      "600",
-      "652",
-      "565",
       "274",
-      "49",
-      "55",
       "560",
       "653",
       "70",
-      "16"
+      "16",
+      "49",
+      "55",
+      "565",
+      "600",
+      "652"
     ]
   },
   "655": {
     "name": "Insufficient Psychological Acceptability",
     "description": "The product has a protection mechanism that is too difficult or inconvenient to use, encouraging non-malicious users to disable or bypass the mechanism, whether by accident or on purpose.",
     "childOf": [
-      "693",
-      "657"
+      "657",
+      "693"
     ],
     "relatedAttackPatterns": null
   },
@@ -7597,16 +7601,16 @@
   },
   "662": {
     "name": "Improper Synchronization",
-    "description": "The product utilizes multiple threads or processes to allow temporary access to a shared resource that can only be exclusive to one process at a time, but it does not properly synchronize these actions, which might cause simultaneous accesses of this resource by multiple threads or processes. Synchronization refers to a variety of behaviors and mechanisms that allow two or more independently-operating processes or threads to ensure that they operate on shared resources in predictable ways that do not interfere with each other. Some shared resource operations cannot be executed atomically; that is, multiple steps must be guaranteed to execute sequentially, without any interference by other processes. Synchronization mechanisms vary widely, but they may include locking, mutexes, and semaphores. When a multi-step operation on a shared resource cannot be guaranteed to execute independent of interference, then the resulting behavior can be unpredictable. Improper synchronization could lead to data or memory corruption, denial of service, etc.",
+    "description": "The product utilizes multiple threads, processes, components, or systems to allow temporary access to a shared resource that can only be exclusive to one process at a time, but it does not properly synchronize these actions, which might cause simultaneous accesses of this resource by multiple threads or processes. Synchronization refers to a variety of behaviors and mechanisms that allow two or more independently-operating processes or threads to ensure that they operate on shared resources in predictable ways that do not interfere with each other. Some shared resource operations cannot be executed atomically; that is, multiple steps must be guaranteed to execute sequentially, without any interference by other processes. Synchronization mechanisms vary widely, but they may include locking, mutexes, and semaphores. When a multi-step operation on a shared resource cannot be guaranteed to execute independent of interference, then the resulting behavior can be unpredictable. Improper synchronization could lead to data or memory corruption, denial of service, etc.",
     "childOf": [
-      "664",
-      "691"
+      "691",
+      "664"
     ],
     "relatedAttackPatterns": [
-      "27",
-      "29",
       "25",
-      "26"
+      "26",
+      "27",
+      "29"
     ]
   },
   "663": {
@@ -7624,11 +7628,11 @@
     "description": "The product does not maintain or incorrectly maintains control over a resource throughout its lifetime of creation, use, and release. Resources often have explicit instructions on how to be created, used and destroyed. When code does not follow these instructions, it can lead to unexpected behaviors and potentially exploitable states. Even without explicit instructions, various principles are expected to be adhered to, such as \"Do not use an object until after its creation is complete,\" or \"do not use an object after it has been slated for destruction.\"",
     "childOf": null,
     "relatedAttackPatterns": [
-      "61",
-      "62",
       "196",
       "21",
-      "60"
+      "60",
+      "61",
+      "62"
     ]
   },
   "665": {
@@ -7752,17 +7756,17 @@
       "190"
     ],
     "relatedAttackPatterns": [
-      "10",
-      "46",
       "9",
-      "92",
       "100",
       "14",
-      "24",
       "45",
+      "46",
       "47",
       "67",
-      "8"
+      "8",
+      "92",
+      "10",
+      "24"
     ]
   },
   "681": {
@@ -7837,8 +7841,8 @@
       "362"
     ],
     "relatedAttackPatterns": [
-      "27",
-      "26"
+      "26",
+      "27"
     ]
   },
   "69": {
@@ -7874,11 +7878,11 @@
       "184"
     ],
     "relatedAttackPatterns": [
+      "85",
       "120",
       "267",
       "71",
-      "80",
-      "85"
+      "80"
     ]
   },
   "693": {
@@ -7886,22 +7890,22 @@
     "description": "The product does not use or incorrectly uses a protection mechanism that provides sufficient defense against directed attacks against the product. This weakness covers three distinct situations. A \"missing\" protection mechanism occurs when the application does not define any mechanism against a certain class of attack. An \"insufficient\" protection mechanism might provide some defenses - for example, against the most common attacks - but it does not protect against everything that is intended. Finally, an \"ignored\" mechanism occurs when a mechanism is available and in active use within the product, but the developer has not applied it in some code path.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "36",
-      "477",
-      "51",
-      "87",
-      "1",
-      "17",
-      "237",
       "74",
-      "20",
-      "22",
-      "57",
-      "127",
-      "668",
-      "65",
       "107",
+      "17",
+      "477",
+      "668",
+      "22",
+      "237",
+      "65",
       "480",
+      "57",
+      "1",
+      "127",
+      "20",
+      "87",
+      "36",
+      "51",
       "59"
     ]
   },
@@ -7926,7 +7930,7 @@
   },
   "696": {
     "name": "Incorrect Behavior Order",
-    "description": "The product performs multiple related behaviors, but the behaviors are performed in the wrong order in ways which may produce resultant weaknesses.",
+    "description": "The product performs multiple related behaviors, but the behaviors are performed in the wrong order in ways that may produce resultant weaknesses.",
     "childOf": [
       "691"
     ],
@@ -7936,46 +7940,46 @@
   },
   "697": {
     "name": "Incorrect Comparison",
-    "description": "The product compares two entities in a security-relevant context, but the comparison is incorrect, which may lead to resultant weaknesses. This Pillar covers several possibilities: the comparison checks one factor incorrectly; the comparison should consider multiple factors, but it does not check at least one of those factors at all; the comparison checks the wrong factor.",
+    "description": "The product compares two entities in a security-relevant context, but the comparison is incorrect. This Pillar covers several possibilities: the comparison checks one factor incorrectly; the comparison should consider multiple factors, but it does not check at least one of those factors at all; the comparison checks the wrong factor.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "79",
-      "14",
-      "53",
-      "73",
-      "71",
-      "8",
-      "78",
-      "120",
-      "24",
-      "43",
-      "9",
-      "15",
-      "47",
-      "67",
-      "10",
-      "46",
-      "80",
-      "92",
-      "41",
-      "44",
-      "45",
-      "64",
-      "7",
-      "182",
       "267",
       "52",
+      "7",
+      "88",
+      "44",
+      "45",
+      "53",
+      "73",
+      "24",
+      "78",
       "3",
+      "46",
       "6",
-      "88"
+      "71",
+      "43",
+      "80",
+      "9",
+      "92",
+      "14",
+      "15",
+      "41",
+      "67",
+      "10",
+      "64",
+      "79",
+      "8",
+      "120",
+      "182",
+      "47"
     ]
   },
   "698": {
     "name": "Execution After Redirect (EAR)",
     "description": "The web application sends a redirect to another location, but instead of exiting, it executes additional code.",
     "childOf": [
-      "670",
-      "705"
+      "705",
+      "670"
     ],
     "relatedAttackPatterns": null
   },
@@ -8016,10 +8020,10 @@
       "664"
     ],
     "relatedAttackPatterns": [
+      "641",
       "159",
       "177",
-      "48",
-      "641"
+      "48"
     ]
   },
   "707": {
@@ -8027,22 +8031,22 @@
     "description": "The product does not ensure or incorrectly ensures that structured messages or data are well-formed and that certain security properties are met before being read from an upstream component or sent to a downstream component. If a message is malformed, it may cause the message to be incorrectly interpreted. Neutralization is an abstract term for any technique that ensures that input (and output) conforms with expectations and is \"safe.\" This can be done by: checking that the input/output is already \"safe\" (e.g. validation) transformation of the input/output to be \"safe\" using techniques such as filtering, encoding/decoding, escaping/unescaping, quoting/unquoting, or canonicalization preventing the input/output from being directly provided by an attacker (e.g. \"indirect selection\" that maps externally-provided values to internally-controlled values) preventing the input/output from being processed at all This weakness typically applies in cases where the product prepares a control message that another process must act on, such as a command or query, and malicious input that was intended as data, can enter the control plane instead. However, this weakness also applies to more general cases where there are not always control implications.",
     "childOf": null,
     "relatedAttackPatterns": [
-      "276",
-      "3",
-      "53",
-      "78",
-      "79",
-      "279",
       "250",
+      "468",
       "278",
+      "3",
+      "64",
+      "276",
+      "277",
+      "53",
+      "79",
+      "83",
+      "279",
       "43",
       "52",
       "7",
-      "84",
-      "277",
-      "468",
-      "64",
-      "83"
+      "78",
+      "84"
     ]
   },
   "708": {
@@ -8081,14 +8085,14 @@
       "610"
     ],
     "relatedAttackPatterns": [
-      "72",
-      "76",
       "78",
       "79",
       "80",
       "13",
       "267",
-      "64"
+      "64",
+      "72",
+      "76"
     ]
   },
   "732": {
@@ -8100,16 +8104,16 @@
     ],
     "relatedAttackPatterns": [
       "62",
-      "642",
       "1",
-      "61",
+      "122",
+      "127",
       "17",
+      "61",
+      "642",
       "180",
       "206",
       "234",
-      "60",
-      "122",
-      "127"
+      "60"
     ]
   },
   "733": {
@@ -8119,57 +8123,57 @@
       "1038"
     ],
     "relatedAttackPatterns": [
-      "9",
-      "10",
       "24",
       "46",
-      "8"
+      "8",
+      "9",
+      "10"
     ]
   },
   "74": {
     "name": "Improper Neutralization of Special Elements in Output Used by a Downstream Component ('Injection')",
-    "description": "The product constructs all or part of a command, data structure, or record using externally-influenced input from an upstream component, but it does not neutralize or incorrectly neutralizes special elements that could modify how it is parsed or interpreted when it is sent to a downstream component. Software or other automated logic has certain assumptions about what constitutes data and control respectively. It is the lack of verification of these assumptions for user-controlled input that leads to injection problems. Injection problems encompass a wide variety of issues -- all mitigated in very different ways and usually attempted in order to alter the control flow of the process. For this reason, the most effective way to discuss these weaknesses is to note the distinct features that classify them as injection weaknesses. The most important issue to note is that all injection problems share one thing in common -- i.e., they allow for the injection of control plane data into the user-controlled data plane. This means that the execution of the process may be altered by sending code in through legitimate data channels, using no other mechanism. While buffer overflows, and many other flaws, involve the use of some further issue to gain execution, injection problems need only for the data to be parsed.",
+    "description": "The product constructs all or part of a command, data structure, or record using externally-influenced input from an upstream component, but it does not neutralize or incorrectly neutralizes special elements that could modify how it is parsed or interpreted when it is sent to a downstream component.",
     "childOf": [
       "707"
     ],
     "relatedAttackPatterns": [
-      "72",
-      "8",
       "14",
-      "250",
-      "6",
-      "83",
-      "10",
-      "101",
-      "105",
-      "108",
-      "7",
-      "120",
-      "24",
+      "43",
       "47",
-      "53",
-      "67",
+      "8",
+      "105",
+      "135",
+      "51",
+      "6",
+      "7",
+      "10",
+      "273",
+      "46",
       "71",
-      "76",
-      "79",
       "80",
+      "250",
+      "42",
+      "52",
+      "72",
+      "34",
+      "76",
+      "78",
+      "83",
       "84",
       "9",
+      "108",
+      "24",
+      "64",
+      "67",
+      "53",
+      "101",
+      "120",
       "13",
       "267",
       "28",
-      "34",
-      "42",
-      "78",
-      "45",
-      "46",
-      "51",
-      "52",
-      "64",
-      "135",
-      "273",
       "3",
-      "43"
+      "45",
+      "79"
     ]
   },
   "749": {
@@ -8298,8 +8302,8 @@
     "name": "Multiple Unlocks of a Critical Resource",
     "description": "The product unlocks a critical resource more times than intended, leading to an unexpected state in the system. When the product is operating in a concurrent environment and repeatedly unlocks a critical resource, the consequences will vary based on the type of lock, the lock's implementation, and the resource being protected. In some situations such as with semaphores, the resources are pooled and extra calls to unlock will increase the count for the number of available resources, likely resulting in a crash or unpredictable behavior when the system nears capacity.",
     "childOf": [
-      "675",
-      "667"
+      "667",
+      "675"
     ],
     "relatedAttackPatterns": null
   },
@@ -8341,14 +8345,14 @@
       "74"
     ],
     "relatedAttackPatterns": [
-      "40",
-      "43",
-      "75",
       "76",
       "136",
       "15",
       "183",
-      "248"
+      "248",
+      "40",
+      "43",
+      "75"
     ]
   },
   "770": {
@@ -8359,25 +8363,25 @@
       "665"
     ],
     "relatedAttackPatterns": [
-      "488",
       "528",
-      "125",
-      "147",
-      "469",
-      "487",
-      "482",
-      "495",
-      "491",
-      "493",
-      "494",
-      "496",
-      "197",
-      "229",
-      "230",
-      "486",
       "130",
+      "482",
+      "486",
+      "491",
+      "494",
+      "488",
+      "125",
+      "197",
+      "230",
       "231",
+      "469",
+      "147",
       "489",
+      "493",
+      "495",
+      "496",
+      "229",
+      "487",
       "490"
     ]
   },
@@ -8508,8 +8512,8 @@
     "name": "Reliance on Cookies without Validation and Integrity Checking in a Security Decision",
     "description": "The product uses a protection mechanism that relies on the existence or values of a cookie, but it does not properly ensure that the cookie is valid for the associated user. Attackers can easily modify cookies, within the browser or by implementing the client-side code outside of the browser. Attackers can bypass protection mechanisms such as authorization and authentication by modifying the cookie to contain an expected value.",
     "childOf": [
-      "565",
-      "807"
+      "807",
+      "565"
     ],
     "relatedAttackPatterns": null
   },
@@ -8517,8 +8521,8 @@
     "name": "Use of Path Manipulation Function without Maximum-sized Buffer",
     "description": "The product invokes a function for normalizing paths or file names, but it provides an output buffer that is smaller than the maximum possible size, such as PATH_MAX. Passing an inadequately-sized output buffer to a path manipulation function can result in a buffer overflow. Such functions include realpath(), readlink(), PathAppend(), and others.",
     "childOf": [
-      "120",
-      "676"
+      "676",
+      "120"
     ],
     "relatedAttackPatterns": null
   },
@@ -8561,12 +8565,12 @@
       "74"
     ],
     "relatedAttackPatterns": [
+      "63",
       "85",
       "209",
       "588",
       "591",
-      "592",
-      "63"
+      "592"
     ]
   },
   "790": {
@@ -8637,9 +8641,9 @@
     "name": "Use of Hard-coded Credentials",
     "description": "The product contains hard-coded credentials, such as a password or cryptographic key. There are two main variations: Inbound: the product contains an authentication mechanism that checks the input credentials against a hard-coded set of credentials. In this variant, a default administration account is created, and a simple password is hard-coded into the product and associated with that account. This hard-coded password is the same for each installation of the product, and it usually cannot be changed or disabled by system administrators without manually modifying the program, or otherwise patching the product. It can also be difficult for the administrator to detect. Outbound: the product connects to another system or component, and it contains hard-coded credentials for connecting to that component. This variant applies to front-end systems that authenticate with a back-end service. The back-end service may require a fixed password that can be easily discovered. The programmer may simply hard-code those back-end credentials into the front-end product.",
     "childOf": [
-      "671",
       "1391",
-      "344"
+      "344",
+      "671"
     ],
     "relatedAttackPatterns": [
       "191",
@@ -8669,10 +8673,10 @@
       "79"
     ],
     "relatedAttackPatterns": [
-      "86",
       "18",
       "193",
-      "32"
+      "32",
+      "86"
     ]
   },
   "804": {
@@ -8809,24 +8813,24 @@
   },
   "829": {
     "name": "Inclusion of Functionality from Untrusted Control Sphere",
-    "description": "The product imports, requires, or includes executable functionality (such as a library) from a source that is outside of the intended control sphere. When including third-party functionality, such as a web widget, library, or other source of functionality, the product must effectively trust that functionality. Without sufficient protection mechanisms, the functionality could be malicious in nature (either by coming from an untrusted source, being spoofed, or being modified in transit from a trusted source). The functionality might also contain its own weaknesses, or grant access to additional functionality and state information that should be kept private to the base system, such as system state information, sensitive application data, or the DOM of a web application. This might lead to many different consequences depending on the included functionality, but some examples include injection of malware, information exposure by granting excessive privileges or permissions to the untrusted functionality, DOM-based XSS vulnerabilities, stealing user's cookies, or open redirect to malware (CWE-601).",
+    "description": "The product imports, requires, or includes executable functionality (such as a library) from a source that is outside of the intended control sphere.",
     "childOf": [
       "669"
     ],
     "relatedAttackPatterns": [
-      "640",
-      "660",
-      "698",
-      "251",
-      "253",
       "263",
-      "252",
-      "538",
       "549",
+      "640",
       "695",
-      "175",
+      "698",
       "201",
-      "228"
+      "228",
+      "252",
+      "253",
+      "538",
+      "660",
+      "175",
+      "251"
     ]
   },
   "83": {
@@ -8836,9 +8840,9 @@
       "79"
     ],
     "relatedAttackPatterns": [
+      "588",
       "243",
-      "244",
-      "588"
+      "244"
     ]
   },
   "830": {
@@ -9018,11 +9022,11 @@
       "77"
     ],
     "relatedAttackPatterns": [
-      "41",
       "460",
       "88",
       "137",
-      "174"
+      "174",
+      "41"
     ]
   },
   "89": {
@@ -9032,12 +9036,12 @@
       "943"
     ],
     "relatedAttackPatterns": [
-      "66",
-      "7",
       "108",
       "109",
       "110",
-      "470"
+      "470",
+      "66",
+      "7"
     ]
   },
   "9": {
@@ -9202,10 +9206,10 @@
       "284"
     ],
     "relatedAttackPatterns": [
-      "161",
-      "481",
       "501",
-      "697"
+      "697",
+      "161",
+      "481"
     ]
   },
   "924": {
@@ -9238,8 +9242,8 @@
     "name": "Use of Implicit Intent for Sensitive Communication",
     "description": "The Android application uses an implicit intent for transmitting sensitive data to other applications. Since an implicit intent does not specify a particular application to receive the data, any application can process the intent by using an Intent Filter for that intent. This can allow untrusted applications to obtain sensitive data. There are two variations on the standard broadcast intent, ordered and sticky. Ordered broadcast intents are delivered to a series of registered receivers in order of priority as declared by the Receivers. A malicious receiver can give itself a high priority and cause a denial of service by stopping the broadcast from propagating further down the chain. There is also the possibility of malicious data modification, as a receiver may also alter the data within the Intent before passing it on to the next receiver. The downstream components have no way of asserting that the data has not been altered earlier in the chain. Sticky broadcast intents remain accessible after the initial broadcast. An old sticky intent will be broadcast again to any new receivers that register for it in the future, greatly increasing the chances of information exposure over time. Also, sticky broadcasts cannot be protected by permissions that may apply to other kinds of intents. In addition, any broadcast intent may include a URI that references data that the receiving component does not normally have the privileges to access. The sender of the intent can include special privileges that grant the receiver read or write access to the specific URI included in the intent. A malicious receiver that intercepts this intent will also gain those privileges and be able to read or write the resource at the specified URI.",
     "childOf": [
-      "285",
-      "668"
+      "668",
+      "285"
     ],
     "relatedAttackPatterns": null
   },
@@ -9258,6 +9262,7 @@
     "name": "Improper Authorization in Handler for Custom URL Scheme",
     "description": "The product uses a handler for a custom URL scheme, but it does not properly restrict which actors can invoke the handler using the scheme. Mobile platforms and other architectures allow the use of custom URL schemes to facilitate communication between applications. In the case of iOS, this is the only method to do inter-application communication. The implementation is at the developer's discretion which may open security flaws in the application. An example could be potentially dangerous functionality such as modifying files through a custom URL scheme.",
     "childOf": [
+      "940",
       "862"
     ],
     "relatedAttackPatterns": null
@@ -9283,10 +9288,10 @@
       "346"
     ],
     "relatedAttackPatterns": [
+      "500",
       "594",
       "595",
-      "596",
-      "500"
+      "596"
     ]
   },
   "941": {
@@ -9356,8 +9361,8 @@
     "name": "Improper Control of Filename for Include/Require Statement in PHP Program ('PHP Remote File Inclusion')",
     "description": "The PHP application receives input from an upstream component, but it does not restrict or incorrectly restricts the input before its usage in \"require,\" \"include,\" or similar functions. In certain versions and configurations of PHP, this can allow an attacker to specify a URL to a remote location from which the product will obtain the code to execute. In other cases in association with path traversal, the attacker can specify a local file that may contain executable statements that can be parsed by PHP.",
     "childOf": [
-      "706",
-      "829"
+      "829",
+      "706"
     ],
     "relatedAttackPatterns": [
       "193"
@@ -9370,9 +9375,9 @@
       "74"
     ],
     "relatedAttackPatterns": [
+      "10",
       "240",
-      "75",
-      "10"
+      "75"
     ]
   }
 }

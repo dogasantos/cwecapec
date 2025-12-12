@@ -1036,7 +1036,7 @@
     },
     "1116": {
       "id": "1116",
-      "name": "Inaccurate Comments",
+      "name": "Inaccurate Source Code Comments",
       "abstraction": "Base",
       "parents": [
         "1078"
@@ -1339,6 +1339,7 @@
       "abstraction": "Base",
       "parents": [
         "1419",
+        "344",
         "665"
       ],
       "children": [
@@ -1705,7 +1706,9 @@
       "parents": [
         "327"
       ],
-      "children": [],
+      "children": [
+        "325"
+      ],
       "attack_vectors": []
     },
     "1241": {
@@ -1905,8 +1908,7 @@
       "name": "Exposure of Sensitive System Information Due to Uncleared Debug Information",
       "abstraction": "Base",
       "parents": [
-        "212",
-        "200"
+        "212"
       ],
       "children": [],
       "attack_vectors": []
@@ -1990,7 +1992,7 @@
       "name": "Unintended Reentrant Invocation of Non-reentrant Code Via Nested Calls",
       "abstraction": "Base",
       "parents": [
-        "691"
+        "662"
       ],
       "children": [],
       "attack_vectors": []
@@ -2020,7 +2022,7 @@
       "name": "Policy Privileges are not Assigned Consistently Between Control and Data Agents",
       "abstraction": "Base",
       "parents": [
-        "284"
+        "266"
       ],
       "children": [],
       "attack_vectors": []
@@ -2960,6 +2962,7 @@
         "307",
         "308",
         "309",
+        "41",
         "522",
         "593",
         "603",
@@ -3613,7 +3616,9 @@
       "parents": [
         "179"
       ],
-      "children": [],
+      "children": [
+        "647"
+      ],
       "attack_vectors": []
     },
     "181": {
@@ -3871,7 +3876,6 @@
         "668"
       ],
       "children": [
-        "1258",
         "1273",
         "1295",
         "1431",
@@ -4660,6 +4664,7 @@
       ],
       "children": [
         "1022",
+        "1268",
         "520",
         "556",
         "9"
@@ -4894,7 +4899,6 @@
         "1262",
         "1263",
         "1267",
-        "1268",
         "1270",
         "1274",
         "1276",
@@ -5463,6 +5467,7 @@
       "name": "Missing Cryptographic Step",
       "abstraction": "Base",
       "parents": [
+        "1240",
         "573"
       ],
       "children": [],
@@ -5726,6 +5731,7 @@
         "330"
       ],
       "children": [
+        "1188",
         "323",
         "587",
         "798"
@@ -5958,7 +5964,7 @@
       "name": "Concurrent Execution using Shared Resource with Improper Synchronization ('Race Condition')",
       "abstraction": "Class",
       "parents": [
-        "691"
+        "662"
       ],
       "children": [
         "1223",
@@ -6484,7 +6490,9 @@
       "name": "Improper Resolution of Path Equivalence",
       "abstraction": "Base",
       "parents": [
-        "706"
+        "706",
+        "863",
+        "1390"
       ],
       "children": [
         "42",
@@ -8796,7 +8804,7 @@
       "name": "Reachable Assertion",
       "abstraction": "Base",
       "parents": [
-        "670",
+        "705",
         "670"
       ],
       "children": [],
@@ -9078,7 +9086,8 @@
       "name": "Use of Non-Canonical URL Paths for Authorization Decisions",
       "abstraction": "Variant",
       "parents": [
-        "863"
+        "863",
+        "180"
       ],
       "children": [],
       "attack_vectors": []
@@ -9244,6 +9253,8 @@
         "1058",
         "1096",
         "1096",
+        "1265",
+        "362",
         "366",
         "366",
         "543",
@@ -9470,7 +9481,6 @@
         "480",
         "483",
         "484",
-        "617",
         "617",
         "698",
         "783"
@@ -9740,9 +9750,7 @@
       "abstraction": "Pillar",
       "parents": [],
       "children": [
-        "1265",
         "1281",
-        "362",
         "430",
         "431",
         "662",
@@ -9943,6 +9951,7 @@
         "397",
         "455",
         "584",
+        "617",
         "698"
       ],
       "attack_vectors": []
@@ -11178,7 +11187,7 @@
     "841": {
       "id": "841",
       "name": "Improper Enforcement of Behavioral Workflow",
-      "abstraction": "Base",
+      "abstraction": "Class",
       "parents": [
         "691"
       ],
@@ -11256,6 +11265,7 @@
       ],
       "children": [
         "1244",
+        "41",
         "551",
         "639",
         "639",
@@ -11618,7 +11628,8 @@
       "name": "Improper Authorization in Handler for Custom URL Scheme",
       "abstraction": "Base",
       "parents": [
-        "862"
+        "862",
+        "940"
       ],
       "children": [],
       "attack_vectors": []
@@ -11651,7 +11662,8 @@
         "346"
       ],
       "children": [
-        "925"
+        "925",
+        "939"
       ],
       "attack_vectors": []
     },
